@@ -1,0 +1,121 @@
+# Dependencies (seront réinstallés par EAS)
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn.lock
+package-lock.json
+
+# Build artifacts
+ios/build/
+ios/DerivedData/
+ios/Pods/
+ios/Podfile.lock
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+*.apk
+*.aab
+*.ipa
+*.dSYM.zip
+
+# Cache directories
+.expo/
+.expo-shared/
+dist/
+web-build/
+.cache/
+.turbo/
+.next/
+.metro-health-check*
+
+# Documentation (non nécessaire pour le build)
+*.md
+!README.md
+docs/
+documentation/
+
+# Scripts de développement
+*.sh
+scripts/
+
+# Environment files (sauf .env qui peut être nécessaire)
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+xcuserdata/
+
+# Testing
+coverage/
+.nyc_output/
+*.test.js
+*.test.ts
+*.test.tsx
+*.spec.js
+*.spec.ts
+*.spec.tsx
+__tests__/
+__mocks__/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Other project directories (si présents)
+GesFlow/
+gespla/
+E_vote/
+Elections/
+Feguifoot/
+GED/
+GesFlowManagerNew/
+GesProj/
+"Gestion des plaintes/"
+"Projets DG/"
+"Seaclub projects/"
+SSO/
+Ufcc-admin/
+constitution-app/
+
+# Public assets non nécessaires (si trop volumineux)
+public/uploads/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Misc
+.cursorignore
+.eslintcache
+.stylelintcache
