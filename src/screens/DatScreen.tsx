@@ -1366,6 +1366,18 @@ export function DatScreen() {
     }, 100);
   }, []);
 
+  // Vérifier si tous les champs obligatoires sont remplis
+  const isFormValid = useMemo(() => {
+    return (
+      formData.amount &&
+      formData.startDate &&
+      formData.companyId &&
+      formData.bankId &&
+      formData.durationMonths &&
+      formData.interestRate
+    );
+  }, [formData]);
+
   const handleHeaderScroll = useCallback((event: any) => {
     if (isScrollingRef.current) return;
     const offsetX = event.nativeEvent.contentOffset.x;
@@ -2651,27 +2663,23 @@ export function DatScreen() {
 
         {/* Filtre Montant */}
         <View className="mb-6">
-          <Text
-            className={`text-sm font-semibold mb-3 ${
-              isDark ? "text-gray-300" : "text-gray-700"
-            }`}
-          >
+          <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
             Montant
           </Text>
           <View className="flex-row items-center gap-2">
             <View
-              className={`flex-1 flex-row items-center gap-2 px-3 py-2.5 rounded-lg border ${
+              className={`flex-1 flex-row items-center gap-2 px-4 py-2 rounded-lg border ${
                 isDark
-                  ? "bg-[#0f172a] border-gray-700"
-                  : "bg-gray-50 border-gray-200"
+                  ? "bg-[#1e293b] border-gray-700"
+                  : "bg-gray-100 border-gray-300"
               }`}
             >
               <TextInput
                 value={minAmount}
                 onChangeText={setMinAmount}
-                placeholder="Min"
+                placeholder="0.00"
                 keyboardType="numeric"
-                className={`flex-1 text-sm ${
+                className={`flex-1 ${
                   isDark ? "text-gray-100" : "text-gray-900"
                 }`}
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
@@ -2679,6 +2687,7 @@ export function DatScreen() {
                   textAlignVertical: "center",
                   includeFontPadding: false,
                   paddingVertical: 0,
+                  minHeight: 36,
                 }}
               />
             </View>
@@ -2688,18 +2697,18 @@ export function DatScreen() {
               -
             </Text>
             <View
-              className={`flex-1 flex-row items-center gap-2 px-3 py-2.5 rounded-lg border ${
+              className={`flex-1 flex-row items-center gap-2 px-4 py-2 rounded-lg border ${
                 isDark
-                  ? "bg-[#0f172a] border-gray-700"
-                  : "bg-gray-50 border-gray-200"
+                  ? "bg-[#1e293b] border-gray-700"
+                  : "bg-gray-100 border-gray-300"
               }`}
             >
               <TextInput
                 value={maxAmount}
                 onChangeText={setMaxAmount}
-                placeholder="Max"
+                placeholder="0.00"
                 keyboardType="numeric"
-                className={`flex-1 text-sm ${
+                className={`flex-1 ${
                   isDark ? "text-gray-100" : "text-gray-900"
                 }`}
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
@@ -2707,6 +2716,7 @@ export function DatScreen() {
                   textAlignVertical: "center",
                   includeFontPadding: false,
                   paddingVertical: 0,
+                  minHeight: 36,
                 }}
               />
             </View>
@@ -2715,44 +2725,42 @@ export function DatScreen() {
 
         {/* Filtre Dates */}
         <View className="mb-6">
-          <Text
-            className={`text-sm font-semibold mb-3 ${
-              isDark ? "text-gray-300" : "text-gray-700"
-            }`}
-          >
+          <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
             Date
           </Text>
           <View className="gap-3">
             <TextInput
               value={startDate}
               onChangeText={setStartDate}
-              placeholder="Date de début (YYYY-MM-DD)"
-              className={`px-3 py-2.5 rounded-lg border text-sm ${
+              placeholder="YYYY-MM-DD"
+              className={`px-4 py-3 rounded-lg border ${
                 isDark
-                  ? "bg-[#0f172a] border-gray-700 text-gray-100"
-                  : "bg-gray-50 border-gray-200 text-gray-900"
+                  ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                  : "bg-gray-100 border-gray-300 text-gray-900"
               }`}
               placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
               style={{
                 textAlignVertical: "center",
                 includeFontPadding: false,
                 paddingVertical: 0,
+                minHeight: 48,
               }}
             />
             <TextInput
               value={endDate}
               onChangeText={setEndDate}
-              placeholder="Date de fin (YYYY-MM-DD)"
-              className={`px-3 py-2.5 rounded-lg border text-sm ${
+              placeholder="YYYY-MM-DD"
+              className={`px-4 py-3 rounded-lg border ${
                 isDark
-                  ? "bg-[#0f172a] border-gray-700 text-gray-100"
-                  : "bg-gray-50 border-gray-200 text-gray-900"
+                  ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                  : "bg-gray-100 border-gray-300 text-gray-900"
               }`}
               placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
               style={{
                 textAlignVertical: "center",
                 includeFontPadding: false,
                 paddingVertical: 0,
+                minHeight: 48,
               }}
             />
           </View>
@@ -2946,8 +2954,8 @@ export function DatScreen() {
           <View className="gap-4 pb-4">
             {/* Entreprise */}
             <View>
-              <Text className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                Entreprise *
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Entreprise <Text className="text-red-500">*</Text>
               </Text>
               <Select
                 value={formData.companyId}
@@ -2965,8 +2973,8 @@ export function DatScreen() {
 
             {/* Banque */}
             <View>
-              <Text className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                Banque *
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Banque <Text className="text-red-500">*</Text>
               </Text>
               <Select
                 value={formData.bankId}
@@ -2981,8 +2989,8 @@ export function DatScreen() {
 
             {/* Montant */}
             <View>
-              <Text className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                Montant du dépôt *
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Montant du dépôt <Text className="text-red-500">*</Text>
               </Text>
               <TextInput
                 value={formData.amount}
@@ -2991,7 +2999,14 @@ export function DatScreen() {
                 }}
                 placeholder="0.00"
                 keyboardType="numeric"
-                className={`px-3 py-2 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"}`}
+                placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
+                className={`px-4 py-3 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-gray-100 border-gray-300 text-gray-900"}`}
+                style={{
+                  textAlignVertical: "center",
+                  includeFontPadding: false,
+                  paddingVertical: 0,
+                  minHeight: 48,
+                }}
               />
               {/* Affichage du solde mobilisé */}
               {formData.companyId && (
@@ -3052,8 +3067,8 @@ export function DatScreen() {
 
             {/* Durée */}
             <View>
-              <Text className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                Durée (en mois) *
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Durée (en mois) <Text className="text-red-500">*</Text>
               </Text>
               <TextInput
                 value={formData.durationMonths}
@@ -3062,14 +3077,21 @@ export function DatScreen() {
                 }}
                 placeholder="3"
                 keyboardType="numeric"
-                className={`px-3 py-2 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"}`}
+                placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
+                className={`px-4 py-3 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-gray-100 border-gray-300 text-gray-900"}`}
+                style={{
+                  textAlignVertical: "center",
+                  includeFontPadding: false,
+                  paddingVertical: 0,
+                  minHeight: 48,
+                }}
               />
             </View>
 
             {/* Taux d'intérêt */}
             <View>
-              <Text className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                Taux d'intérêt (%) *
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Taux d'intérêt (%) <Text className="text-red-500">*</Text>
               </Text>
               <TextInput
                 value={formData.interestRate}
@@ -3078,14 +3100,21 @@ export function DatScreen() {
                 }}
                 placeholder="0.00"
                 keyboardType="numeric"
-                className={`px-3 py-2 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"}`}
+                placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
+                className={`px-4 py-3 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-gray-100 border-gray-300 text-gray-900"}`}
+                style={{
+                  textAlignVertical: "center",
+                  includeFontPadding: false,
+                  paddingVertical: 0,
+                  minHeight: 48,
+                }}
               />
             </View>
 
             {/* Versement des intérêts */}
             <View>
-              <Text className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                Versement des intérêts *
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Versement des intérêts <Text className="text-red-500">*</Text>
               </Text>
               <Select
                 value={formData.interestPaymentFrequency}
@@ -3102,8 +3131,8 @@ export function DatScreen() {
 
             {/* Base de calcul */}
             <View>
-              <Text className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                Base de calcul *
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Base de calcul <Text className="text-red-500">*</Text>
               </Text>
               <Select
                 value={formData.dayCountBasis}
@@ -3120,8 +3149,8 @@ export function DatScreen() {
 
             {/* Date de début */}
             <View>
-              <Text className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                Date de début *
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Date de début <Text className="text-red-500">*</Text>
               </Text>
               <TextInput
                 value={formData.startDate}
@@ -3129,14 +3158,21 @@ export function DatScreen() {
                   setFormData((prev) => ({ ...prev, startDate: text }));
                 }}
                 placeholder="YYYY-MM-DD"
-                className={`px-3 py-2 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"}`}
+                placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
+                className={`px-4 py-3 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-gray-100 border-gray-300 text-gray-900"}`}
+                style={{
+                  textAlignVertical: "center",
+                  includeFontPadding: false,
+                  paddingVertical: 0,
+                  minHeight: 48,
+                }}
               />
             </View>
 
             {/* Date d'échéance */}
             <View>
-              <Text className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                Date d'échéance *
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Date d'échéance <Text className="text-red-500">*</Text>
               </Text>
               <TextInput
                 value={formData.maturityDate}
@@ -3144,14 +3180,21 @@ export function DatScreen() {
                   setFormData((prev) => ({ ...prev, maturityDate: text }));
                 }}
                 placeholder="YYYY-MM-DD"
+                placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 editable={false}
-                className={`px-3 py-2 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-400" : "bg-gray-100 border-gray-300 text-gray-500"}`}
+                className={`px-4 py-3 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-400" : "bg-gray-100 border-gray-300 text-gray-500"}`}
+                style={{
+                  textAlignVertical: "center",
+                  includeFontPadding: false,
+                  paddingVertical: 0,
+                  minHeight: 48,
+                }}
               />
             </View>
 
             {/* Numéro de compte */}
             <View>
-              <Text className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Numéro de compte
               </Text>
               <TextInput
@@ -3160,13 +3203,20 @@ export function DatScreen() {
                   setFormData((prev) => ({ ...prev, accountNumber: text }));
                 }}
                 placeholder="Optionnel"
-                className={`px-3 py-2 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"}`}
+                placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
+                className={`px-4 py-3 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-gray-100 border-gray-300 text-gray-900"}`}
+                style={{
+                  textAlignVertical: "center",
+                  includeFontPadding: false,
+                  paddingVertical: 0,
+                  minHeight: 48,
+                }}
               />
             </View>
 
             {/* Description */}
             <View>
-              <Text className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Description
               </Text>
               <TextInput
@@ -3175,9 +3225,14 @@ export function DatScreen() {
                   setFormData((prev) => ({ ...prev, description: text }));
                 }}
                 placeholder="Optionnel"
+                placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 multiline
                 numberOfLines={3}
-                className={`px-3 py-2 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"}`}
+                className={`px-4 py-3 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-gray-100 border-gray-300 text-gray-900"}`}
+                style={{
+                  textAlignVertical: "top",
+                  minHeight: 80,
+                }}
               />
             </View>
 
@@ -3198,7 +3253,7 @@ export function DatScreen() {
               </Button>
               <Button
                 onPress={handleSubmitDat}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !isFormValid}
                 className="flex-1"
               >
                 {isSubmitting ? (

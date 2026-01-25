@@ -39,8 +39,8 @@ export function Textarea({
           error
             ? 'border-red-500'
             : isDark
-            ? 'bg-[#1e293b] border-gray-600 text-gray-100'
-            : 'bg-white border-gray-300 text-gray-900',
+            ? 'bg-[#1e293b] border-gray-700 text-gray-100'
+            : 'bg-gray-100 border-gray-300 text-gray-900',
           className
         )}
         placeholderTextColor={isDark ? '#6b7280' : '#9ca3af'}
@@ -48,7 +48,7 @@ export function Textarea({
           {
             textAlignVertical: 'top',
             includeFontPadding: false,
-            minHeight: rows * 20 + 24, // Approximatif pour les lignes
+            minHeight: Math.max(80, rows * 20 + 24), // Minimum 80px pour les multiline
           },
           props.style,
         ]}

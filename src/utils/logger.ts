@@ -7,47 +7,31 @@ const isDev = __DEV__;
 
 export const logger = {
   info: (component: string, message: string, data?: any) => {
-    if (isDev) {
-      console.log(`ℹ️ [${component}] ${message}`, data || '');
-    }
+    // Logs supprimés
   },
 
   success: (component: string, message: string, data?: any) => {
-    if (isDev) {
-      console.log(`✅ [${component}] ${message}`, data || '');
-    }
+    // Logs supprimés
   },
 
   error: (component: string, message: string, error?: any) => {
-    if (isDev) {
-      console.error(`❌ [${component}] ${message}`, error || '');
-    }
+    // Logs supprimés
   },
 
   warn: (component: string, message: string, data?: any) => {
-    if (isDev) {
-      console.warn(`⚠️ [${component}] ${message}`, data || '');
-    }
+    // Logs supprimés
   },
 
   debug: (component: string, message: string, data?: any) => {
-    if (isDev) {
-      console.log(`🐛 [${component}] ${message}`, data || '');
-    }
+    // Logs supprimés
   },
 
   api: (component: string, method: string, url: string, data?: any) => {
-    if (isDev) {
-      console.log(`📡 [${component}] ${method} ${url}`, data || '');
-    }
+    // Logs supprimés
   },
 
   permission: (component: string, permission: string, granted: boolean) => {
-    if (isDev) {
-      console.log(
-        `🔐 [${component}] Permission "${permission}": ${granted ? '✅ Accordée' : '❌ Refusée'}`
-      );
-    }
+    // Logs supprimés
   },
 };
 

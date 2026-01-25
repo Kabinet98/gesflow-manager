@@ -42,7 +42,10 @@ import { Company } from "@/types";
 import { InvestmentsSkeleton } from "@/components/skeletons/InvestmentsSkeleton";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { BlurredAmount } from "@/components/BlurredAmount";
-import { TAB_BAR_PADDING_BOTTOM, REFRESH_CONTROL_COLOR } from "@/constants/layout";
+import {
+  TAB_BAR_PADDING_BOTTOM,
+  REFRESH_CONTROL_COLOR,
+} from "@/constants/layout";
 import { Drawer } from "@/components/ui/Drawer";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
@@ -80,7 +83,10 @@ const getDocumentDirectory = (): string | null => {
     if (paths) {
       const pathsKeys = Object.keys(paths || {});
 
-      if (paths.documentDirectory && typeof paths.documentDirectory === "string") {
+      if (
+        paths.documentDirectory &&
+        typeof paths.documentDirectory === "string"
+      ) {
         return paths.documentDirectory;
       }
 
@@ -115,10 +121,12 @@ interface Investment {
     id: string;
     name: string;
     currency?: string;
-    country?: {
-      id: string;
-      name: string;
-    } | string;
+    country?:
+      | {
+          id: string;
+          name: string;
+        }
+      | string;
   };
   category?: {
     id: string;
@@ -170,8 +178,11 @@ export function InvestmentsScreen() {
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [showInvestmentForm, setShowInvestmentForm] = useState(false);
   const [showCancelDrawer, setShowCancelDrawer] = useState(false);
-  const [editingInvestment, setEditingInvestment] = useState<Investment | null>(null);
-  const [investmentToCancel, setInvestmentToCancel] = useState<Investment | null>(null);
+  const [editingInvestment, setEditingInvestment] = useState<Investment | null>(
+    null,
+  );
+  const [investmentToCancel, setInvestmentToCancel] =
+    useState<Investment | null>(null);
   const [cancelConfirmation, setCancelConfirmation] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -255,11 +266,13 @@ export function InvestmentsScreen() {
       try {
         const response = await api.get("/api/investments");
         // Trier par date de création décroissante
-        const sortedData = (response.data || []).sort((a: Investment, b: Investment) => {
-          const dateA = new Date(a.createdAt).getTime();
-          const dateB = new Date(b.createdAt).getTime();
-          return dateB - dateA;
-        });
+        const sortedData = (response.data || []).sort(
+          (a: Investment, b: Investment) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateB - dateA;
+          },
+        );
         return sortedData;
       } catch (err: any) {
         throw err;
@@ -275,25 +288,44 @@ export function InvestmentsScreen() {
     return investments.filter((investment: Investment) => {
       // Filtre par recherche
       const matchesSearch =
-        investment.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        investment.company?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        investment.description
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        investment.company?.name
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         (investment.category?.name || investment.investmentCategory?.name || "")
           .toLowerCase()
           .includes(searchTerm.toLowerCase());
 
       // Filtre par date (date de l'investissement)
       const investmentDate = new Date(investment.date);
-      const matchesStartDate = !startDate || investmentDate >= new Date(startDate);
-      const matchesEndDate = !endDate || investmentDate <= new Date(endDate + "T23:59:59");
+      const matchesStartDate =
+        !startDate || investmentDate >= new Date(startDate);
+      const matchesEndDate =
+        !endDate || investmentDate <= new Date(endDate + "T23:59:59");
 
       // Filtre par montant
       const min = minAmount ? parseFloat(minAmount) : 0;
       const max = maxAmount ? parseFloat(maxAmount) : Infinity;
-      const matchesAmount = investment.amount >= min && investment.amount <= max;
+      const matchesAmount =
+        investment.amount >= min && investment.amount <= max;
 
-      return matchesSearch && matchesStartDate && matchesEndDate && matchesAmount;
+      return (
+        matchesSearch && matchesStartDate && matchesEndDate && matchesAmount
+      );
     });
   }, [investments, searchTerm, startDate, endDate, minAmount, maxAmount]);
+
+  // Vérifier si tous les champs obligatoires sont remplis
+  const isFormValid = useMemo(() => {
+    return (
+      formData.description.trim() &&
+      formData.amount &&
+      formData.companyId &&
+      formData.date
+    );
+  }, [formData]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -307,26 +339,29 @@ export function InvestmentsScreen() {
   };
 
   // Synchroniser le scroll
-  const handleContentScroll = useCallback((event: any, investmentId?: string) => {
-    if (isScrollingRef.current) return;
-    const offsetX = event.nativeEvent.contentOffset.x;
-    scrollXRef.current = offsetX;
-    isScrollingRef.current = true;
+  const handleContentScroll = useCallback(
+    (event: any, investmentId?: string) => {
+      if (isScrollingRef.current) return;
+      const offsetX = event.nativeEvent.contentOffset.x;
+      scrollXRef.current = offsetX;
+      isScrollingRef.current = true;
 
-    if (headerScrollRef.current) {
-      headerScrollRef.current.scrollTo({ x: offsetX, animated: false });
-    }
-
-    contentScrollRefs.current.forEach((ref, id) => {
-      if (id !== investmentId && ref) {
-        ref.scrollTo({ x: offsetX, animated: false });
+      if (headerScrollRef.current) {
+        headerScrollRef.current.scrollTo({ x: offsetX, animated: false });
       }
-    });
 
-    setTimeout(() => {
-      isScrollingRef.current = false;
-    }, 100);
-  }, []);
+      contentScrollRefs.current.forEach((ref, id) => {
+        if (id !== investmentId && ref) {
+          ref.scrollTo({ x: offsetX, animated: false });
+        }
+      });
+
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 100);
+    },
+    [],
+  );
 
   const handleHeaderScroll = useCallback((event: any) => {
     if (isScrollingRef.current) return;
@@ -358,12 +393,16 @@ export function InvestmentsScreen() {
   const canCancelInvestment = (investment: Investment): boolean => {
     if (investment.status === "CANCELLED") return false;
     if (!canCancelTransaction(investment.createdAt)) return false;
-    
+
     // Un utilisateur ne peut annuler que ses propres transactions
     // Si currentUserId n'est pas encore chargé, on permet l'affichage du bouton
     // La vérification finale se fera dans handleCancelInvestment
     const investmentCreatorId = investment.createdBy?.id;
-    if (currentUserId && investmentCreatorId && investmentCreatorId !== currentUserId) {
+    if (
+      currentUserId &&
+      investmentCreatorId &&
+      investmentCreatorId !== currentUserId
+    ) {
       return false;
     }
 
@@ -407,13 +446,17 @@ export function InvestmentsScreen() {
       return;
     }
 
-    const investmentDate = investment.date ? new Date(investment.date) : new Date();
+    const investmentDate = investment.date
+      ? new Date(investment.date)
+      : new Date();
     const year = investmentDate.getFullYear();
     const month = String(investmentDate.getMonth() + 1).padStart(2, "0");
     const day = String(investmentDate.getDate()).padStart(2, "0");
     const formattedDate = `${year}-${month}-${day}`;
 
-    const company = companies?.find((c: Company) => c.id === investment.company.id);
+    const company = companies?.find(
+      (c: Company) => c.id === investment.company.id,
+    );
     const countryId = company?.country
       ? typeof company.country === "string"
         ? company.country
@@ -426,7 +469,8 @@ export function InvestmentsScreen() {
       currency: investment.currency || "GNF",
       companyId: investment.company.id,
       countryId: countryId,
-      categoryId: investment.category?.id || investment.investmentCategory?.id || "",
+      categoryId:
+        investment.category?.id || investment.investmentCategory?.id || "",
       date: formattedDate,
     });
     setEditingInvestment(investment);
@@ -439,14 +483,21 @@ export function InvestmentsScreen() {
     try {
       setIsSubmitting(true);
 
-      if (!formData.description || !formData.amount || !formData.companyId || !formData.date) {
+      if (
+        !formData.description ||
+        !formData.amount ||
+        !formData.companyId ||
+        !formData.date
+      ) {
         Alert.alert("Erreur", "Veuillez remplir tous les champs obligatoires");
         setIsSubmitting(false);
         return;
       }
 
       // Récupérer le countryId depuis l'entreprise
-      const company = companies?.find((c: Company) => c.id === formData.companyId);
+      const company = companies?.find(
+        (c: Company) => c.id === formData.companyId,
+      );
       let finalCountryId = formData.countryId;
       if (company?.country) {
         finalCountryId =
@@ -456,7 +507,10 @@ export function InvestmentsScreen() {
       }
 
       if (!finalCountryId) {
-        Alert.alert("Erreur", "Impossible de déterminer le pays de l'entreprise");
+        Alert.alert(
+          "Erreur",
+          "Impossible de déterminer le pays de l'entreprise",
+        );
         setIsSubmitting(false);
         return;
       }
@@ -497,7 +551,9 @@ export function InvestmentsScreen() {
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
       const errorMessage =
-        error.response?.data?.error || error.message || "Une erreur est survenue";
+        error.response?.data?.error ||
+        error.message ||
+        "Une erreur est survenue";
       Alert.alert("Erreur", errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -508,7 +564,7 @@ export function InvestmentsScreen() {
     if (!canCancelInvestment(investment)) {
       Alert.alert(
         "Impossible d'annuler",
-        "Cette transaction ne peut pas être annulée. Elle a peut-être déjà été annulée, ou plus de 24h se sont écoulées depuis sa création, ou vous n'êtes pas l'auteur de cette transaction."
+        "Cette transaction ne peut pas être annulée. Elle a peut-être déjà été annulée, ou plus de 24h se sont écoulées depuis sa création, ou vous n'êtes pas l'auteur de cette transaction.",
       );
       return;
     }
@@ -523,7 +579,7 @@ export function InvestmentsScreen() {
 
     const confirmationText = `${investmentToCancel.company.name} - ${formatAmount(
       investmentToCancel.amount,
-      investmentToCancel.currency || "GNF"
+      investmentToCancel.currency || "GNF",
     )}`;
 
     if (
@@ -550,7 +606,9 @@ export function InvestmentsScreen() {
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
       const errorMessage =
-        error.response?.data?.error || error.message || "Une erreur est survenue";
+        error.response?.data?.error ||
+        error.message ||
+        "Une erreur est survenue";
       Alert.alert("Erreur", errorMessage);
     } finally {
       setIsCancelling(false);
@@ -564,7 +622,10 @@ export function InvestmentsScreen() {
       setIsExporting(true);
 
       if (!filteredInvestments || filteredInvestments.length === 0) {
-        Alert.alert("Aucune donnée", "Il n'y a aucun investissement à exporter avec les filtres actuels.");
+        Alert.alert(
+          "Aucune donnée",
+          "Il n'y a aucun investissement à exporter avec les filtres actuels.",
+        );
         return;
       }
 
@@ -581,9 +642,15 @@ export function InvestmentsScreen() {
         return {
           Date: formatDate(investment.date),
           Entreprise: investment.company?.name || "N/A",
-          Catégorie: investment.category?.name || investment.investmentCategory?.name || "",
+          Catégorie:
+            investment.category?.name ||
+            investment.investmentCategory?.name ||
+            "",
           Description: investment.description || "",
-          Montant: formatAmount(investment.amount, investment.currency || "GNF"),
+          Montant: formatAmount(
+            investment.amount,
+            investment.currency || "GNF",
+          ),
           Devise: investment.currency || "GNF",
         };
       });
@@ -634,13 +701,15 @@ export function InvestmentsScreen() {
                   const value = row[header as keyof typeof row];
                   if (
                     typeof value === "string" &&
-                    (value.includes(",") || value.includes('"') || value.includes("\n"))
+                    (value.includes(",") ||
+                      value.includes('"') ||
+                      value.includes("\n"))
                   ) {
                     return `"${value.replace(/"/g, '""')}"`;
                   }
                   return value ?? "";
                 })
-                .join(",")
+                .join(","),
             ),
           ];
           fileContent = csvRows.join("\n");
@@ -650,7 +719,7 @@ export function InvestmentsScreen() {
 
         // Utiliser la même logique que getDocumentDirectory() pour trouver le répertoire
         let directory = getDocumentDirectory();
-        
+
         // Si getDocumentDirectory() ne trouve pas de répertoire, essayer d'utiliser FileSystem.Directory
         if (!directory) {
           try {
@@ -664,17 +733,20 @@ export function InvestmentsScreen() {
               } else if (typeof Directory.cacheDirectory === "string") {
                 directory = Directory.cacheDirectory;
               } else if (Directory.cacheDirectory) {
-                directory = Directory.cacheDirectory.path || Directory.cacheDirectory.uri || Directory.cacheDirectory;
+                directory =
+                  Directory.cacheDirectory.path ||
+                  Directory.cacheDirectory.uri ||
+                  Directory.cacheDirectory;
               }
             }
           } catch (e) {
             // Erreur silencieuse
           }
         }
-        
+
         // Utiliser l'API legacy pour writeAsStringAsync
         let writeFn: any = null;
-        
+
         if (FileSystemLegacy && FileSystemLegacy.writeAsStringAsync) {
           writeFn = FileSystemLegacy.writeAsStringAsync;
         } else {
@@ -702,12 +774,12 @@ export function InvestmentsScreen() {
         if (!writeFn || typeof writeFn !== "function") {
           throw new Error("writeAsStringAsync not found in expo-file-system");
         }
-        
+
         // Si directory n'est toujours pas disponible, utiliser un chemin relatif
         if (!directory) {
           directory = "";
         }
-        
+
         const fileUri = directory ? `${directory}${filename}` : filename;
 
         // Écrire le fichier (Excel en base64 ou CSV en utf8)
@@ -725,7 +797,7 @@ export function InvestmentsScreen() {
           }
         } catch (writeError: any) {
           throw new Error(
-            `Impossible d'écrire le fichier: ${writeError.message}`
+            `Impossible d'écrire le fichier: ${writeError.message}`,
           );
         }
 
@@ -734,18 +806,20 @@ export function InvestmentsScreen() {
         if (isAvailable) {
           await Sharing.shareAsync(fileUri, {
             mimeType: mimeType,
-            dialogTitle: useXLSX ? "Partager le fichier Excel" : "Partager le fichier CSV",
+            dialogTitle: useXLSX
+              ? "Partager le fichier Excel"
+              : "Partager le fichier CSV",
           });
         } else {
           Alert.alert(
             "Export réussi",
-            `Le fichier ${useXLSX ? "Excel" : "CSV"} a été sauvegardé : ${filename}`
+            `Le fichier ${useXLSX ? "Excel" : "CSV"} a été sauvegardé : ${filename}`,
           );
         }
       } catch (exportError: any) {
         Alert.alert(
           "Erreur",
-          exportError.message || "Impossible d'exporter le fichier Excel"
+          exportError.message || "Impossible d'exporter le fichier Excel",
         );
       }
     } catch (error: any) {
@@ -767,7 +841,7 @@ export function InvestmentsScreen() {
 
   const totalTableWidth = Object.values(columnWidths).reduce(
     (sum, width) => sum + width,
-    0
+    0,
   );
 
   if (!canView) {
@@ -848,13 +922,20 @@ export function InvestmentsScreen() {
                       : "#6b7280"
                 }
               />
-              {(startDate ? 1 : 0) + (endDate ? 1 : 0) + (minAmount ? 1 : 0) + (maxAmount ? 1 : 0) > 0 && (
+              {(startDate ? 1 : 0) +
+                (endDate ? 1 : 0) +
+                (minAmount ? 1 : 0) +
+                (maxAmount ? 1 : 0) >
+                0 && (
                 <View
                   className="px-1.5 py-0.5 rounded-full"
                   style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
                 >
                   <Text className="text-white text-xs font-semibold">
-                    {(startDate ? 1 : 0) + (endDate ? 1 : 0) + (minAmount ? 1 : 0) + (maxAmount ? 1 : 0)}
+                    {(startDate ? 1 : 0) +
+                      (endDate ? 1 : 0) +
+                      (minAmount ? 1 : 0) +
+                      (maxAmount ? 1 : 0)}
                   </Text>
                 </View>
               )}
@@ -1051,7 +1132,11 @@ export function InvestmentsScreen() {
                       isDark ? "text-gray-400" : "text-gray-600"
                     }`}
                   >
-                    {searchTerm || startDate || endDate || minAmount || maxAmount
+                    {searchTerm ||
+                    startDate ||
+                    endDate ||
+                    minAmount ||
+                    maxAmount
                       ? "Aucun investissement trouvé"
                       : "Aucun investissement disponible"}
                   </Text>
@@ -1060,12 +1145,14 @@ export function InvestmentsScreen() {
                 filteredInvestments.map((investment: Investment) => {
                   // Vérifier les permissions et les conditions pour les actions
                   const canEdit = canUpdate && canEditInvestment(investment);
-                  const canCancel = canDelete && canCancelInvestment(investment);
+                  const canCancel =
+                    canDelete && canCancelInvestment(investment);
                   const hasEditAction = canEdit;
                   const hasCancelAction = canCancel;
                   const hasAnyAction = hasEditAction || hasCancelAction;
-                  const actionCount = [hasEditAction, hasCancelAction].filter(Boolean).length;
-                  
+                  const actionCount = [hasEditAction, hasCancelAction].filter(
+                    Boolean,
+                  ).length;
 
                   return (
                     <View
@@ -1120,11 +1207,14 @@ export function InvestmentsScreen() {
                                 isDark ? "text-gray-400" : "text-gray-600"
                               }`}
                             >
-                              {new Date(investment.date).toLocaleDateString("fr-FR", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                              })}
+                              {new Date(investment.date).toLocaleDateString(
+                                "fr-FR",
+                                {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                },
+                              )}
                             </Text>
                           </View>
 
@@ -1246,7 +1336,9 @@ export function InvestmentsScreen() {
                                   padding: actionCount >= 2 ? 6 : 8,
                                 }}
                                 activeOpacity={0.7}
-                                onPress={() => handleCancelInvestment(investment)}
+                                onPress={() =>
+                                  handleCancelInvestment(investment)
+                                }
                               >
                                 <HugeiconsIcon
                                   icon={Cancel01Icon}
@@ -1281,32 +1373,10 @@ export function InvestmentsScreen() {
         onOpenChange={setShowFiltersModal}
         title="Filtres"
       >
-        <View className="flex-row items-center justify-between mb-6">
-          <TouchableOpacity
-            onPress={() => {
-              setStartDate("");
-              setEndDate("");
-              setMinAmount("");
-              setMaxAmount("");
-            }}
-            activeOpacity={0.7}
-          >
-            <Text
-              className={`text-sm font-medium ${
-                isDark ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
-              Reset
-            </Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Filtre Date */}
         <View className="mb-6">
           <Text
-            className={`text-sm font-semibold mb-3 ${
-              isDark ? "text-gray-300" : "text-gray-700"
-            }`}
+            className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
           >
             Date
           </Text>
@@ -1320,10 +1390,10 @@ export function InvestmentsScreen() {
                 Du
               </Text>
               <View
-                className={`flex-row items-center gap-2 px-3 py-2.5 rounded-lg border ${
+                className={`flex-row items-center gap-2 px-4 py-2 rounded-lg border ${
                   isDark
-                    ? "bg-[#0f172a] border-gray-700"
-                    : "bg-gray-50 border-gray-200"
+                    ? "bg-[#1e293b] border-gray-700"
+                    : "bg-gray-100 border-gray-300"
                 }`}
               >
                 <HugeiconsIcon
@@ -1336,7 +1406,7 @@ export function InvestmentsScreen() {
                   onChangeText={setStartDate}
                   placeholder="YYYY-MM-DD"
                   placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                  className={`flex-1 text-sm ${
+                  className={`flex-1 ${
                     isDark ? "text-gray-100" : "text-gray-900"
                   }`}
                   style={{
@@ -1344,7 +1414,7 @@ export function InvestmentsScreen() {
                     textAlign: "left",
                     includeFontPadding: false,
                     paddingVertical: 0,
-                    minHeight: 20,
+                    minHeight: 36,
                   }}
                 />
               </View>
@@ -1358,10 +1428,10 @@ export function InvestmentsScreen() {
                 Au
               </Text>
               <View
-                className={`flex-row items-center gap-2 px-3 py-2.5 rounded-lg border ${
+                className={`flex-row items-center gap-2 px-4 py-2 rounded-lg border ${
                   isDark
-                    ? "bg-[#0f172a] border-gray-700"
-                    : "bg-gray-50 border-gray-200"
+                    ? "bg-[#1e293b] border-gray-700"
+                    : "bg-gray-100 border-gray-300"
                 }`}
               >
                 <HugeiconsIcon
@@ -1374,7 +1444,7 @@ export function InvestmentsScreen() {
                   onChangeText={setEndDate}
                   placeholder="YYYY-MM-DD"
                   placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                  className={`flex-1 text-sm ${
+                  className={`flex-1 ${
                     isDark ? "text-gray-100" : "text-gray-900"
                   }`}
                   style={{
@@ -1382,7 +1452,7 @@ export function InvestmentsScreen() {
                     textAlign: "left",
                     includeFontPadding: false,
                     paddingVertical: 0,
-                    minHeight: 20,
+                    minHeight: 36,
                   }}
                 />
               </View>
@@ -1393,9 +1463,7 @@ export function InvestmentsScreen() {
         {/* Filtre Montant */}
         <View className="mb-6">
           <Text
-            className={`text-sm font-semibold mb-3 ${
-              isDark ? "text-gray-300" : "text-gray-700"
-            }`}
+            className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
           >
             Montant
           </Text>
@@ -1409,10 +1477,10 @@ export function InvestmentsScreen() {
                 Min
               </Text>
               <View
-                className={`flex-row items-center gap-2 px-3 py-2.5 rounded-lg border ${
+                className={`flex-row items-center gap-2 px-4 py-2 rounded-lg border ${
                   isDark
-                    ? "bg-[#0f172a] border-gray-700"
-                    : "bg-gray-50 border-gray-200"
+                    ? "bg-[#1e293b] border-gray-700"
+                    : "bg-gray-100 border-gray-300"
                 }`}
               >
                 <Text
@@ -1427,18 +1495,19 @@ export function InvestmentsScreen() {
                   value={minAmount}
                   onChangeText={(text) => {
                     // Permettre uniquement les nombres et un point décimal
-                    const numericValue = text.replace(/[^0-9.]/g, '');
+                    const numericValue = text.replace(/[^0-9.]/g, "");
                     // Permettre un seul point décimal
-                    const parts = numericValue.split('.');
-                    const filteredValue = parts.length > 2 
-                      ? parts[0] + '.' + parts.slice(1).join('')
-                      : numericValue;
+                    const parts = numericValue.split(".");
+                    const filteredValue =
+                      parts.length > 2
+                        ? parts[0] + "." + parts.slice(1).join("")
+                        : numericValue;
                     setMinAmount(filteredValue);
                   }}
-                  placeholder="0"
+                  placeholder="0.00"
                   placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                   keyboardType="numeric"
-                  className={`flex-1 text-sm ${
+                  className={`flex-1 ${
                     isDark ? "text-gray-100" : "text-gray-900"
                   }`}
                   style={{
@@ -1446,7 +1515,7 @@ export function InvestmentsScreen() {
                     textAlign: "left",
                     includeFontPadding: false,
                     paddingVertical: 0,
-                    minHeight: 20,
+                    minHeight: 36,
                   }}
                 />
               </View>
@@ -1460,10 +1529,10 @@ export function InvestmentsScreen() {
                 Max
               </Text>
               <View
-                className={`flex-row items-center gap-2 px-3 py-2.5 rounded-lg border ${
+                className={`flex-row items-center gap-2 px-4 py-2 rounded-lg border ${
                   isDark
-                    ? "bg-[#0f172a] border-gray-700"
-                    : "bg-gray-50 border-gray-200"
+                    ? "bg-[#1e293b] border-gray-700"
+                    : "bg-gray-100 border-gray-300"
                 }`}
               >
                 <Text
@@ -1478,18 +1547,19 @@ export function InvestmentsScreen() {
                   value={maxAmount}
                   onChangeText={(text) => {
                     // Permettre uniquement les nombres et un point décimal
-                    const numericValue = text.replace(/[^0-9.]/g, '');
+                    const numericValue = text.replace(/[^0-9.]/g, "");
                     // Permettre un seul point décimal
-                    const parts = numericValue.split('.');
-                    const filteredValue = parts.length > 2 
-                      ? parts[0] + '.' + parts.slice(1).join('')
-                      : numericValue;
+                    const parts = numericValue.split(".");
+                    const filteredValue =
+                      parts.length > 2
+                        ? parts[0] + "." + parts.slice(1).join("")
+                        : numericValue;
                     setMaxAmount(filteredValue);
                   }}
-                  placeholder="0"
+                  placeholder="0.00"
                   placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                   keyboardType="numeric"
-                  className={`flex-1 text-sm ${
+                  className={`flex-1 ${
                     isDark ? "text-gray-100" : "text-gray-900"
                   }`}
                   style={{
@@ -1497,7 +1567,7 @@ export function InvestmentsScreen() {
                     textAlign: "left",
                     includeFontPadding: false,
                     paddingVertical: 0,
-                    minHeight: 20,
+                    minHeight: 36,
                   }}
                 />
               </View>
@@ -1550,7 +1620,11 @@ export function InvestmentsScreen() {
             });
           }
         }}
-        title={editingInvestment ? "Modifier l'investissement" : "Nouvel investissement"}
+        title={
+          editingInvestment
+            ? "Modifier l'investissement"
+            : "Nouvel investissement"
+        }
         footer={
           <View className="flex-row gap-3">
             <TouchableOpacity
@@ -1596,7 +1670,7 @@ export function InvestmentsScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSubmitInvestment}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isFormValid}
               className="flex-1 py-3 rounded-full flex-row items-center justify-center gap-2"
               style={{
                 backgroundColor: CHART_COLOR,
@@ -1617,12 +1691,17 @@ export function InvestmentsScreen() {
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           {/* Entreprise - Premier champ */}
           <View className="mb-4">
+            <Text
+              className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+            >
+              Entreprise <Text className="text-red-500">*</Text>
+            </Text>
             <Select
-              label="Entreprise"
-              required
               value={formData.companyId}
               onValueChange={(value: string) => {
-                const selectedCompany = companies?.find((c: Company) => c.id === value);
+                const selectedCompany = companies?.find(
+                  (c: Company) => c.id === value,
+                );
                 if (selectedCompany) {
                   const countryId = selectedCompany.country
                     ? typeof selectedCompany.country === "string"
@@ -1651,8 +1730,12 @@ export function InvestmentsScreen() {
 
           {/* Catégorie */}
           <View className="mb-4">
+            <Text
+              className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+            >
+              Catégorie
+            </Text>
             <Select
-              label="Catégorie"
               value={formData.categoryId}
               onValueChange={(value: string) =>
                 setFormData({ ...formData, categoryId: value })
@@ -1670,17 +1753,15 @@ export function InvestmentsScreen() {
           {/* Montant */}
           <View className="mb-4">
             <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
+              className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
             >
-              Montant *
+              Montant <Text className="text-red-500">*</Text>
             </Text>
             <View
-              className={`flex-row items-center gap-2 px-4 py-3 rounded-lg border ${
+              className={`flex-row items-center gap-2 px-4 py-2 rounded-lg border ${
                 isDark
-                  ? "bg-[#0f172a] border-gray-700"
-                  : "bg-gray-50 border-gray-200"
+                  ? "bg-[#1e293b] border-gray-700"
+                  : "bg-gray-100 border-gray-300"
               }`}
             >
               <Text
@@ -1695,18 +1776,19 @@ export function InvestmentsScreen() {
                 value={formData.amount}
                 onChangeText={(text) => {
                   // Permettre uniquement les nombres et un point décimal
-                  const numericValue = text.replace(/[^0-9.]/g, '');
+                  const numericValue = text.replace(/[^0-9.]/g, "");
                   // Permettre un seul point décimal
-                  const parts = numericValue.split('.');
-                  const filteredValue = parts.length > 2 
-                    ? parts[0] + '.' + parts.slice(1).join('')
-                    : numericValue;
+                  const parts = numericValue.split(".");
+                  const filteredValue =
+                    parts.length > 2
+                      ? parts[0] + "." + parts.slice(1).join("")
+                      : numericValue;
                   setFormData({ ...formData, amount: filteredValue });
                 }}
-                placeholder="0"
+                placeholder="0.00"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="numeric"
-                className={`flex-1 text-sm ${
+                className={`flex-1 ${
                   isDark ? "text-gray-100" : "text-gray-900"
                 }`}
                 style={{
@@ -1714,7 +1796,7 @@ export function InvestmentsScreen() {
                   textAlign: "left",
                   includeFontPadding: false,
                   paddingVertical: 0,
-                  minHeight: 20,
+                  minHeight: 36,
                 }}
               />
             </View>
@@ -1723,17 +1805,15 @@ export function InvestmentsScreen() {
           {/* Date */}
           <View className="mb-4">
             <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
+              className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
             >
-              Date *
+              Date <Text className="text-red-500">*</Text>
             </Text>
             <View
-              className={`flex-row items-center gap-2 px-4 py-3 rounded-lg border ${
+              className={`flex-row items-center gap-2 px-4 py-2 rounded-lg border ${
                 isDark
-                  ? "bg-[#0f172a] border-gray-700"
-                  : "bg-gray-50 border-gray-200"
+                  ? "bg-[#1e293b] border-gray-700"
+                  : "bg-gray-100 border-gray-300"
               }`}
             >
               <HugeiconsIcon
@@ -1748,7 +1828,7 @@ export function InvestmentsScreen() {
                 }
                 placeholder="YYYY-MM-DD"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                className={`flex-1 text-sm ${
+                className={`flex-1 ${
                   isDark ? "text-gray-100" : "text-gray-900"
                 }`}
                 style={{
@@ -1756,7 +1836,7 @@ export function InvestmentsScreen() {
                   textAlign: "left",
                   includeFontPadding: false,
                   paddingVertical: 0,
-                  minHeight: 20,
+                  minHeight: 36,
                 }}
               />
             </View>
@@ -1765,11 +1845,9 @@ export function InvestmentsScreen() {
           {/* Description */}
           <View className="mb-4">
             <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
+              className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
             >
-              Description *
+              Description <Text className="text-red-500">*</Text>
             </Text>
             <TextInput
               value={formData.description}
@@ -1782,8 +1860,8 @@ export function InvestmentsScreen() {
               numberOfLines={3}
               className={`px-4 py-3 rounded-lg border ${
                 isDark
-                  ? "bg-[#0f172a] border-gray-700 text-gray-100"
-                  : "bg-gray-50 border-gray-200 text-gray-900"
+                  ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                  : "bg-gray-100 border-gray-300 text-gray-900"
               }`}
               style={{
                 textAlignVertical: "top",
@@ -1823,9 +1901,12 @@ export function InvestmentsScreen() {
               }`}
             >
               Êtes-vous sûr de vouloir annuler cette transaction de{" "}
-              <Text className="font-bold">{investmentToCancel.company.name}</Text> ?
-              {"\n\n"}
-              Cette action est irréversible et mettra à jour les soldes de l'entreprise.
+              <Text className="font-bold">
+                {investmentToCancel.company.name}
+              </Text>{" "}
+              ?{"\n\n"}
+              Cette action est irréversible et mettra à jour les soldes de
+              l'entreprise.
             </Text>
 
             <View>
@@ -1838,7 +1919,7 @@ export function InvestmentsScreen() {
                   Tapez "{investmentToCancel.company.name} -{" "}
                   {formatAmount(
                     investmentToCancel.amount,
-                    investmentToCancel.currency || "GNF"
+                    investmentToCancel.currency || "GNF",
                   )}
                   " pour confirmer :
                 </Text>
@@ -1846,7 +1927,7 @@ export function InvestmentsScreen() {
                   onPress={() => {
                     const textToCopy = `${investmentToCancel.company.name} - ${formatAmount(
                       investmentToCancel.amount,
-                      investmentToCancel.currency || "GNF"
+                      investmentToCancel.currency || "GNF",
                     )}`;
                     Clipboard.setString(textToCopy);
                   }}
@@ -1875,7 +1956,7 @@ export function InvestmentsScreen() {
                 onChangeText={setCancelConfirmation}
                 placeholder={`${investmentToCancel.company.name} - ${formatAmount(
                   investmentToCancel.amount,
-                  investmentToCancel.currency || "GNF"
+                  investmentToCancel.currency || "GNF",
                 )}`}
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 className={`px-4 py-3.5 rounded-xl border text-sm ${
@@ -1934,8 +2015,8 @@ export function InvestmentsScreen() {
                 normalizeConfirmationText(
                   `${investmentToCancel?.company.name} - ${formatAmount(
                     investmentToCancel?.amount || 0,
-                    investmentToCancel?.currency || "GNF"
-                  )}`
+                    investmentToCancel?.currency || "GNF",
+                  )}`,
                 )
             }
             loading={isCancelling}
@@ -1949,8 +2030,8 @@ export function InvestmentsScreen() {
                   normalizeConfirmationText(
                     `${investmentToCancel.company.name} - ${formatAmount(
                       investmentToCancel.amount,
-                      investmentToCancel.currency || "GNF"
-                    )}`
+                      investmentToCancel.currency || "GNF",
+                    )}`,
                   ) &&
                 !isCancelling
                   ? 1

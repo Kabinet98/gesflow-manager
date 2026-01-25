@@ -52,7 +52,11 @@ import { Expense, Company } from "@/types";
 import { ExpensesSkeleton } from "@/components/skeletons/ExpensesSkeleton";
 import { Header } from "@/components/Header";
 import { BlurredAmount } from "@/components/BlurredAmount";
-import { TAB_BAR_PADDING_BOTTOM, REFRESH_CONTROL_COLOR } from "@/constants/layout";
+import { PieChartComponent } from "@/components/charts/PieChart";
+import {
+  TAB_BAR_PADDING_BOTTOM,
+  REFRESH_CONTROL_COLOR,
+} from "@/constants/layout";
 import { Drawer } from "@/components/ui/Drawer";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
@@ -90,7 +94,6 @@ const getDocumentDirectory = (): string | null => {
     // Vérifier FileSystem.Paths (nouvelle API)
     const paths = (FileSystem as any).Paths;
     if (paths) {
-      
       const pathsKeys = Object.keys(paths || {});
 
       // Essayer différentes variantes de noms
@@ -342,7 +345,7 @@ const SwipeableDocument: React.FC<SwipeableDocumentProps> = ({
               if (!url.startsWith("http")) {
                 Alert.alert(
                   "Erreur",
-                  "Impossible de construire une URL valide pour le document"
+                  "Impossible de construire une URL valide pour le document",
                 );
                 return;
               }
@@ -357,7 +360,7 @@ const SwipeableDocument: React.FC<SwipeableDocumentProps> = ({
             } catch (error: any) {
               Alert.alert(
                 "Erreur",
-                error.message || "Impossible d'ouvrir le document"
+                error.message || "Impossible d'ouvrir le document",
               );
             }
           }}
@@ -431,14 +434,14 @@ const SwipeableDocument: React.FC<SwipeableDocumentProps> = ({
                             documentId: doc.id,
                             title: newTitle.trim(),
                           },
-                          { skipAuthError: true }
+                          { skipAuthError: true },
                         );
                         // Recharger les documents
                         await onReload();
                       } catch (error: any) {
                         Alert.alert(
                           "Erreur",
-                          "Impossible de modifier le titre"
+                          "Impossible de modifier le titre",
                         );
                       }
                     }
@@ -446,7 +449,7 @@ const SwipeableDocument: React.FC<SwipeableDocumentProps> = ({
                 },
               ],
               "plain-text",
-              doc.title
+              doc.title,
             );
           }}
           style={{
@@ -514,19 +517,19 @@ const SwipeableDocument: React.FC<SwipeableDocumentProps> = ({
                     try {
                       await api.delete(
                         `/api/expenses/${editingExpense?.id}/documents?documentId=${doc.id}`,
-                        { skipAuthError: true }
+                        { skipAuthError: true },
                       );
                       // Recharger les documents
                       await onReload();
                     } catch (error: any) {
                       Alert.alert(
                         "Erreur",
-                        "Impossible de supprimer le document"
+                        "Impossible de supprimer le document",
                       );
                     }
                   },
                 },
-              ]
+              ],
             );
           }}
           style={{
@@ -657,7 +660,7 @@ const PendingExpenseRowWrapper: React.FC<PendingExpenseRowWrapperProps> = ({
             duration: 1500,
             useNativeDriver: true,
           }),
-        ])
+        ]),
       );
       pulse.start();
       return () => {
@@ -672,13 +675,7 @@ const PendingExpenseRowWrapper: React.FC<PendingExpenseRowWrapperProps> = ({
   const animatedStyle = { opacity: pulseAnim };
 
   if (isPending) {
-    return (
-      <Animated.View
-        style={animatedStyle}
-      >
-        {children}
-      </Animated.View>
-    );
+    return <Animated.View style={animatedStyle}>{children}</Animated.View>;
   }
 
   return <>{children}</>;
@@ -692,7 +689,7 @@ export function ExpensesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<"ALL" | "INCOME" | "OUTCOME">(
-    "ALL"
+    "ALL",
   );
   const [statusFilter, setStatusFilter] = useState<
     "ALL" | "PENDING" | "APPROVED" | "REJECTED"
@@ -711,6 +708,7 @@ export function ExpensesScreen() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   // État du formulaire
   const [formData, setFormData] = useState({
@@ -721,7 +719,7 @@ export function ExpensesScreen() {
     companyId: "",
     countryId: "",
     date: "",
-    category: "",
+    category: "Business" as "Business" | "Famille" | "",
   });
 
   // État pour le solde mobilisé
@@ -751,7 +749,7 @@ export function ExpensesScreen() {
       createdAt: string;
     }>
   >([]);
-  
+
   // États pour le modal de visualisation et validation
   const [showViewModal, setShowViewModal] = useState(false);
   const [expenseToView, setExpenseToView] = useState<Expense | null>(null);
@@ -766,8 +764,12 @@ export function ExpensesScreen() {
     }>
   >([]);
   const [showValidationModal, setShowValidationModal] = useState(false);
-  const [expenseToValidate, setExpenseToValidate] = useState<Expense | null>(null);
-  const [validationAction, setValidationAction] = useState<"approve" | "reject" | null>(null);
+  const [expenseToValidate, setExpenseToValidate] = useState<Expense | null>(
+    null,
+  );
+  const [validationAction, setValidationAction] = useState<
+    "approve" | "reject" | null
+  >(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [isValidating, setIsValidating] = useState(false);
 
@@ -790,7 +792,7 @@ export function ExpensesScreen() {
         if (user) {
           // Stocker l'ID de l'utilisateur actuel
           setCurrentUserId(user.id);
-          
+
           // Vérifier si l'utilisateur est un gestionnaire
           const response = await api.get("/api/users/me");
           const fullUser = response.data;
@@ -799,7 +801,8 @@ export function ExpensesScreen() {
           const roleName = fullUser?.role?.name?.toLowerCase() || "";
           const isManagerRole =
             roleName.includes("gestionnaire") || roleName.includes("manager");
-          const isAdminRole = roleName.includes("admin") || roleName === "administrateur";
+          const isAdminRole =
+            roleName.includes("admin") || roleName === "administrateur";
 
           if (isAdminRole) {
             setIsAdmin(true);
@@ -809,7 +812,7 @@ export function ExpensesScreen() {
             // Récupérer le companyId depuis l'API spécifique du gestionnaire
             try {
               const managerResponse = await api.get(
-                `/api/users/${user.id}/company-manager`
+                `/api/users/${user.id}/company-manager`,
               );
               const manager = managerResponse.data;
 
@@ -832,7 +835,7 @@ export function ExpensesScreen() {
     fetchUserCompany();
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Initialisation
   }, []); // Seulement au montage
 
@@ -892,7 +895,7 @@ export function ExpensesScreen() {
     let expensesToFilter = expenses;
     if (!isAdmin && isManager && currentUserId) {
       expensesToFilter = expenses.filter(
-        (expense: Expense) => (expense as any).createdBy?.id === currentUserId
+        (expense: Expense) => (expense as any).createdBy?.id === currentUserId,
       );
     }
 
@@ -924,7 +927,19 @@ export function ExpensesScreen() {
       // Les admins peuvent filtrer par gestionnaire, les managers voient déjà uniquement les leurs
       const matchesUser =
         (!isAdmin && isManager) || // Les managers ne filtrent pas par utilisateur (ils voient déjà uniquement les leurs)
-        (isAdmin && (!selectedUserId || selectedUserId === "all" || (expense as any).createdBy?.id === selectedUserId)); // Pour les admins : voir toutes si "Tous" ou aucun filtre, sinon filtrer par gestionnaire sélectionné
+        (isAdmin &&
+          (!selectedUserId ||
+            selectedUserId === "all" ||
+            (expense as any).createdBy?.id === selectedUserId)); // Pour les admins : voir toutes si "Tous" ou aucun filtre, sinon filtrer par gestionnaire sélectionné
+
+      // Filtre par catégorie (uniquement pour l'admin)
+      // Mapper "Personnelle" (de l'API) vers "Famille" (pour le filtre)
+      const expenseCategory = (expense as any).category === "Personnelle" ? "Famille" : (expense as any).category;
+      const matchesCategory =
+        !selectedCategory ||
+        selectedCategory === "all" ||
+        (selectedCategory === "none" && !expenseCategory) ||
+        expenseCategory === selectedCategory;
 
       return (
         matchesSearch &&
@@ -933,7 +948,8 @@ export function ExpensesScreen() {
         matchesStartDate &&
         matchesEndDate &&
         matchesAmount &&
-        matchesUser
+        matchesUser &&
+        matchesCategory
       );
     });
   }, [
@@ -946,6 +962,7 @@ export function ExpensesScreen() {
     minAmount,
     maxAmount,
     selectedUserId,
+    selectedCategory,
     isManager,
     isAdmin,
     currentUserId,
@@ -968,6 +985,67 @@ export function ExpensesScreen() {
     });
     return Array.from(countries).sort();
   }, [expenses]);
+
+  // Calculer la répartition des dépenses par catégorie
+  const expensesByCategory = useMemo(() => {
+    if (!filteredExpenses || filteredExpenses.length === 0) return [];
+    
+    const categoryMap = new Map<string, number>();
+    
+    filteredExpenses.forEach((expense: Expense) => {
+      // Mapper "Personnelle" (de l'API) vers "Famille" (pour l'affichage)
+      let category = (expense as any).category || "none";
+      if (category === "Personnelle") {
+        category = "Famille";
+      }
+      const currentAmount = categoryMap.get(category) || 0;
+      categoryMap.set(category, currentAmount + (expense.amount || 0));
+    });
+    
+    const result: Array<{ name: string; value: number; color: string }> = [];
+    
+    // Famille (mappé depuis "Personnelle" de l'API)
+    const familleAmount = categoryMap.get("Famille") || 0;
+    if (familleAmount > 0) {
+      result.push({
+        name: "Famille",
+        value: familleAmount,
+        color: "#ec4899",
+      });
+    }
+    
+    // Business
+    const businessAmount = categoryMap.get("Business") || 0;
+    if (businessAmount > 0) {
+      result.push({
+        name: "Business",
+        value: businessAmount,
+        color: "#10b981",
+      });
+    }
+    
+    return result;
+  }, [filteredExpenses]);
+
+  // Vérifier si tous les champs obligatoires sont remplis
+  const isFormValid = useMemo(() => {
+    const baseValid =
+      formData.description.trim() &&
+      formData.amount &&
+      formData.companyId &&
+      formData.date;
+
+    // Pour l'admin, la catégorie est obligatoire
+    if (isAdmin) {
+      return (
+        baseValid &&
+        (formData.category === "Business" ||
+          formData.category === "Famille")
+      );
+    }
+
+    return baseValid;
+  }, [formData, isAdmin]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -1122,16 +1200,18 @@ export function ExpensesScreen() {
     // 1. Gain DAT (isDatTransfer && type === "INCOME")
     // 2. Emprunt (isLoanInvestment ou loanId)
     // 3. Transaction créée par un gestionnaire (même si en attente de validation)
-    const isGainDat = (expense as any).isDatTransfer && expense.type === "INCOME";
-    const isLoan = (expense as any).isLoanInvestment || Boolean((expense as any).loanId);
+    const isGainDat =
+      (expense as any).isDatTransfer && expense.type === "INCOME";
+    const isLoan =
+      (expense as any).isLoanInvestment || Boolean((expense as any).loanId);
     const isManagerTransaction =
       (expense as any).createdBy?.role?.name &&
-      (
-        (expense as any).createdBy.role.name.toLowerCase() === "gestionnaire" ||
+      ((expense as any).createdBy.role.name.toLowerCase() === "gestionnaire" ||
         (expense as any).createdBy.role.name.toLowerCase() === "manager" ||
-        (expense as any).createdBy.role.name.toLowerCase().includes("gestionnaire") ||
-        (expense as any).createdBy.role.name.toLowerCase().includes("manager")
-      );
+        (expense as any).createdBy.role.name
+          .toLowerCase()
+          .includes("gestionnaire") ||
+        (expense as any).createdBy.role.name.toLowerCase().includes("manager"));
 
     return isGainDat || isLoan || Boolean(isManagerTransaction);
   };
@@ -1199,7 +1279,11 @@ export function ExpensesScreen() {
 
     // Un utilisateur ne peut annuler que ses propres transactions
     const expenseCreatorId = (expense as any).createdBy?.id;
-    if (currentUserId && expenseCreatorId && expenseCreatorId !== currentUserId) {
+    if (
+      currentUserId &&
+      expenseCreatorId &&
+      expenseCreatorId !== currentUserId
+    ) {
       return false;
     }
 
@@ -1219,7 +1303,7 @@ export function ExpensesScreen() {
     // Pour les managers, pré-remplir avec leur companyId
     const initialCompanyId = isManager && userCompanyId ? userCompanyId : "";
     const initialCompany = companies?.find(
-      (c: Company) => c.id === initialCompanyId
+      (c: Company) => c.id === initialCompanyId,
     );
 
     // Obtenir la date locale au format YYYY-MM-DD
@@ -1245,7 +1329,7 @@ export function ExpensesScreen() {
       companyId: initialCompanyId,
       countryId: initialCountryId,
       date: getLocalDateString(),
-      category: "",
+      category: isAdmin ? "Business" : "",
     });
     setEditingExpense(null);
     setMobilizedBalance(null);
@@ -1264,7 +1348,7 @@ export function ExpensesScreen() {
     if (!canCancelExpense(expense)) {
       Alert.alert(
         "Impossible d'annuler",
-        "Cette transaction ne peut pas être annulée. Elle a peut-être déjà été annulée, validée, rejetée, ou plus de 24h se sont écoulées depuis sa création."
+        "Cette transaction ne peut pas être annulée. Elle a peut-être déjà été annulée, validée, rejetée, ou plus de 24h se sont écoulées depuis sa création.",
       );
       return;
     }
@@ -1272,10 +1356,13 @@ export function ExpensesScreen() {
     // Afficher une confirmation (comme dans GesFlow)
     Alert.alert(
       "Annuler la transaction",
-      `Êtes-vous sûr de vouloir annuler cette ${expense.type === "INCOME" ? "entrée" : "sortie"} de ${expense.amount.toLocaleString("fr-FR", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })} ${expense.currency || "GNF"} ?\n\nCette action est irréversible et remboursera le solde du gestionnaire si nécessaire.`,
+      `Êtes-vous sûr de vouloir annuler cette ${expense.type === "INCOME" ? "entrée" : "sortie"} de ${expense.amount.toLocaleString(
+        "fr-FR",
+        {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        },
+      )} ${expense.currency || "GNF"} ?\n\nCette action est irréversible et remboursera le solde du gestionnaire si nécessaire.`,
       [
         {
           text: "Non",
@@ -1311,7 +1398,7 @@ export function ExpensesScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -1340,7 +1427,10 @@ export function ExpensesScreen() {
           ? expense.company.country
           : (expense.company?.country as any)?.id || "",
       date: formattedDate,
-      category: (expense as any).category || "",
+      // Mapper "Personnelle" (de l'API) vers "Famille" (pour l'affichage dans le formulaire)
+      category: (expense as any).category === "Personnelle" 
+        ? "Famille" 
+        : ((expense as any).category || (isAdmin ? "Business" : "")),
     });
     setEditingExpense(expense);
     setDocuments([]); // Réinitialiser les nouveaux documents
@@ -1351,14 +1441,14 @@ export function ExpensesScreen() {
     // Charger le solde mobilisé si c'est une sortie
     if (expense.type === "OUTCOME" && expense.companyId) {
       const company = companies?.find(
-        (c: Company) => c.id === expense.companyId
+        (c: Company) => c.id === expense.companyId,
       );
       if (company) {
         // Ajuster le solde en ajoutant le montant actuel de la dépense (car on va la remplacer)
         loadMobilizedBalance(
           expense.companyId,
           expense.currency || "GNF",
-          expense.amount
+          expense.amount,
         );
       }
     } else {
@@ -1373,7 +1463,7 @@ export function ExpensesScreen() {
   const handleViewExpense = async (expense: Expense) => {
     setExpenseToView(expense);
     setShowViewModal(true);
-    
+
     // Charger les documents de la dépense
     try {
       const docs = await loadExpenseDocuments(expense.id);
@@ -1384,16 +1474,19 @@ export function ExpensesScreen() {
   };
 
   // Fonction pour ouvrir le modal de validation
-  const handleOpenValidation = async (expense: Expense, action: "approve" | "reject") => {
+  const handleOpenValidation = async (
+    expense: Expense,
+    action: "approve" | "reject",
+  ) => {
     // Fermer d'abord le modal de visualisation
     setShowViewModal(false);
     setExpenseToView(null);
-    
+
     // Préparer les données pour la validation
     setExpenseToValidate(expense);
     setValidationAction(action);
     setRejectionReason("");
-    
+
     // Charger les documents de la dépense
     try {
       const docs = await loadExpenseDocuments(expense.id);
@@ -1401,7 +1494,7 @@ export function ExpensesScreen() {
     } catch (error) {
       setViewExpenseDocuments([]);
     }
-    
+
     // Ouvrir le modal de validation après un court délai pour laisser le modal de détails se fermer
     setTimeout(() => {
       setShowValidationModal(true);
@@ -1426,7 +1519,7 @@ export function ExpensesScreen() {
           ...(validationAction === "reject" && rejectionReason
             ? { rejectionReason }
             : {}),
-        }
+        },
       );
 
       setShowValidationModal(false);
@@ -1442,9 +1535,14 @@ export function ExpensesScreen() {
       await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       // Mettre à jour le nombre de demandes en attente
-      await queryClient.invalidateQueries({ queryKey: ["expenses-pending-count"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["expenses-pending-count"],
+      });
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.message || "Une erreur est survenue";
+      const errorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "Une erreur est survenue";
       Alert.alert("Erreur", errorMessage);
     } finally {
       setIsValidating(false);
@@ -1529,7 +1627,7 @@ export function ExpensesScreen() {
       if (!url.startsWith("http")) {
         Alert.alert(
           "Erreur",
-          "Impossible de construire une URL valide pour le document"
+          "Impossible de construire une URL valide pour le document",
         );
         return;
       }
@@ -1542,10 +1640,7 @@ export function ExpensesScreen() {
         Alert.alert("Erreur", "Impossible d'ouvrir le document");
       }
     } catch (error: any) {
-      Alert.alert(
-        "Erreur",
-        error.message || "Impossible d'ouvrir le document"
-      );
+      Alert.alert("Erreur", error.message || "Impossible d'ouvrir le document");
     }
   };
 
@@ -1553,7 +1648,7 @@ export function ExpensesScreen() {
   const loadMobilizedBalance = async (
     companyId: string,
     currency: string,
-    currentExpenseAmount?: number
+    currentExpenseAmount?: number,
   ) => {
     try {
       setLoadingMobilizedBalance(true);
@@ -1561,7 +1656,7 @@ export function ExpensesScreen() {
         `/api/dashboard/company-stats?companyId=${companyId}`,
         {
           skipAuthError: true, // Ne pas déconnecter l'utilisateur si erreur 401 (requête optionnelle)
-        }
+        },
       );
       const balance = {
         amount:
@@ -1611,7 +1706,7 @@ export function ExpensesScreen() {
       ) {
         Alert.alert(
           "Package manquant",
-          "Veuillez installer expo-document-picker: npm install expo-document-picker"
+          "Veuillez installer expo-document-picker: npm install expo-document-picker",
         );
       } else {
         // Erreur silencieuse
@@ -1685,7 +1780,7 @@ export function ExpensesScreen() {
           try {
             const existingDocsResponse = await api.get(
               `/api/expenses/${expenseId}/documents`,
-              { skipAuthError: true }
+              { skipAuthError: true },
             );
 
             if (
@@ -1743,7 +1838,7 @@ export function ExpensesScreen() {
                   "Content-Type": "application/json",
                 },
                 skipAuthError: true, // Ne pas déconnecter l'utilisateur en cas d'erreur 401
-              }
+              },
             );
 
             // Recharger les documents après création réussie si on est en mode édition
@@ -1751,12 +1846,11 @@ export function ExpensesScreen() {
               await loadExpenseDocuments(expenseId);
             }
           } catch (createError: any) {
-
             // Afficher un message d'erreur à l'utilisateur
             Alert.alert(
               "Attention",
               `Le fichier "${doc.title || doc.file.name}" a été uploadé dans MinIO mais n'a pas pu être associé à la dépense. L'erreur est : ${createError.response?.data?.error || createError.message}. Veuillez contacter l'administrateur.`,
-              [{ text: "OK" }]
+              [{ text: "OK" }],
             );
 
             // Ne pas bloquer l'upload des autres documents
@@ -1781,7 +1875,7 @@ export function ExpensesScreen() {
               } as any);
               formData.append(
                 "title",
-                doc.title || doc.file.name || "Document"
+                doc.title || doc.file.name || "Document",
               );
               formData.append("type", "expenses");
 
@@ -1793,7 +1887,7 @@ export function ExpensesScreen() {
                     "Content-Type": "multipart/form-data",
                   },
                   skipAuthError: true,
-                }
+                },
               );
 
               if (retryUploadResponse.data) {
@@ -1803,7 +1897,7 @@ export function ExpensesScreen() {
                 try {
                   const existingDocsResponse = await api.get(
                     `/api/expenses/${expenseId}/documents`,
-                    { skipAuthError: true }
+                    { skipAuthError: true },
                   );
 
                   if (
@@ -1822,7 +1916,7 @@ export function ExpensesScreen() {
                           (retryUploadData.filename || doc.file.name);
                         const sameUrl = existingDoc.url === uploadUrl;
                         return sameFilename && sameUrl;
-                      }
+                      },
                     );
 
                     if (alreadyExists) {
@@ -1852,7 +1946,7 @@ export function ExpensesScreen() {
                         "Content-Type": "application/json",
                       },
                       skipAuthError: true,
-                    }
+                    },
                   );
 
                   // Recharger les documents après création réussie si on est en mode édition
@@ -1860,11 +1954,10 @@ export function ExpensesScreen() {
                     await loadExpenseDocuments(expenseId);
                   }
                 } catch (createError: any) {
-
                   Alert.alert(
                     "Attention",
                     `Le fichier "${doc.title || doc.file.name}" a été uploadé dans MinIO mais n'a pas pu être associé à la dépense. L'erreur est : ${createError.response?.data?.error || createError.message}. Veuillez contacter l'administrateur.`,
-                    [{ text: "OK" }]
+                    [{ text: "OK" }],
                   );
                 }
 
@@ -1878,13 +1971,13 @@ export function ExpensesScreen() {
           } catch (retryError: any) {
             Alert.alert(
               "Erreur d'upload",
-              `Impossible d'uploader "${doc.title || doc.file.name}". Vérifiez vos permissions ou réessayez plus tard.`
+              `Impossible d'uploader "${doc.title || doc.file.name}". Vérifiez vos permissions ou réessayez plus tard.`,
             );
           }
         } else {
           Alert.alert(
             "Erreur d'upload",
-            `Une erreur s'est produite lors de l'upload de "${doc.title || doc.file.name}".`
+            `Une erreur s'est produite lors de l'upload de "${doc.title || doc.file.name}".`,
           );
         }
       }
@@ -1892,7 +1985,7 @@ export function ExpensesScreen() {
   };
 
   const handleSubmitExpense = async () => {
-    if (isSubmitting) return; // Empêcher les doubles soumissions
+    if (isSubmitting || !isFormValid) return; // Empêcher les doubles soumissions
 
     try {
       setIsSubmitting(true);
@@ -1902,8 +1995,35 @@ export function ExpensesScreen() {
         !formData.description ||
         !formData.amount ||
         !formData.companyId ||
-        !formData.date
+        !formData.date ||
+        (isAdmin && !formData.category)
       ) {
+        Alert.alert(
+          "Champs obligatoires",
+          "Veuillez remplir tous les champs obligatoires marqués d'un astérisque (*).",
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validation du format du montant
+      const amount = parseFloat(formData.amount);
+      if (isNaN(amount) || amount <= 0) {
+        Alert.alert(
+          "Erreur de validation",
+          "Le montant doit être un nombre positif.",
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validation du format de la date (YYYY-MM-DD)
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(formData.date)) {
+        Alert.alert(
+          "Erreur de validation",
+          "Le format de la date est invalide. Utilisez le format YYYY-MM-DD (ex: 2024-01-25).",
+        );
         setIsSubmitting(false);
         return;
       }
@@ -1924,7 +2044,7 @@ export function ExpensesScreen() {
       // Pour les admins, vérifier que countryId est défini
       if (!isManager && !finalCountryId) {
         const company = companies?.find(
-          (c: Company) => c.id === formData.companyId
+          (c: Company) => c.id === formData.companyId,
         );
         // company.country peut être un objet avec id ou une string selon l'API
         if (company?.country) {
@@ -1936,8 +2056,16 @@ export function ExpensesScreen() {
       }
 
       if (!finalCountryId) {
+        Alert.alert(
+          "Erreur",
+          "Le pays de l'entreprise est requis. Veuillez sélectionner une entreprise valide.",
+        );
+        setIsSubmitting(false);
         return;
       }
+
+      // S'assurer que finalCountryId est une string
+      finalCountryId = String(finalCountryId);
 
       // Vérifier le solde mobilisé pour les sorties
       if (formData.type === "OUTCOME" && mobilizedBalance) {
@@ -1952,7 +2080,7 @@ export function ExpensesScreen() {
       if (editingExpense) {
         // Mise à jour - envoyer tous les champs nécessaires
         const updatePayload: any = {
-          description: formData.description,
+          description: formData.description.trim(),
           amount: parseFloat(formData.amount),
           currency: formData.currency,
           type: formData.type,
@@ -1961,20 +2089,24 @@ export function ExpensesScreen() {
           date: formData.date,
         };
 
-        // Ajouter category seulement si elle est définie
-        if (formData.category) {
-          updatePayload.category = formData.category;
+        // Pour l'admin, category est obligatoire (Business par défaut)
+        // Mapper "Famille" vers "Personnelle" pour l'API backend
+        if (isAdmin) {
+          const categoryValue = formData.category || "Business";
+          updatePayload.category = categoryValue === "Famille" ? "Personnelle" : categoryValue;
+        } else if (formData.category) {
+          updatePayload.category = formData.category === "Famille" ? "Personnelle" : formData.category;
         }
 
         const response = await api.put(
           `/api/expenses/${editingExpense.id}`,
-          updatePayload
+          updatePayload,
         );
         expenseId = editingExpense.id;
       } else {
         // Création - envoyer tous les champs requis
         const createPayload: any = {
-          description: formData.description,
+          description: formData.description.trim(),
           amount: parseFloat(formData.amount),
           currency: formData.currency,
           type: formData.type,
@@ -1983,9 +2115,13 @@ export function ExpensesScreen() {
           date: formData.date,
         };
 
-        // Ajouter category seulement si elle est définie
-        if (formData.category) {
-          createPayload.category = formData.category;
+        // Pour l'admin, category est obligatoire (Business par défaut)
+        // Mapper "Famille" vers "Personnelle" pour l'API backend (l'API n'accepte que "Personnelle" ou "Business")
+        if (isAdmin) {
+          const categoryValue = formData.category || "Business";
+          createPayload.category = categoryValue === "Famille" ? "Personnelle" : categoryValue;
+        } else if (formData.category) {
+          createPayload.category = formData.category === "Famille" ? "Personnelle" : formData.category;
         }
 
         const response = await api.post("/api/expenses", createPayload);
@@ -2004,7 +2140,10 @@ export function ExpensesScreen() {
             await loadExpenseDocuments(expenseId);
           }
         } catch (error: any) {
-          // Erreur silencieuse
+          Alert.alert(
+            "Attention",
+            `La dépense a été créée mais certains documents n'ont pas pu être uploadés. ${error.message || ""}`,
+          );
         }
       }
 
@@ -2021,7 +2160,60 @@ export function ExpensesScreen() {
       await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
-      // Erreur silencieuse
+      // Calculer finalCountryId pour le logging si nécessaire
+      let loggedCountryId = formData.countryId;
+      try {
+        if (isManager && userCompanyId && !loggedCountryId) {
+          const company = companies?.find((c: Company) => c.id === userCompanyId);
+          if (company?.country) {
+            loggedCountryId =
+              typeof company.country === "string"
+                ? company.country
+                : (company.country as any)?.id || company.country;
+          }
+        } else if (!isManager && !loggedCountryId) {
+          const company = companies?.find(
+            (c: Company) => c.id === formData.companyId,
+          );
+          if (company?.country) {
+            loggedCountryId =
+              typeof company.country === "string"
+                ? company.country
+                : (company.country as any)?.id || company.country;
+          }
+        }
+      } catch (e) {
+        // Ignorer les erreurs de calcul pour le logging
+      }
+      
+      let errorMessage = "Une erreur est survenue lors de la création de la dépense.";
+      
+      if (error.response?.status === 400) {
+        // Erreur de validation
+        const errorData = error.response?.data;
+        if (errorData?.error) {
+          errorMessage = errorData.error;
+        } else if (errorData?.message) {
+          errorMessage = errorData.message;
+        } else if (Array.isArray(errorData)) {
+          // Erreurs de validation multiples
+          errorMessage = errorData.map((err: any) => err.message || err).join("\n");
+        } else {
+          errorMessage = "Les données envoyées sont invalides. Veuillez vérifier tous les champs.";
+        }
+      } else if (error.response?.status === 401) {
+        errorMessage = "Vous n'êtes pas autorisé à effectuer cette action.";
+      } else if (error.response?.status === 403) {
+        errorMessage = "Vous n'avez pas les permissions nécessaires.";
+      } else if (error.response?.status === 404) {
+        errorMessage = "La ressource demandée n'a pas été trouvée.";
+      } else if (error.response?.status >= 500) {
+        errorMessage = "Une erreur serveur est survenue. Veuillez réessayer plus tard.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert("Erreur", errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -2037,7 +2229,7 @@ export function ExpensesScreen() {
       if (!filteredExpenses || filteredExpenses.length === 0) {
         Alert.alert(
           "Aucune donnée",
-          "Il n'y a aucune dépense à exporter avec les filtres actuels."
+          "Il n'y a aucune dépense à exporter avec les filtres actuels.",
         );
         return;
       }
@@ -2086,7 +2278,7 @@ export function ExpensesScreen() {
           Statut: expense.validationStatus
             ? statusMap[expense.validationStatus] || expense.validationStatus
             : "N/A",
-          Catégorie: (expense as any).category || "",
+          Catégorie: (expense as any).category === "Personnelle" ? "Famille" : ((expense as any).category || ""),
         };
       });
 
@@ -2145,7 +2337,7 @@ export function ExpensesScreen() {
                   }
                   return value ?? "";
                 })
-                .join(",")
+                .join(","),
             ),
           ];
           fileContent = csvRows.join("\n");
@@ -2155,7 +2347,7 @@ export function ExpensesScreen() {
 
         // Utiliser la même logique que getDocumentDirectory() pour trouver le répertoire
         let directory = getDocumentDirectory();
-        
+
         // Si getDocumentDirectory() ne trouve pas de répertoire, essayer d'utiliser FileSystem.Directory
         if (!directory) {
           try {
@@ -2171,7 +2363,10 @@ export function ExpensesScreen() {
                 directory = Directory.cacheDirectory;
               } else if (Directory.cacheDirectory) {
                 // Peut-être un objet avec une propriété path ou uri
-                directory = Directory.cacheDirectory.path || Directory.cacheDirectory.uri || Directory.cacheDirectory;
+                directory =
+                  Directory.cacheDirectory.path ||
+                  Directory.cacheDirectory.uri ||
+                  Directory.cacheDirectory;
                 if (directory && typeof directory === "string") {
                   // Directory trouvé
                 }
@@ -2181,10 +2376,10 @@ export function ExpensesScreen() {
             // Erreur silencieuse
           }
         }
-        
+
         // Utiliser l'API legacy pour writeAsStringAsync (évite les avertissements de dépréciation)
         let writeFn: any = null;
-        
+
         if (FileSystemLegacy && FileSystemLegacy.writeAsStringAsync) {
           writeFn = FileSystemLegacy.writeAsStringAsync;
         } else {
@@ -2212,14 +2407,14 @@ export function ExpensesScreen() {
         if (!writeFn || typeof writeFn !== "function") {
           throw new Error("writeAsStringAsync not found in expo-file-system");
         }
-        
+
         // Si directory n'est toujours pas disponible, utiliser un chemin relatif
         // FileSystem.writeAsStringAsync peut résoudre automatiquement les chemins relatifs dans le cache
         if (!directory) {
           // Utiliser juste le filename - FileSystem le résoudra dans le cache ou le répertoire de documents
           directory = "";
         }
-        
+
         const fileUri = directory ? `${directory}${filename}` : filename;
 
         // Écrire le fichier (Excel en base64 ou CSV en utf8)
@@ -2237,7 +2432,7 @@ export function ExpensesScreen() {
           }
         } catch (writeError: any) {
           throw new Error(
-            `Impossible d'écrire le fichier: ${writeError.message}`
+            `Impossible d'écrire le fichier: ${writeError.message}`,
           );
         }
 
@@ -2246,18 +2441,20 @@ export function ExpensesScreen() {
         if (isAvailable) {
           await Sharing.shareAsync(fileUri, {
             mimeType: mimeType,
-            dialogTitle: useXLSX ? "Partager le fichier Excel" : "Partager le fichier CSV",
+            dialogTitle: useXLSX
+              ? "Partager le fichier Excel"
+              : "Partager le fichier CSV",
           });
         } else {
           Alert.alert(
             "Export réussi",
-            `Le fichier ${useXLSX ? "Excel" : "CSV"} a été sauvegardé : ${filename}`
+            `Le fichier ${useXLSX ? "Excel" : "CSV"} a été sauvegardé : ${filename}`,
           );
         }
       } catch (exportError: any) {
         Alert.alert(
           "Erreur",
-          exportError.message || "Impossible d'exporter le fichier Excel"
+          exportError.message || "Impossible d'exporter le fichier Excel",
         );
       }
     } catch (error: any) {
@@ -2280,7 +2477,7 @@ export function ExpensesScreen() {
 
   const totalTableWidth = Object.values(columnWidths).reduce(
     (sum, width) => sum + width,
-    0
+    0,
   );
 
   return (
@@ -2599,16 +2796,34 @@ export function ExpensesScreen() {
               ) : (
                 filteredExpenses.map((expense: Expense) => {
                   // Vérifier si c'est une dépense de type DAT, investissement ou emprunt
-                  const isGainDat = expense.isDatTransfer && expense.type === "INCOME";
-                  const isDatTransfer = expense.isDatTransfer && expense.type !== "INCOME";
+                  const isGainDat =
+                    expense.isDatTransfer && expense.type === "INCOME";
+                  const isDatTransfer =
+                    expense.isDatTransfer && expense.type !== "INCOME";
                   const isLoanInvestment = expense.isLoanInvestment;
                   // Les dépenses de paiement d'échéance (avec loanId et type OUTCOME, mais pas isLoanInvestment) ne doivent pas avoir d'actions
-                  const isInstallmentPayment = Boolean(expense.loanId) && expense.type === "OUTCOME" && !expense.isLoanInvestment;
+                  const isInstallmentPayment =
+                    Boolean(expense.loanId) &&
+                    expense.type === "OUTCOME" &&
+                    !expense.isLoanInvestment;
                   // Vérifier aussi par description au cas où loanId n'est pas défini (pour les anciennes dépenses)
-                  const isInstallmentPaymentByDescription = expense.description?.toLowerCase().includes("paiement échéance") && expense.type === "OUTCOME";
-                  const isLoan = isLoanInvestment || (Boolean(expense.loanId) && !isInstallmentPayment && !isInstallmentPaymentByDescription);
-                  const shouldHideAllActions = isGainDat || isDatTransfer || isLoan || isInstallmentPayment || isInstallmentPaymentByDescription;
-                  
+                  const isInstallmentPaymentByDescription =
+                    expense.description
+                      ?.toLowerCase()
+                      .includes("paiement échéance") &&
+                    expense.type === "OUTCOME";
+                  const isLoan =
+                    isLoanInvestment ||
+                    (Boolean(expense.loanId) &&
+                      !isInstallmentPayment &&
+                      !isInstallmentPaymentByDescription);
+                  const shouldHideAllActions =
+                    isGainDat ||
+                    isDatTransfer ||
+                    isLoan ||
+                    isInstallmentPayment ||
+                    isInstallmentPaymentByDescription;
+
                   // Calculer les actions disponibles
                   const shouldHideActions = shouldHideActionsForAdmin(expense);
                   const hasEditAction =
@@ -2631,10 +2846,8 @@ export function ExpensesScreen() {
                     expense.type === "OUTCOME" &&
                     expense.status !== "CANCELLED";
                   const hasAnyAction =
-                    hasEditAction ||
-                    hasCancelAction ||
-                    hasViewAction;
-                  
+                    hasEditAction || hasCancelAction || hasViewAction;
+
                   // Compter le nombre d'actions pour ajuster la taille des boutons
                   const actionCount = [
                     hasEditAction,
@@ -2663,158 +2876,81 @@ export function ExpensesScreen() {
                               ? "border-gray-800 bg-yellow-900/10"
                               : "border-gray-800 bg-[#0f172a]"
                             : isPendingForAdmin
-                            ? "border-gray-100 bg-yellow-50/50"
-                            : "border-gray-100 bg-white"
+                              ? "border-gray-100 bg-yellow-50/50"
+                              : "border-gray-100 bg-white"
                         }`}
                         style={{
                           position: "relative",
                         }}
                       >
                         {/* Contenu scrollable */}
-                      <ScrollView
-                        nestedScrollEnabled={true}
-                        ref={(ref) => {
-                          if (ref) {
-                            contentScrollRefs.current.set(expense.id, ref);
-                            // Synchroniser avec la position actuelle (utiliser ref au lieu de state)
-                            if (scrollXRef.current > 0) {
-                              // Utiliser requestAnimationFrame pour éviter les problèmes de timing
-                              requestAnimationFrame(() => {
-                                ref.scrollTo({
-                                  x: scrollXRef.current,
-                                  animated: false,
+                        <ScrollView
+                          nestedScrollEnabled={true}
+                          ref={(ref) => {
+                            if (ref) {
+                              contentScrollRefs.current.set(expense.id, ref);
+                              // Synchroniser avec la position actuelle (utiliser ref au lieu de state)
+                              if (scrollXRef.current > 0) {
+                                // Utiliser requestAnimationFrame pour éviter les problèmes de timing
+                                requestAnimationFrame(() => {
+                                  ref.scrollTo({
+                                    x: scrollXRef.current,
+                                    animated: false,
+                                  });
                                 });
-                              });
+                              }
+                            } else {
+                              contentScrollRefs.current.delete(expense.id);
                             }
-                          } else {
-                            contentScrollRefs.current.delete(expense.id);
-                          }
-                        }}
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        onScroll={(e) => handleContentScroll(e, expense.id)}
-                        scrollEventThrottle={16}
-                        contentContainerStyle={{
-                          minWidth: totalTableWidth - columnWidths.actions,
-                          paddingRight: columnWidths.actions,
-                        }}
-                      >
-                        <View
-                          className="flex-row"
-                          style={{
+                          }}
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          onScroll={(e) => handleContentScroll(e, expense.id)}
+                          scrollEventThrottle={16}
+                          contentContainerStyle={{
                             minWidth: totalTableWidth - columnWidths.actions,
+                            paddingRight: columnWidths.actions,
                           }}
                         >
-                          {/* Date */}
                           <View
-                            style={{ width: columnWidths.date }}
-                            className="px-3 py-4 justify-center"
+                            className="flex-row"
+                            style={{
+                              minWidth: totalTableWidth - columnWidths.actions,
+                            }}
                           >
-                            <Text
-                              className={`text-xs ${
-                                isDark ? "text-gray-400" : "text-gray-600"
-                              }`}
+                            {/* Date */}
+                            <View
+                              style={{ width: columnWidths.date }}
+                              className="px-3 py-4 justify-center"
                             >
-                              {new Date(expense.createdAt).toLocaleDateString(
-                                "fr-FR",
-                                {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                }
-                              )}
-                            </Text>
-                          </View>
-
-                          {/* Entreprise */}
-                          <View
-                            style={{ width: columnWidths.company }}
-                            className="px-3 py-4 justify-center"
-                          >
-                            {expense.company?.name ? (
-                              <View
-                                className="px-2 py-1 rounded-full self-start"
-                                style={{
-                                  backgroundColor: isDark ? "rgba(59, 130, 246, 0.2)" : "#dbeafe",
-                                  borderWidth: 1,
-                                  borderColor: isDark ? "#3b82f6" : "#93c5fd",
-                                }}
-                              >
-                                <Text
-                                  className="text-xs font-medium"
-                                  style={{ color: isDark ? "#93c5fd" : "#2563eb" }}
-                                  numberOfLines={1}
-                                >
-                                  {expense.company.name}
-                                </Text>
-                              </View>
-                            ) : (
                               <Text
                                 className={`text-xs ${
                                   isDark ? "text-gray-400" : "text-gray-600"
                                 }`}
                               >
-                                N/A
+                                {new Date(expense.createdAt).toLocaleDateString(
+                                  "fr-FR",
+                                  {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  },
+                                )}
                               </Text>
-                            )}
-                          </View>
+                            </View>
 
-                          {/* Statut */}
-                          <View
-                            style={{ width: columnWidths.status }}
-                            className="px-3 py-4 justify-center"
-                          >
-                            <View className="flex-row gap-1 flex-wrap">
-                              {/* Type (Entrée/Sortie) */}
-                              <View
-                                className="px-2 py-1 rounded-full self-start"
-                                style={{
-                                  backgroundColor:
-                                    expense.type === "INCOME"
-                                      ? "#10b98120"
-                                      : "#ef444420",
-                                }}
-                              >
-                                <Text
-                                  className="text-xs font-medium"
-                                  style={{
-                                    color:
-                                      expense.type === "INCOME"
-                                        ? "#10b981"
-                                        : "#ef4444",
-                                  }}
-                                >
-                                  {getTypeLabel(expense.type)}
-                                </Text>
-                              </View>
-
-                              {/* Gain DAT */}
-                              {expense.isDatTransfer && expense.type === "INCOME" && (
+                            {/* Entreprise */}
+                            <View
+                              style={{ width: columnWidths.company }}
+                              className="px-3 py-4 justify-center"
+                            >
+                              {expense.company?.name ? (
                                 <View
                                   className="px-2 py-1 rounded-full self-start"
                                   style={{
-                                    backgroundColor: isDark ? "rgba(168, 85, 247, 0.2)" : "#f3e8ff",
-                                    borderWidth: 1,
-                                    borderColor: isDark ? "#a855f7" : "#c084fc",
-                                  }}
-                                >
-                                  <Text
-                                    className="text-xs font-medium"
-                                    style={{
-                                      color: isDark ? "#c084fc" : "#9333ea",
-                                    }}
-                                  >
-                                    Gain DAT
-                                  </Text>
-                                </View>
-                              )}
-
-                              {/* Transfert DAT */}
-                              {expense.isDatTransfer && expense.type !== "INCOME" && (
-                                <View
-                                  className="px-2 py-1 rounded-full self-start"
-                                  style={{
-                                    backgroundColor: isDark ? "rgba(59, 130, 246, 0.2)" : "#dbeafe",
+                                    backgroundColor: isDark
+                                      ? "rgba(59, 130, 246, 0.2)"
+                                      : "#dbeafe",
                                     borderWidth: 1,
                                     borderColor: isDark ? "#3b82f6" : "#93c5fd",
                                   }}
@@ -2824,137 +2960,9 @@ export function ExpensesScreen() {
                                     style={{
                                       color: isDark ? "#93c5fd" : "#2563eb",
                                     }}
-                                  >
-                                    Transfert DAT
-                                  </Text>
-                                </View>
-                              )}
-
-                              {/* Emprunt */}
-                              {expense.isLoanInvestment && (
-                                <View
-                                  className="px-2 py-1 rounded-full self-start"
-                                  style={{
-                                    backgroundColor: isDark ? "rgba(249, 115, 22, 0.2)" : "#fed7aa",
-                                    borderWidth: 1,
-                                    borderColor: isDark ? "#f97316" : "#fb923c",
-                                  }}
-                                >
-                                  <Text
-                                    className="text-xs font-medium"
-                                    style={{
-                                      color: isDark ? "#fb923c" : "#ea580c",
-                                    }}
-                                  >
-                                    Emprunt
-                                  </Text>
-                                </View>
-                              )}
-
-                              {/* Paiement d'échéance annulé */}
-                              {expense.installmentPaymentReversed && (
-                                <View
-                                  className="px-2 py-1 rounded-full self-start"
-                                  style={{
-                                    backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fee2e2",
-                                    borderWidth: 1,
-                                    borderColor: isDark ? "#dc2626" : "#fca5a5",
-                                  }}
-                                >
-                                  <Text
-                                    className="text-xs font-medium"
-                                    style={{
-                                      color: isDark ? "#fca5a5" : "#dc2626",
-                                    }}
-                                  >
-                                    Paiement annulé
-                                  </Text>
-                                </View>
-                              )}
-
-                              {/* Statut de validation (PENDING, APPROVED, REJECTED) */}
-                              {expense.validationStatus && (
-                                <View
-                                  className="px-2 py-1 rounded-full self-start"
-                                  style={{
-                                    backgroundColor: `${getValidationStatusColor(expense.validationStatus)}20`,
-                                  }}
-                                >
-                                  <Text
-                                    className="text-xs font-medium"
-                                    style={{
-                                      color: getValidationStatusColor(
-                                        expense.validationStatus
-                                      ),
-                                    }}
-                                  >
-                                    {getValidationStatusLabel(
-                                      expense.validationStatus
-                                    )}
-                                  </Text>
-                                </View>
-                              )}
-
-                              {/* Statut de dépense (INACTIVE, CANCELLED) - seulement si différent de ACTIVE */}
-                              {expense.status !== "ACTIVE" &&
-                                getExpenseStatusLabel(expense.status) && (
-                                  <View
-                                    className="px-2 py-0.5 rounded-full self-start"
-                                    style={{
-                                      backgroundColor: `${getExpenseStatusColor(expense.status)}20`,
-                                    }}
-                                  >
-                                    <Text
-                                      className="text-[10px] font-medium"
-                                      style={{
-                                        color: getExpenseStatusColor(
-                                          expense.status
-                                        ),
-                                      }}
-                                    >
-                                      {getExpenseStatusLabel(expense.status)}
-                                    </Text>
-                                  </View>
-                                )}
-                            </View>
-                          </View>
-
-                          {/* Description */}
-                          <View
-                            style={{ width: columnWidths.description }}
-                            className="px-3 py-4 justify-center"
-                          >
-                            <Text
-                              className={`text-sm font-medium ${
-                                isDark ? "text-gray-100" : "text-gray-900"
-                              }`}
-                              numberOfLines={2}
-                            >
-                              {expense.description || "Sans description"}
-                            </Text>
-                          </View>
-
-                          {/* Gestionnaire */}
-                          {managers && managers.length > 0 && (
-                            <View
-                              style={{ width: columnWidths.manager }}
-                              className="px-3 py-4 justify-center"
-                            >
-                              {(expense as any).createdBy ? (
-                                <View
-                                  className="px-2 py-1 rounded-full self-start"
-                                  style={{
-                                    backgroundColor: isDark ? "rgba(107, 114, 128, 0.2)" : "#f3f4f6",
-                                    borderWidth: 1,
-                                    borderColor: isDark ? "#6b7280" : "#d1d5db",
-                                  }}
-                                >
-                                  <Text
-                                    className="text-xs font-medium"
-                                    style={{ color: isDark ? "#d1d5db" : "#374151" }}
                                     numberOfLines={1}
                                   >
-                                    {(expense as any).createdBy.name}
+                                    {expense.company.name}
                                   </Text>
                                 </View>
                               ) : (
@@ -2963,110 +2971,343 @@ export function ExpensesScreen() {
                                     isDark ? "text-gray-400" : "text-gray-600"
                                   }`}
                                 >
-                                  -
+                                  N/A
                                 </Text>
                               )}
                             </View>
-                          )}
 
-                          {/* Montant */}
-                          <View
-                            style={{ width: columnWidths.amount }}
-                            className="px-3 py-4 justify-center"
-                          >
-                            <BlurredAmount
-                              amount={expense.amount}
-                              currency={expense.currency}
-                              className="text-xs font-semibold"
-                              style={{ minWidth: 100 }}
-                            />
+                            {/* Statut */}
+                            <View
+                              style={{ width: columnWidths.status }}
+                              className="px-3 py-4 justify-center"
+                            >
+                              <View className="flex-row gap-1 flex-wrap">
+                                {/* Type (Entrée/Sortie) */}
+                                <View
+                                  className="px-2 py-1 rounded-full self-start"
+                                  style={{
+                                    backgroundColor:
+                                      expense.type === "INCOME"
+                                        ? "#10b98120"
+                                        : "#ef444420",
+                                  }}
+                                >
+                                  <Text
+                                    className="text-xs font-medium"
+                                    style={{
+                                      color:
+                                        expense.type === "INCOME"
+                                          ? "#10b981"
+                                          : "#ef4444",
+                                    }}
+                                  >
+                                    {getTypeLabel(expense.type)}
+                                  </Text>
+                                </View>
+
+                                {/* Gain DAT */}
+                                {expense.isDatTransfer &&
+                                  expense.type === "INCOME" && (
+                                    <View
+                                      className="px-2 py-1 rounded-full self-start"
+                                      style={{
+                                        backgroundColor: isDark
+                                          ? "rgba(168, 85, 247, 0.2)"
+                                          : "#f3e8ff",
+                                        borderWidth: 1,
+                                        borderColor: isDark
+                                          ? "#a855f7"
+                                          : "#c084fc",
+                                      }}
+                                    >
+                                      <Text
+                                        className="text-xs font-medium"
+                                        style={{
+                                          color: isDark ? "#c084fc" : "#9333ea",
+                                        }}
+                                      >
+                                        Gain DAT
+                                      </Text>
+                                    </View>
+                                  )}
+
+                                {/* Transfert DAT */}
+                                {expense.isDatTransfer &&
+                                  expense.type !== "INCOME" && (
+                                    <View
+                                      className="px-2 py-1 rounded-full self-start"
+                                      style={{
+                                        backgroundColor: isDark
+                                          ? "rgba(59, 130, 246, 0.2)"
+                                          : "#dbeafe",
+                                        borderWidth: 1,
+                                        borderColor: isDark
+                                          ? "#3b82f6"
+                                          : "#93c5fd",
+                                      }}
+                                    >
+                                      <Text
+                                        className="text-xs font-medium"
+                                        style={{
+                                          color: isDark ? "#93c5fd" : "#2563eb",
+                                        }}
+                                      >
+                                        Transfert DAT
+                                      </Text>
+                                    </View>
+                                  )}
+
+                                {/* Emprunt */}
+                                {expense.isLoanInvestment && (
+                                  <View
+                                    className="px-2 py-1 rounded-full self-start"
+                                    style={{
+                                      backgroundColor: isDark
+                                        ? "rgba(249, 115, 22, 0.2)"
+                                        : "#fed7aa",
+                                      borderWidth: 1,
+                                      borderColor: isDark
+                                        ? "#f97316"
+                                        : "#fb923c",
+                                    }}
+                                  >
+                                    <Text
+                                      className="text-xs font-medium"
+                                      style={{
+                                        color: isDark ? "#fb923c" : "#ea580c",
+                                      }}
+                                    >
+                                      Emprunt
+                                    </Text>
+                                  </View>
+                                )}
+
+                                {/* Paiement d'échéance annulé */}
+                                {expense.installmentPaymentReversed && (
+                                  <View
+                                    className="px-2 py-1 rounded-full self-start"
+                                    style={{
+                                      backgroundColor: isDark
+                                        ? "rgba(239, 68, 68, 0.2)"
+                                        : "#fee2e2",
+                                      borderWidth: 1,
+                                      borderColor: isDark
+                                        ? "#dc2626"
+                                        : "#fca5a5",
+                                    }}
+                                  >
+                                    <Text
+                                      className="text-xs font-medium"
+                                      style={{
+                                        color: isDark ? "#fca5a5" : "#dc2626",
+                                      }}
+                                    >
+                                      Paiement annulé
+                                    </Text>
+                                  </View>
+                                )}
+
+                                {/* Statut de validation (PENDING, APPROVED, REJECTED) */}
+                                {expense.validationStatus && (
+                                  <View
+                                    className="px-2 py-1 rounded-full self-start"
+                                    style={{
+                                      backgroundColor: `${getValidationStatusColor(expense.validationStatus)}20`,
+                                    }}
+                                  >
+                                    <Text
+                                      className="text-xs font-medium"
+                                      style={{
+                                        color: getValidationStatusColor(
+                                          expense.validationStatus,
+                                        ),
+                                      }}
+                                    >
+                                      {getValidationStatusLabel(
+                                        expense.validationStatus,
+                                      )}
+                                    </Text>
+                                  </View>
+                                )}
+
+                                {/* Statut de dépense (INACTIVE, CANCELLED) - seulement si différent de ACTIVE */}
+                                {expense.status !== "ACTIVE" &&
+                                  getExpenseStatusLabel(expense.status) && (
+                                    <View
+                                      className="px-2 py-0.5 rounded-full self-start"
+                                      style={{
+                                        backgroundColor: `${getExpenseStatusColor(expense.status)}20`,
+                                      }}
+                                    >
+                                      <Text
+                                        className="text-[10px] font-medium"
+                                        style={{
+                                          color: getExpenseStatusColor(
+                                            expense.status,
+                                          ),
+                                        }}
+                                      >
+                                        {getExpenseStatusLabel(expense.status)}
+                                      </Text>
+                                    </View>
+                                  )}
+                              </View>
+                            </View>
+
+                            {/* Description */}
+                            <View
+                              style={{ width: columnWidths.description }}
+                              className="px-3 py-4 justify-center"
+                            >
+                              <Text
+                                className={`text-sm font-medium ${
+                                  isDark ? "text-gray-100" : "text-gray-900"
+                                }`}
+                                numberOfLines={2}
+                              >
+                                {expense.description || "Sans description"}
+                              </Text>
+                            </View>
+
+                            {/* Gestionnaire */}
+                            {managers && managers.length > 0 && (
+                              <View
+                                style={{ width: columnWidths.manager }}
+                                className="px-3 py-4 justify-center"
+                              >
+                                {(expense as any).createdBy ? (
+                                  <View
+                                    className="px-2 py-1 rounded-full self-start"
+                                    style={{
+                                      backgroundColor: isDark
+                                        ? "rgba(107, 114, 128, 0.2)"
+                                        : "#f3f4f6",
+                                      borderWidth: 1,
+                                      borderColor: isDark
+                                        ? "#6b7280"
+                                        : "#d1d5db",
+                                    }}
+                                  >
+                                    <Text
+                                      className="text-xs font-medium"
+                                      style={{
+                                        color: isDark ? "#d1d5db" : "#374151",
+                                      }}
+                                      numberOfLines={1}
+                                    >
+                                      {(expense as any).createdBy.name}
+                                    </Text>
+                                  </View>
+                                ) : (
+                                  <Text
+                                    className={`text-xs ${
+                                      isDark ? "text-gray-400" : "text-gray-600"
+                                    }`}
+                                  >
+                                    -
+                                  </Text>
+                                )}
+                              </View>
+                            )}
+
+                            {/* Montant */}
+                            <View
+                              style={{ width: columnWidths.amount }}
+                              className="px-3 py-4 justify-center"
+                            >
+                              <BlurredAmount
+                                amount={expense.amount}
+                                currency={expense.currency}
+                                className="text-xs font-semibold"
+                                style={{ minWidth: 100 }}
+                              />
+                            </View>
                           </View>
-                        </View>
-                      </ScrollView>
+                        </ScrollView>
 
-                      {/* Actions (sticky à droite - position absolute) */}
-                      <View
-                        style={{
-                          position: "absolute",
-                          right: 0,
-                          top: 0,
-                          bottom: 0,
-                          width: columnWidths.actions,
-                          backgroundColor: isDark ? "#0f172a" : "#ffffff",
-                          borderLeftWidth: 1,
-                          borderLeftColor: isDark ? "#1e293b" : "#e5e7eb",
-                        }}
-                        className="px-3 justify-center items-center flex-row gap-2"
-                        pointerEvents="box-none"
-                      >
-                        {/* Vérifier les permissions selon le rôle (gestionnaire vs admin) et le statut */}
-                        {hasAnyAction ? (
-                          <>
-                            {hasEditAction && (
-                              <TouchableOpacity
-                                className="rounded-full"
-                                style={{
-                                  backgroundColor: `${CHART_COLOR}20`,
-                                  padding: actionCount >= 3 ? 6 : 8,
-                                }}
-                                activeOpacity={0.7}
-                                onPress={() => handleEdit(expense)}
-                              >
-                                <HugeiconsIcon
-                                  icon={Edit01Icon}
-                                  size={actionCount >= 3 ? 14 : 16}
-                                  color={CHART_COLOR}
-                                />
-                              </TouchableOpacity>
-                            )}
-                            {/* Bouton Cancel pour annuler une transaction */}
-                            {hasCancelAction && (
-                              <TouchableOpacity
-                                className="rounded-full"
-                                style={{
-                                  backgroundColor: "#ef444420",
-                                  padding: actionCount >= 3 ? 6 : 8,
-                                }}
-                                activeOpacity={0.7}
-                                onPress={() => handleCancelExpense(expense)}
-                              >
-                                <HugeiconsIcon
-                                  icon={Cancel01Icon}
-                                  size={actionCount >= 3 ? 14 : 16}
-                                  color="#ef4444"
-                                />
-                              </TouchableOpacity>
-                            )}
-                            {/* Le bouton "Voir détails" n'existe pas pour les gestionnaires, seulement pour les admins */}
-                            {hasViewAction && (
-                              <TouchableOpacity
-                                className="rounded-full"
-                                style={{
-                                  backgroundColor: `${CHART_COLOR}20`,
-                                  padding: actionCount >= 3 ? 6 : 8,
-                                }}
-                                activeOpacity={0.7}
-                                onPress={() => handleViewExpense(expense)}
-                              >
-                                <HugeiconsIcon
-                                  icon={EyeIcon}
-                                  size={actionCount >= 3 ? 14 : 16}
-                                  color={CHART_COLOR}
-                                />
-                              </TouchableOpacity>
-                            )}
-                          </>
-                        ) : (
-                          <Text
-                            className={`text-xs ${
-                              isDark ? "text-gray-500" : "text-gray-400"
-                            }`}
-                          >
-                            -
-                          </Text>
-                        )}
+                        {/* Actions (sticky à droite - position absolute) */}
+                        <View
+                          style={{
+                            position: "absolute",
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: columnWidths.actions,
+                            backgroundColor: isDark ? "#0f172a" : "#ffffff",
+                            borderLeftWidth: 1,
+                            borderLeftColor: isDark ? "#1e293b" : "#e5e7eb",
+                          }}
+                          className="px-3 justify-center items-center flex-row gap-2"
+                          pointerEvents="box-none"
+                        >
+                          {/* Vérifier les permissions selon le rôle (gestionnaire vs admin) et le statut */}
+                          {hasAnyAction ? (
+                            <>
+                              {hasEditAction && (
+                                <TouchableOpacity
+                                  className="rounded-full"
+                                  style={{
+                                    backgroundColor: `${CHART_COLOR}20`,
+                                    padding: actionCount >= 3 ? 6 : 8,
+                                  }}
+                                  activeOpacity={0.7}
+                                  onPress={() => handleEdit(expense)}
+                                >
+                                  <HugeiconsIcon
+                                    icon={Edit01Icon}
+                                    size={actionCount >= 3 ? 14 : 16}
+                                    color={CHART_COLOR}
+                                  />
+                                </TouchableOpacity>
+                              )}
+                              {/* Bouton Cancel pour annuler une transaction */}
+                              {hasCancelAction && (
+                                <TouchableOpacity
+                                  className="rounded-full"
+                                  style={{
+                                    backgroundColor: "#ef444420",
+                                    padding: actionCount >= 3 ? 6 : 8,
+                                  }}
+                                  activeOpacity={0.7}
+                                  onPress={() => handleCancelExpense(expense)}
+                                >
+                                  <HugeiconsIcon
+                                    icon={Cancel01Icon}
+                                    size={actionCount >= 3 ? 14 : 16}
+                                    color="#ef4444"
+                                  />
+                                </TouchableOpacity>
+                              )}
+                              {/* Le bouton "Voir détails" n'existe pas pour les gestionnaires, seulement pour les admins */}
+                              {hasViewAction && (
+                                <TouchableOpacity
+                                  className="rounded-full"
+                                  style={{
+                                    backgroundColor: `${CHART_COLOR}20`,
+                                    padding: actionCount >= 3 ? 6 : 8,
+                                  }}
+                                  activeOpacity={0.7}
+                                  onPress={() => handleViewExpense(expense)}
+                                >
+                                  <HugeiconsIcon
+                                    icon={EyeIcon}
+                                    size={actionCount >= 3 ? 14 : 16}
+                                    color={CHART_COLOR}
+                                  />
+                                </TouchableOpacity>
+                              )}
+                            </>
+                          ) : (
+                            <Text
+                              className={`text-xs ${
+                                isDark ? "text-gray-500" : "text-gray-400"
+                              }`}
+                            >
+                              -
+                            </Text>
+                          )}
+                        </View>
                       </View>
-                    </View>
                     </PendingExpenseRowWrapper>
                   );
                 })
@@ -3379,13 +3620,116 @@ export function ExpensesScreen() {
           </View>
         )}
 
+        {/* Filtre Catégorie - Seulement pour les admins */}
+        {isAdmin && (
+          <View className="mb-6">
+            <Text
+              className={`text-sm font-semibold mb-3 ${
+                isDark ? "text-gray-300" : "text-gray-700"
+              }`}
+            >
+              Catégorie
+            </Text>
+            <View className="flex-row gap-2 flex-wrap">
+              <TouchableOpacity
+                onPress={() => setSelectedCategory("all")}
+                className={`px-4 py-2 rounded-full ${
+                  selectedCategory === "all"
+                    ? "bg-blue-600"
+                    : isDark
+                      ? "bg-[#0f172a]"
+                      : "bg-gray-100"
+                }`}
+                activeOpacity={0.7}
+              >
+                <Text
+                  className={`text-xs font-medium ${
+                    selectedCategory === "all"
+                      ? "text-white"
+                      : isDark
+                        ? "text-gray-300"
+                        : "text-gray-700"
+                  }`}
+                >
+                  Toutes les catégories
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setSelectedCategory("none")}
+                className={`px-4 py-2 rounded-full ${
+                  selectedCategory === "none"
+                    ? "bg-blue-600"
+                    : isDark
+                      ? "bg-[#0f172a]"
+                      : "bg-gray-100"
+                }`}
+                activeOpacity={0.7}
+              >
+                <Text
+                  className={`text-xs font-medium ${
+                    selectedCategory === "none"
+                      ? "text-white"
+                      : isDark
+                        ? "text-gray-300"
+                        : "text-gray-700"
+                  }`}
+                >
+                  Sans catégorie
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setSelectedCategory("Famille")}
+                className={`px-4 py-2 rounded-full ${
+                  selectedCategory === "Famille"
+                    ? "bg-blue-600"
+                    : isDark
+                      ? "bg-[#0f172a]"
+                      : "bg-gray-100"
+                }`}
+                activeOpacity={0.7}
+              >
+                <Text
+                  className={`text-xs font-medium ${
+                    selectedCategory === "Famille"
+                      ? "text-white"
+                      : isDark
+                        ? "text-gray-300"
+                        : "text-gray-700"
+                  }`}
+                >
+                  Famille
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setSelectedCategory("Business")}
+                className={`px-4 py-2 rounded-full ${
+                  selectedCategory === "Business"
+                    ? "bg-blue-600"
+                    : isDark
+                      ? "bg-[#0f172a]"
+                      : "bg-gray-100"
+                }`}
+                activeOpacity={0.7}
+              >
+                <Text
+                  className={`text-xs font-medium ${
+                    selectedCategory === "Business"
+                      ? "text-white"
+                      : isDark
+                        ? "text-gray-300"
+                        : "text-gray-700"
+                  }`}
+                >
+                  Business
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Filtre Date */}
         <View className="mb-6">
-          <Text
-            className={`text-sm font-semibold mb-3 ${
-              isDark ? "text-gray-300" : "text-gray-700"
-            }`}
-          >
+          <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
             Date
           </Text>
           <View className="flex-row gap-3">
@@ -3398,10 +3742,10 @@ export function ExpensesScreen() {
                 Du
               </Text>
               <View
-                className={`flex-row items-center gap-2 px-3 py-2.5 rounded-lg border ${
+                className={`flex-row items-center gap-2 px-4 py-2 rounded-lg border ${
                   isDark
-                    ? "bg-[#0f172a] border-gray-700"
-                    : "bg-gray-50 border-gray-200"
+                    ? "bg-[#1e293b] border-gray-700"
+                    : "bg-gray-100 border-gray-300"
                 }`}
               >
                 <HugeiconsIcon
@@ -3414,7 +3758,7 @@ export function ExpensesScreen() {
                   onChangeText={setStartDate}
                   placeholder="YYYY-MM-DD"
                   placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                  className={`flex-1 text-sm ${
+                  className={`flex-1 ${
                     isDark ? "text-gray-100" : "text-gray-900"
                   }`}
                   style={{
@@ -3422,7 +3766,7 @@ export function ExpensesScreen() {
                     textAlign: "left",
                     includeFontPadding: false,
                     paddingVertical: 0,
-                    minHeight: 20,
+                    minHeight: 36,
                   }}
                 />
               </View>
@@ -3436,10 +3780,10 @@ export function ExpensesScreen() {
                 Au
               </Text>
               <View
-                className={`flex-row items-center gap-2 px-3 py-2.5 rounded-lg border ${
+                className={`flex-row items-center gap-2 px-4 py-2 rounded-lg border ${
                   isDark
-                    ? "bg-[#0f172a] border-gray-700"
-                    : "bg-gray-50 border-gray-200"
+                    ? "bg-[#1e293b] border-gray-700"
+                    : "bg-gray-100 border-gray-300"
                 }`}
               >
                 <HugeiconsIcon
@@ -3452,7 +3796,7 @@ export function ExpensesScreen() {
                   onChangeText={setEndDate}
                   placeholder="YYYY-MM-DD"
                   placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                  className={`flex-1 text-sm ${
+                  className={`flex-1 ${
                     isDark ? "text-gray-100" : "text-gray-900"
                   }`}
                   style={{
@@ -3460,7 +3804,7 @@ export function ExpensesScreen() {
                     textAlign: "left",
                     includeFontPadding: false,
                     paddingVertical: 0,
-                    minHeight: 20,
+                    minHeight: 36,
                   }}
                 />
               </View>
@@ -3470,11 +3814,7 @@ export function ExpensesScreen() {
 
         {/* Filtre Montant */}
         <View className="mb-6">
-          <Text
-            className={`text-sm font-semibold mb-3 ${
-              isDark ? "text-gray-300" : "text-gray-700"
-            }`}
-          >
+          <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
             Montant
           </Text>
           <View className="flex-row gap-3">
@@ -3487,10 +3827,10 @@ export function ExpensesScreen() {
                 Min
               </Text>
               <View
-                className={`flex-row items-center gap-2 px-3 py-2.5 rounded-lg border ${
+                className={`flex-row items-center gap-2 px-4 py-2 rounded-lg border ${
                   isDark
-                    ? "bg-[#0f172a] border-gray-700"
-                    : "bg-gray-50 border-gray-200"
+                    ? "bg-[#1e293b] border-gray-700"
+                    : "bg-gray-100 border-gray-300"
                 }`}
               >
                 <Text
@@ -3507,18 +3847,19 @@ export function ExpensesScreen() {
                   value={minAmount}
                   onChangeText={(text) => {
                     // Permettre uniquement les nombres et un point décimal
-                    const numericValue = text.replace(/[^0-9.]/g, '');
+                    const numericValue = text.replace(/[^0-9.]/g, "");
                     // Permettre un seul point décimal
-                    const parts = numericValue.split('.');
-                    const filteredValue = parts.length > 2 
-                      ? parts[0] + '.' + parts.slice(1).join('')
-                      : numericValue;
+                    const parts = numericValue.split(".");
+                    const filteredValue =
+                      parts.length > 2
+                        ? parts[0] + "." + parts.slice(1).join("")
+                        : numericValue;
                     setMinAmount(filteredValue);
                   }}
-                  placeholder="0"
+                  placeholder="0.00"
                   placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                   keyboardType="numeric"
-                  className={`flex-1 text-sm ${
+                  className={`flex-1 ${
                     isDark ? "text-gray-100" : "text-gray-900"
                   }`}
                   style={{
@@ -3526,7 +3867,7 @@ export function ExpensesScreen() {
                     textAlign: "left",
                     includeFontPadding: false,
                     paddingVertical: 0,
-                    minHeight: 20,
+                    minHeight: 36,
                   }}
                 />
               </View>
@@ -3540,10 +3881,10 @@ export function ExpensesScreen() {
                 Max
               </Text>
               <View
-                className={`flex-row items-center gap-2 px-3 py-2.5 rounded-lg border ${
+                className={`flex-row items-center gap-2 px-4 py-2 rounded-lg border ${
                   isDark
-                    ? "bg-[#0f172a] border-gray-700"
-                    : "bg-gray-50 border-gray-200"
+                    ? "bg-[#1e293b] border-gray-700"
+                    : "bg-gray-100 border-gray-300"
                 }`}
               >
                 <Text
@@ -3560,18 +3901,19 @@ export function ExpensesScreen() {
                   value={maxAmount}
                   onChangeText={(text) => {
                     // Permettre uniquement les nombres et un point décimal
-                    const numericValue = text.replace(/[^0-9.]/g, '');
+                    const numericValue = text.replace(/[^0-9.]/g, "");
                     // Permettre un seul point décimal
-                    const parts = numericValue.split('.');
-                    const filteredValue = parts.length > 2 
-                      ? parts[0] + '.' + parts.slice(1).join('')
-                      : numericValue;
+                    const parts = numericValue.split(".");
+                    const filteredValue =
+                      parts.length > 2
+                        ? parts[0] + "." + parts.slice(1).join("")
+                        : numericValue;
                     setMaxAmount(filteredValue);
                   }}
-                  placeholder="0"
+                  placeholder="0.00"
                   placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                   keyboardType="numeric"
-                  className={`flex-1 text-sm ${
+                  className={`flex-1 ${
                     isDark ? "text-gray-100" : "text-gray-900"
                   }`}
                   style={{
@@ -3579,7 +3921,7 @@ export function ExpensesScreen() {
                     textAlign: "left",
                     includeFontPadding: false,
                     paddingVertical: 0,
-                    minHeight: 20,
+                    minHeight: 36,
                   }}
                 />
               </View>
@@ -3631,7 +3973,7 @@ export function ExpensesScreen() {
             const initialCompanyId =
               isManager && userCompanyId ? userCompanyId : "";
             const initialCompany = companies?.find(
-              (c: Company) => c.id === initialCompanyId
+              (c: Company) => c.id === initialCompanyId,
             );
             const resetCountryId = initialCompany?.country
               ? typeof initialCompany.country === "string"
@@ -3646,7 +3988,7 @@ export function ExpensesScreen() {
               companyId: initialCompanyId,
               countryId: resetCountryId,
               date: getLocalDateString(),
-              category: "",
+              category: isAdmin ? "Business" : "",
             });
             setDocuments([]);
             setExpenseDocuments([]);
@@ -3705,7 +4047,7 @@ export function ExpensesScreen() {
             </TouchableOpacity>
             <Button
               onPress={handleSubmitExpense}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isFormValid}
               loading={isSubmitting}
               className="flex-1 h-12 py-0"
               style={{ backgroundColor: CHART_COLOR }}
@@ -3719,15 +4061,18 @@ export function ExpensesScreen() {
           {/* Entreprise (seulement pour les admins) - Premier champ */}
           {!isManager && (
             <View className="mb-4">
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Entreprise <Text className="text-red-500">*</Text>
+              </Text>
               <Select
-                label="Entreprise"
-                required
                 value={formData.companyId}
                 onValueChange={(value: string) => {
                   setFormData({ ...formData, companyId: value });
                   // Charger le solde mobilisé si c'est une sortie
                   if (formData.type === "OUTCOME" && value) {
-                    const company = companies?.find((c: Company) => c.id === value);
+                    const company = companies?.find(
+                      (c: Company) => c.id === value,
+                    );
                     if (company) {
                       loadMobilizedBalance(value, formData.currency);
                     }
@@ -3746,12 +4091,8 @@ export function ExpensesScreen() {
 
           {/* Type */}
           <View className="mb-4">
-            <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
-              Type *
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Type <Text className="text-red-500">*</Text>
             </Text>
             <View className="flex-row gap-2">
               <TouchableOpacity
@@ -3801,12 +4142,12 @@ export function ExpensesScreen() {
                   // Charger le solde mobilisé pour les sorties
                   if (formData.companyId) {
                     const company = companies?.find(
-                      (c: Company) => c.id === formData.companyId
+                      (c: Company) => c.id === formData.companyId,
                     );
                     if (company) {
                       loadMobilizedBalance(
                         formData.companyId,
-                        formData.currency
+                        formData.currency,
                       );
                     }
                   }
@@ -3848,18 +4189,14 @@ export function ExpensesScreen() {
 
           {/* Montant */}
           <View className="mb-4">
-            <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
-              Montant *
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Montant <Text className="text-red-500">*</Text>
             </Text>
             <View
-              className={`flex-row items-center gap-2 px-4 py-3 rounded-lg border ${
+              className={`flex-row items-center gap-2 px-4 py-2 rounded-lg border ${
                 isDark
-                  ? "bg-[#0f172a] border-gray-700"
-                  : "bg-gray-50 border-gray-200"
+                  ? "bg-[#1e293b] border-gray-700"
+                  : "bg-gray-100 border-gray-300"
               }`}
             >
               <Text
@@ -3876,18 +4213,19 @@ export function ExpensesScreen() {
                 value={formData.amount}
                 onChangeText={(text) => {
                   // Permettre uniquement les nombres et un point décimal
-                  const numericValue = text.replace(/[^0-9.]/g, '');
+                  const numericValue = text.replace(/[^0-9.]/g, "");
                   // Permettre un seul point décimal
-                  const parts = numericValue.split('.');
-                  const filteredValue = parts.length > 2 
-                    ? parts[0] + '.' + parts.slice(1).join('')
-                    : numericValue;
+                  const parts = numericValue.split(".");
+                  const filteredValue =
+                    parts.length > 2
+                      ? parts[0] + "." + parts.slice(1).join("")
+                      : numericValue;
                   setFormData({ ...formData, amount: filteredValue });
                 }}
-                placeholder="0"
+                placeholder="0.00"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="numeric"
-                className={`flex-1 text-sm ${
+                className={`flex-1 ${
                   isDark ? "text-gray-100" : "text-gray-900"
                 }`}
                 style={{
@@ -3895,7 +4233,7 @@ export function ExpensesScreen() {
                   textAlign: "left",
                   includeFontPadding: false,
                   paddingVertical: 0,
-                  minHeight: 20,
+                  minHeight: 36,
                 }}
               />
             </View>
@@ -3958,18 +4296,14 @@ export function ExpensesScreen() {
 
           {/* Date */}
           <View className="mb-4">
-            <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
-              Date *
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Date <Text className="text-red-500">*</Text>
             </Text>
             <View
-              className={`flex-row items-center gap-2 px-4 py-3 rounded-lg border ${
+              className={`flex-row items-center gap-2 px-4 py-2 rounded-lg border ${
                 isDark
-                  ? "bg-[#0f172a] border-gray-700"
-                  : "bg-gray-50 border-gray-200"
+                  ? "bg-[#1e293b] border-gray-700"
+                  : "bg-gray-100 border-gray-300"
               }`}
             >
               <HugeiconsIcon
@@ -3984,7 +4318,7 @@ export function ExpensesScreen() {
                 }
                 placeholder="YYYY-MM-DD"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                className={`flex-1 text-sm ${
+                className={`flex-1 ${
                   isDark ? "text-gray-100" : "text-gray-900"
                 }`}
                 style={{
@@ -3992,7 +4326,7 @@ export function ExpensesScreen() {
                   textAlign: "left",
                   includeFontPadding: false,
                   paddingVertical: 0,
-                  minHeight: 20,
+                  minHeight: 36,
                 }}
               />
             </View>
@@ -4000,12 +4334,8 @@ export function ExpensesScreen() {
 
           {/* Description */}
           <View className="mb-4">
-            <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
-              Description *
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Description <Text className="text-red-500">*</Text>
             </Text>
             <TextInput
               value={formData.description}
@@ -4018,8 +4348,8 @@ export function ExpensesScreen() {
               numberOfLines={3}
               className={`px-4 py-3 rounded-lg border ${
                 isDark
-                  ? "bg-[#0f172a] border-gray-700 text-gray-100"
-                  : "bg-gray-50 border-gray-200 text-gray-900"
+                  ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                  : "bg-gray-100 border-gray-300 text-gray-900"
               }`}
               style={{
                 textAlignVertical: "top",
@@ -4030,44 +4360,34 @@ export function ExpensesScreen() {
             />
           </View>
 
-          {/* Catégorie */}
-          <View className="mb-4">
-            <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
-              Catégorie
-            </Text>
-            <TextInput
-              value={formData.category}
-              onChangeText={(text) =>
-                setFormData({ ...formData, category: text })
-              }
-              placeholder="Ex: Transport, Nourriture, Matériel..."
-              placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-              className={`px-4 py-3 rounded-lg border ${
-                isDark
-                  ? "bg-[#0f172a] border-gray-700 text-gray-100"
-                  : "bg-gray-50 border-gray-200 text-gray-900"
-              }`}
-              style={{
-                textAlignVertical: "center",
-                textAlign: "left",
-                includeFontPadding: false,
-                paddingVertical: 0,
-                minHeight: 20,
-              }}
-            />
-          </View>
+          {/* Catégorie - Seulement pour l'admin */}
+          {isAdmin && (
+            <View className="mb-4">
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Catégorie <Text className="text-red-500">*</Text>
+              </Text>
+              <Select
+                value={formData.category || "Business"}
+                onValueChange={(value: string) => {
+                  if (value === "Famille" || value === "Business") {
+                    setFormData({
+                      ...formData,
+                      category: value as "Business" | "Famille",
+                    });
+                  }
+                }}
+                options={[
+                  { label: "Business", value: "Business" },
+                  { label: "Famille", value: "Famille" },
+                ]}
+                placeholder="Sélectionner une catégorie"
+              />
+            </View>
+          )}
 
           {/* Preuves (optionnel) */}
           <View className="mb-4">
-            <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               Preuves (optionnel)
             </Text>
             <View className="space-y-3">
@@ -4176,10 +4496,8 @@ export function ExpensesScreen() {
               </TouchableOpacity>
             </View>
           </View>
-
         </ScrollView>
       </Drawer>
-
 
       {/* Drawer Confirmation Annulation */}
       <Drawer
@@ -4241,7 +4559,7 @@ export function ExpensesScreen() {
               const initialCompanyId =
                 isManager && userCompanyId ? userCompanyId : "";
               const initialCompany = companies?.find(
-                (c: Company) => c.id === initialCompanyId
+                (c: Company) => c.id === initialCompanyId,
               );
               const confirmCountryId = initialCompany?.country
                 ? typeof initialCompany.country === "string"
@@ -4399,7 +4717,7 @@ export function ExpensesScreen() {
                               day: "2-digit",
                               month: "2-digit",
                               year: "numeric",
-                            }
+                            },
                           )}
                         </Text>
                       </View>
@@ -4438,7 +4756,9 @@ export function ExpensesScreen() {
                             isDark ? "text-gray-100" : "text-gray-900"
                           }`}
                         >
-                          {(expenseToView as any).category}
+                          {(expenseToView as any).category === "Personnelle" 
+                            ? "Famille" 
+                            : (expenseToView as any).category}
                         </Text>
                       </View>
                     )}
@@ -4454,7 +4774,10 @@ export function ExpensesScreen() {
                       Documents associés ({viewExpenseDocuments.length})
                     </Text>
                     {viewExpenseDocuments.length > 0 ? (
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                      >
                         <View className="flex-row gap-3">
                           {viewExpenseDocuments.map((doc) => (
                             <TouchableOpacity
@@ -4489,7 +4812,7 @@ export function ExpensesScreen() {
                                 }`}
                               >
                                 {new Date(doc.createdAt).toLocaleDateString(
-                                  "fr-FR"
+                                  "fr-FR",
                                 )}
                               </Text>
                             </TouchableOpacity>
@@ -4512,7 +4835,7 @@ export function ExpensesScreen() {
                     expenseToView.type === "OUTCOME" &&
                     canUpdate &&
                     !isManager && (
-                      <View 
+                      <View
                         className="flex-row gap-3 pt-4 border-t border-gray-700"
                         onStartShouldSetResponder={() => false}
                       >
@@ -4655,203 +4978,213 @@ export function ExpensesScreen() {
                     }`}
                   >
                     {validationAction === "approve" ? (
-                    <>
-                      Êtes-vous sûr de vouloir valider cette dépense de{" "}
-                      <Text className="font-semibold">
-                        {expenseToValidate?.company?.name || "N/A"}
-                      </Text>
-                      ? Le montant sera déduit du solde du gestionnaire.
-                    </>
-                  ) : (
-                    <>
-                      Êtes-vous sûr de vouloir rejeter cette dépense de{" "}
-                      <Text className="font-semibold">
-                        {expenseToValidate?.company?.name || "N/A"}
-                      </Text>
-                      . La dépense sera annulée.
-                    </>
-                  )}
-                </Text>
+                      <>
+                        Êtes-vous sûr de vouloir valider cette dépense de{" "}
+                        <Text className="font-semibold">
+                          {expenseToValidate?.company?.name || "N/A"}
+                        </Text>
+                        ? Le montant sera déduit du solde du gestionnaire.
+                      </>
+                    ) : (
+                      <>
+                        Êtes-vous sûr de vouloir rejeter cette dépense de{" "}
+                        <Text className="font-semibold">
+                          {expenseToValidate?.company?.name || "N/A"}
+                        </Text>
+                        . La dépense sera annulée.
+                      </>
+                    )}
+                  </Text>
 
-                {/* Informations de la dépense */}
-                <View
-                  className={`p-4 rounded-lg mb-6 ${
-                    isDark ? "bg-[#1e293b]" : "bg-gray-50"
-                  }`}
-                >
-                  <View className="flex-row justify-between mb-2">
-                    <Text
-                      className={`text-xs ${
-                        isDark ? "text-gray-400" : "text-gray-600"
-                      }`}
-                    >
-                      Montant:
-                    </Text>
-                    <BlurredAmount
-                      amount={expenseToValidate?.amount || 0}
-                      currency={expenseToValidate?.currency || "GNF"}
-                      prefix=""
-                      textClassName={`text-xs font-semibold ${
-                        isDark ? "text-gray-100" : "text-gray-900"
-                      }`}
-                    />
+                  {/* Informations de la dépense */}
+                  <View
+                    className={`p-4 rounded-lg mb-6 ${
+                      isDark ? "bg-[#1e293b]" : "bg-gray-50"
+                    }`}
+                  >
+                    <View className="flex-row justify-between mb-2">
+                      <Text
+                        className={`text-xs ${
+                          isDark ? "text-gray-400" : "text-gray-600"
+                        }`}
+                      >
+                        Montant:
+                      </Text>
+                      <BlurredAmount
+                        amount={expenseToValidate?.amount || 0}
+                        currency={expenseToValidate?.currency || "GNF"}
+                        prefix=""
+                        textClassName={`text-xs font-semibold ${
+                          isDark ? "text-gray-100" : "text-gray-900"
+                        }`}
+                      />
+                    </View>
+                    <View className="flex-row justify-between">
+                      <Text
+                        className={`text-xs ${
+                          isDark ? "text-gray-400" : "text-gray-600"
+                        }`}
+                      >
+                        Description:
+                      </Text>
+                      <Text
+                        className={`text-xs font-medium flex-1 text-right ml-2 ${
+                          isDark ? "text-gray-300" : "text-gray-700"
+                        }`}
+                        numberOfLines={2}
+                      >
+                        {expenseToValidate?.description || "N/A"}
+                      </Text>
+                    </View>
                   </View>
-                  <View className="flex-row justify-between">
-                    <Text
-                      className={`text-xs ${
-                        isDark ? "text-gray-400" : "text-gray-600"
-                      }`}
-                    >
-                      Description:
-                    </Text>
-                    <Text
-                      className={`text-xs font-medium flex-1 text-right ml-2 ${
-                        isDark ? "text-gray-300" : "text-gray-700"
-                      }`}
-                      numberOfLines={2}
-                    >
-                      {expenseToValidate?.description || "N/A"}
-                    </Text>
-                  </View>
-                </View>
 
-                {/* Documents associés */}
-                {viewExpenseDocuments.length > 0 && (
-                  <View className="mb-6">
-                    <Text
-                      className={`text-sm font-semibold mb-3 ${
-                        isDark ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      Documents associés ({viewExpenseDocuments.length})
-                    </Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      <View className="flex-row gap-3">
-                        {viewExpenseDocuments.map((doc) => (
-                          <TouchableOpacity
-                            key={doc.id}
-                            onPress={() => openDocument(doc)}
-                            className={`p-3 rounded-lg border ${
-                              isDark
-                                ? "bg-[#1e293b] border-gray-700"
-                                : "bg-gray-50 border-gray-200"
-                            }`}
-                            style={{ minWidth: 150 }}
-                            activeOpacity={0.7}
-                          >
-                            <View className="flex-row items-center gap-2 mb-2">
-                              <HugeiconsIcon
-                                icon={File01Icon}
-                                size={16}
-                                color={isDark ? "#9ca3af" : "#6b7280"}
-                              />
-                              <Text
-                                className={`text-xs font-medium flex-1 ${
-                                  isDark ? "text-gray-300" : "text-gray-700"
-                                }`}
-                                numberOfLines={1}
-                              >
-                                {doc.title || doc.filename}
-                              </Text>
-                            </View>
-                            <Text
-                              className={`text-[10px] ${
-                                isDark ? "text-gray-500" : "text-gray-500"
+                  {/* Documents associés */}
+                  {viewExpenseDocuments.length > 0 && (
+                    <View className="mb-6">
+                      <Text
+                        className={`text-sm font-semibold mb-3 ${
+                          isDark ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        Documents associés ({viewExpenseDocuments.length})
+                      </Text>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                      >
+                        <View className="flex-row gap-3">
+                          {viewExpenseDocuments.map((doc) => (
+                            <TouchableOpacity
+                              key={doc.id}
+                              onPress={() => openDocument(doc)}
+                              className={`p-3 rounded-lg border ${
+                                isDark
+                                  ? "bg-[#1e293b] border-gray-700"
+                                  : "bg-gray-50 border-gray-200"
                               }`}
+                              style={{ minWidth: 150 }}
+                              activeOpacity={0.7}
                             >
-                              {new Date(doc.createdAt).toLocaleDateString(
-                                "fr-FR"
-                              )}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    </ScrollView>
-                  </View>
-                )}
+                              <View className="flex-row items-center gap-2 mb-2">
+                                <HugeiconsIcon
+                                  icon={File01Icon}
+                                  size={16}
+                                  color={isDark ? "#9ca3af" : "#6b7280"}
+                                />
+                                <Text
+                                  className={`text-xs font-medium flex-1 ${
+                                    isDark ? "text-gray-300" : "text-gray-700"
+                                  }`}
+                                  numberOfLines={1}
+                                >
+                                  {doc.title || doc.filename}
+                                </Text>
+                              </View>
+                              <Text
+                                className={`text-[10px] ${
+                                  isDark ? "text-gray-500" : "text-gray-500"
+                                }`}
+                              >
+                                {new Date(doc.createdAt).toLocaleDateString(
+                                  "fr-FR",
+                                )}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </ScrollView>
+                    </View>
+                  )}
 
-                {/* Champ de raison de refus (seulement pour reject) */}
-                {validationAction === "reject" && (
-                  <View className="mb-6">
-                    <Text
-                      className={`text-sm font-semibold mb-2 ${
-                        isDark ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      Cause de refus <Text className="text-red-500">*</Text>
-                    </Text>
-                    <TextInput
-                      value={rejectionReason}
-                      onChangeText={setRejectionReason}
-                      placeholder="Saisissez la cause de refus..."
-                      placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                      multiline
-                      numberOfLines={4}
-                      className={`w-full min-h-[100px] px-3 py-2 rounded-lg border text-sm ${
-                        isDark
-                          ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                          : "bg-white border-gray-300 text-gray-900"
+                  {/* Champ de raison de refus (seulement pour reject) */}
+                  {validationAction === "reject" && (
+                    <View className="mb-6">
+                      <Text
+                        className={`text-sm font-semibold mb-2 ${
+                          isDark ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        Cause de refus <Text className="text-red-500">*</Text>
+                      </Text>
+                      <TextInput
+                        value={rejectionReason}
+                        onChangeText={setRejectionReason}
+                        placeholder="Saisissez la cause de refus..."
+                        placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
+                        multiline
+                        numberOfLines={4}
+                        className={`w-full min-h-[100px] px-3 py-2 rounded-lg border text-sm ${
+                          isDark
+                            ? "bg-[#1e293b] border-gray-600 text-gray-100"
+                            : "bg-white border-gray-300 text-gray-900"
+                        }`}
+                        style={{
+                          textAlignVertical: "top",
+                        }}
+                      />
+                    </View>
+                  )}
+
+                  {/* Boutons */}
+                  <View className="flex-row gap-3">
+                    <TouchableOpacity
+                      onPress={handleValidateExpense}
+                      disabled={
+                        isValidating ||
+                        (validationAction === "reject" &&
+                          !rejectionReason.trim())
+                      }
+                      className={`flex-1 py-3 rounded-full items-center ${
+                        validationAction === "approve"
+                          ? "bg-green-600"
+                          : "bg-red-600"
                       }`}
                       style={{
-                        textAlignVertical: "top",
+                        opacity:
+                          isValidating ||
+                          (validationAction === "reject" &&
+                            !rejectionReason.trim())
+                            ? 0.5
+                            : 1,
                       }}
-                    />
-                  </View>
-                )}
-
-                {/* Boutons */}
-                <View className="flex-row gap-3">
-                  <TouchableOpacity
-                    onPress={handleValidateExpense}
-                    disabled={isValidating || (validationAction === "reject" && !rejectionReason.trim())}
-                    className={`flex-1 py-3 rounded-full items-center ${
-                      validationAction === "approve"
-                        ? "bg-green-600"
-                        : "bg-red-600"
-                    }`}
-                    style={{
-                      opacity:
-                        isValidating ||
-                        (validationAction === "reject" && !rejectionReason.trim())
-                          ? 0.5
-                          : 1,
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    {isValidating ? (
-                      <ActivityIndicator size="small" color="#ffffff" />
-                    ) : (
-                      <Text className="text-white font-semibold">
-                        {validationAction === "approve" ? "Valider" : "Rejeter"}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowValidationModal(false);
-                      setExpenseToValidate(null);
-                      setValidationAction(null);
-                      setRejectionReason("");
-                    }}
-                    disabled={isValidating}
-                    className={`flex-1 py-3 rounded-full items-center border ${
-                      isDark
-                        ? "border-gray-600 bg-[#1e293b]"
-                        : "border-gray-300 bg-white"
-                    }`}
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      className={`font-semibold ${
-                        isDark ? "text-gray-300" : "text-gray-700"
-                      }`}
+                      activeOpacity={0.8}
                     >
-                      Annuler
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
+                      {isValidating ? (
+                        <ActivityIndicator size="small" color="#ffffff" />
+                      ) : (
+                        <Text className="text-white font-semibold">
+                          {validationAction === "approve"
+                            ? "Valider"
+                            : "Rejeter"}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setShowValidationModal(false);
+                        setExpenseToValidate(null);
+                        setValidationAction(null);
+                        setRejectionReason("");
+                      }}
+                      disabled={isValidating}
+                      className={`flex-1 py-3 rounded-full items-center border ${
+                        isDark
+                          ? "border-gray-600 bg-[#1e293b]"
+                          : "border-gray-300 bg-white"
+                      }`}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        className={`font-semibold ${
+                          isDark ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        Annuler
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
             </ScrollView>
           </View>
         </TouchableOpacity>

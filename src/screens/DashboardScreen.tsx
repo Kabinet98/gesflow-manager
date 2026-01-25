@@ -14,7 +14,10 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/config/api";
 import { useTheme } from "@/contexts/ThemeContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { TAB_BAR_PADDING_BOTTOM, REFRESH_CONTROL_COLOR } from "@/constants/layout";
+import {
+  TAB_BAR_PADDING_BOTTOM,
+  REFRESH_CONTROL_COLOR,
+} from "@/constants/layout";
 import { authService } from "@/services/auth.service";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
@@ -46,10 +49,12 @@ export function DashboardScreen() {
   // Initialiser avec l'année en cours par défaut (sera ajustée quand les années disponibles sont chargées)
   const currentYear = new Date().getFullYear().toString();
   const [selectedYear, setSelectedYear] = useState<string | null>("all");
-  const [selectedActivitySector, setSelectedActivitySector] = useState<string | null>(null);
+  const [selectedActivitySector, setSelectedActivitySector] = useState<
+    string | null
+  >(null);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"evolution" | "repartition">(
-    "evolution"
+    "evolution",
   );
   const [showYearPicker, setShowYearPicker] = useState(false);
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
@@ -72,7 +77,8 @@ export function DashboardScreen() {
           const roleName = fullUser?.role?.name?.toLowerCase() || "";
           const isManagerRole =
             roleName.includes("gestionnaire") || roleName.includes("manager");
-          const isAdminRole = roleName.includes("admin") || roleName === "administrateur";
+          const isAdminRole =
+            roleName.includes("admin") || roleName === "administrateur";
 
           if (isAdminRole) {
             setIsAdmin(true);
@@ -82,7 +88,7 @@ export function DashboardScreen() {
             // Récupérer le companyId depuis l'API spécifique du gestionnaire
             try {
               const managerResponse = await api.get(
-                `/api/users/${user.id}/company-manager`
+                `/api/users/${user.id}/company-manager`,
               );
               const manager = managerResponse.data;
 
@@ -110,7 +116,7 @@ export function DashboardScreen() {
       if (isManager && userCompanyId) {
         try {
           const response = await api.get(
-            `/api/dashboard/available-years?companyId=${userCompanyId}`
+            `/api/dashboard/available-years?companyId=${userCompanyId}`,
           );
           return Array.isArray(response.data) ? response.data : [];
         } catch (err) {
@@ -119,9 +125,11 @@ export function DashboardScreen() {
       } else if (isAdmin) {
         // Pour les admins, récupérer les années disponibles (avec ou sans filtres)
         try {
-          const companyParam = selectedCompany ? `?companyId=${selectedCompany}` : "";
+          const companyParam = selectedCompany
+            ? `?companyId=${selectedCompany}`
+            : "";
           const response = await api.get(
-            `/api/dashboard/available-years${companyParam}`
+            `/api/dashboard/available-years${companyParam}`,
           );
           return Array.isArray(response.data) ? response.data : [];
         } catch (err) {
@@ -144,8 +152,12 @@ export function DashboardScreen() {
     if (selectedYear === "all") {
       return;
     }
-    
-    if (safeAvailableYears.length > 0 && selectedYear && !safeAvailableYears.includes(selectedYear)) {
+
+    if (
+      safeAvailableYears.length > 0 &&
+      selectedYear &&
+      !safeAvailableYears.includes(selectedYear)
+    ) {
       // Si l'année courante est disponible, l'utiliser, sinon utiliser la première année disponible (la plus récente)
       if (safeAvailableYears.includes(currentYear)) {
         setSelectedYear(currentYear);
@@ -177,7 +189,9 @@ export function DashboardScreen() {
     queryKey: ["companies", selectedActivitySector],
     queryFn: async () => {
       try {
-        const sectorParam = selectedActivitySector ? `?activitySectorId=${selectedActivitySector}` : "";
+        const sectorParam = selectedActivitySector
+          ? `?activitySectorId=${selectedActivitySector}`
+          : "";
         const response = await api.get(`/api/companies${sectorParam}`);
         return response.data || [];
       } catch (err) {
@@ -189,20 +203,25 @@ export function DashboardScreen() {
 
   // Initialiser avec la première entreprise disponible et gérer les changements de secteur
   useEffect(() => {
-    if (!isAdmin || !companies || !Array.isArray(companies) || companies.length === 0) {
+    if (
+      !isAdmin ||
+      !companies ||
+      !Array.isArray(companies) ||
+      companies.length === 0
+    ) {
       return;
     }
 
     if (selectedActivitySector !== null) {
       // Si un secteur est sélectionné, filtrer les entreprises de ce secteur
       const filteredCompanies = companies.filter(
-        (company: any) => company.activitySectorId === selectedActivitySector
+        (company: any) => company.activitySectorId === selectedActivitySector,
       );
       if (filteredCompanies.length > 0) {
         // Sélectionner la première entreprise du secteur si aucune n'est sélectionnée
         // ou si l'entreprise actuelle n'est plus dans le secteur
         const currentCompanyInSector = filteredCompanies.some(
-          (c: any) => c.id === selectedCompany
+          (c: any) => c.id === selectedCompany,
         );
         if (!selectedCompany || !currentCompanyInSector) {
           setSelectedCompany(filteredCompanies[0].id);
@@ -225,7 +244,14 @@ export function DashboardScreen() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["dashboard-stats", userCompanyId, isManager, isAdmin, selectedYear, selectedCompany],
+    queryKey: [
+      "dashboard-stats",
+      userCompanyId,
+      isManager,
+      isAdmin,
+      selectedYear,
+      selectedCompany,
+    ],
     queryFn: async () => {
       // IMPORTANT: Les gestionnaires DOIVENT toujours utiliser company-stats avec leur companyId
       // pour que le backend filtre correctement leurs données (via isManagerOnly et managerFilter)
@@ -233,7 +259,7 @@ export function DashboardScreen() {
         const yearParam = selectedYear ? `&year=${selectedYear}` : "";
         try {
           const response = await api.get(
-            `/api/dashboard/company-stats?companyId=${userCompanyId}${yearParam}`
+            `/api/dashboard/company-stats?companyId=${userCompanyId}${yearParam}`,
           );
           return response.data;
         } catch (err: any) {
@@ -280,7 +306,8 @@ export function DashboardScreen() {
       }
     },
     enabled:
-      hasPermission("dashboard.view") && (isManager ? !!userCompanyId : isAdmin ? true : false),
+      hasPermission("dashboard.view") &&
+      (isManager ? !!userCompanyId : isAdmin ? true : false),
   });
 
   // Vérifier que stats existe et a la structure attendue
@@ -462,7 +489,9 @@ export function DashboardScreen() {
                     .filter((company: any) => {
                       // Si un secteur est sélectionné, filtrer les entreprises de ce secteur
                       if (selectedActivitySector) {
-                        return company.activitySectorId === selectedActivitySector;
+                        return (
+                          company.activitySectorId === selectedActivitySector
+                        );
                       }
                       // Sinon, afficher toutes les entreprises
                       return true;
@@ -979,7 +1008,7 @@ export function DashboardScreen() {
                   gradientLight: string,
                   circleColor: string,
                   textDark: string,
-                  textLight: string
+                  textLight: string,
                 ) => (
                   <View
                     key={key}
@@ -1056,9 +1085,9 @@ export function DashboardScreen() {
                 // Pour les managers: netBalance
                 if (kpis.netBalance !== undefined) {
                   const soldeValue = isManager
-                    ? kpis.netBalance ?? 0
-                    : kpis.mobilizedBalance ??
-                      (kpis.netBalance || 0) - (kpis.totalPendingAmount || 0);
+                    ? (kpis.netBalance ?? 0)
+                    : (kpis.mobilizedBalance ??
+                      (kpis.netBalance || 0) - (kpis.totalPendingAmount || 0));
                   const isPositive = soldeValue >= 0;
                   const subtitle = isManager
                     ? kpis.totalPendingAmount && kpis.totalPendingAmount > 0
@@ -1086,8 +1115,8 @@ export function DashboardScreen() {
                         : "bg-gradient-to-br from-red-50 to-red-100",
                       isPositive ? "bg-green-500/10" : "bg-red-500/10",
                       isPositive ? "text-green-200" : "text-red-200",
-                      isPositive ? "text-green-800" : "text-red-800"
-                    )
+                      isPositive ? "text-green-800" : "text-red-800",
+                    ),
                   );
                 }
 
@@ -1106,8 +1135,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-emerald-50 to-emerald-100",
                         "bg-emerald-500/10",
                         "text-emerald-200",
-                        "text-emerald-800"
-                      )
+                        "text-emerald-800",
+                      ),
                     );
                   }
                   // Total Sorties
@@ -1123,8 +1152,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-orange-50 to-orange-100",
                         "bg-orange-500/10",
                         "text-orange-200",
-                        "text-orange-800"
-                      )
+                        "text-orange-800",
+                      ),
                     );
                   }
                   if (kpis.totalPendingAmount !== undefined) {
@@ -1141,8 +1170,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-yellow-50 to-yellow-100",
                         "bg-yellow-500/10",
                         "text-yellow-200",
-                        "text-yellow-800"
-                      )
+                        "text-yellow-800",
+                      ),
                     );
                   }
                   if (kpis.allocatedAmount !== undefined) {
@@ -1157,8 +1186,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-blue-50 to-blue-100",
                         "bg-blue-500/10",
                         "text-blue-200",
-                        "text-blue-800"
-                      )
+                        "text-blue-800",
+                      ),
                     );
                   }
                   if (kpis.monthsRemaining !== undefined) {
@@ -1183,8 +1212,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-violet-50 to-violet-100",
                         "bg-violet-500/10",
                         "text-violet-200",
-                        "text-violet-800"
-                      )
+                        "text-violet-800",
+                      ),
                     );
                   }
                   if (kpis.validatedExpensesCount !== undefined) {
@@ -1201,8 +1230,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-green-50 to-green-100",
                         "bg-green-500/10",
                         "text-green-200",
-                        "text-green-800"
-                      )
+                        "text-green-800",
+                      ),
                     );
                   }
                   if (kpis.validationRate !== undefined) {
@@ -1217,8 +1246,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-teal-50 to-teal-100",
                         "bg-teal-500/10",
                         "text-teal-200",
-                        "text-teal-800"
-                      )
+                        "text-teal-800",
+                      ),
                     );
                   }
                   if (kpis.rejectedExpensesCount !== undefined) {
@@ -1235,8 +1264,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-red-50 to-red-100",
                         "bg-red-500/10",
                         "text-red-200",
-                        "text-red-800"
-                      )
+                        "text-red-800",
+                      ),
                     );
                   }
                   if (kpis.avgValidationTimeHours !== undefined) {
@@ -1257,8 +1286,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-pink-50 to-pink-100",
                         "bg-pink-500/10",
                         "text-pink-200",
-                        "text-pink-800"
-                      )
+                        "text-pink-800",
+                      ),
                     );
                   }
                   if (kpis.avgMonthlyOutcome !== undefined) {
@@ -1273,8 +1302,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-amber-50 to-amber-100",
                         "bg-amber-500/10",
                         "text-amber-200",
-                        "text-amber-800"
-                      )
+                        "text-amber-800",
+                      ),
                     );
                   }
                 } else {
@@ -1292,8 +1321,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-emerald-50 to-emerald-100",
                         "bg-emerald-500/10",
                         "text-emerald-200",
-                        "text-emerald-800"
-                      )
+                        "text-emerald-800",
+                      ),
                     );
                   }
                   // 2. Total Sorties
@@ -1309,8 +1338,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-orange-50 to-orange-100",
                         "bg-orange-500/10",
                         "text-orange-200",
-                        "text-orange-800"
-                      )
+                        "text-orange-800",
+                      ),
                     );
                   }
                   // 3. Investissements
@@ -1326,8 +1355,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-purple-50 to-purple-100",
                         "bg-purple-500/10",
                         "text-purple-200",
-                        "text-purple-800"
-                      )
+                        "text-purple-800",
+                      ),
                     );
                   }
                   // 4. Montant Immobilisé
@@ -1343,8 +1372,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-cyan-50 to-cyan-100",
                         "bg-cyan-500/10",
                         "text-cyan-200",
-                        "text-cyan-800"
-                      )
+                        "text-cyan-800",
+                      ),
                     );
                   }
                   // 5. Emprunts
@@ -1362,15 +1391,16 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-indigo-50 to-indigo-100",
                         "bg-indigo-500/10",
                         "text-indigo-200",
-                        "text-indigo-800"
-                      )
+                        "text-indigo-800",
+                      ),
                     );
                   }
                   // 6. Dépenses en Attente (si > 0)
                   // Utiliser pendingExpensesAmount si disponible (company-stats), sinon totalPendingAmount (stats globales)
-                  const pendingAmount = (kpis as any).pendingExpensesAmount !== undefined
-                    ? (kpis as any).pendingExpensesAmount
-                    : kpis.totalPendingAmount;
+                  const pendingAmount =
+                    (kpis as any).pendingExpensesAmount !== undefined
+                      ? (kpis as any).pendingExpensesAmount
+                      : kpis.totalPendingAmount;
                   if (
                     kpis.pendingExpensesCount !== undefined &&
                     kpis.pendingExpensesCount > 0 &&
@@ -1389,8 +1419,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-amber-50 to-amber-100",
                         "bg-amber-500/10",
                         "text-amber-200",
-                        "text-amber-800"
-                      )
+                        "text-amber-800",
+                      ),
                     );
                   }
                   // 7. Ratio Entrées/Sorties
@@ -1408,8 +1438,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-slate-50 to-slate-100",
                         "bg-slate-500/10",
                         "text-slate-200",
-                        "text-slate-800"
-                      )
+                        "text-slate-800",
+                      ),
                     );
                   }
                   // 8. DAT échéance 7 jours (si > 0)
@@ -1428,8 +1458,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-rose-50 to-rose-100",
                         "bg-rose-500/10",
                         "text-rose-200",
-                        "text-rose-800"
-                      )
+                        "text-rose-800",
+                      ),
                     );
                   }
                   // 9. Emprunts échéance 7 jours (si > 0)
@@ -1448,8 +1478,8 @@ export function DashboardScreen() {
                         "bg-gradient-to-br from-pink-50 to-pink-100",
                         "bg-pink-500/10",
                         "text-pink-200",
-                        "text-pink-800"
-                      )
+                        "text-pink-800",
+                      ),
                     );
                   }
                 }
@@ -1515,7 +1545,7 @@ export function DashboardScreen() {
                         const totalWidth = contentSize.width;
 
                         const currentPageIndex = Math.round(
-                          scrollX / pageWidth
+                          scrollX / pageWidth,
                         );
                         setCurrentPage(currentPageIndex);
 
@@ -1537,7 +1567,7 @@ export function DashboardScreen() {
                         // Mettre à jour les indicateurs seulement si on peut vraiment scroller
                         if (totalWidth > pageWidth && needsScroll) {
                           setShowLeftScrollIndicator(
-                            !isAtFirstPage && !isAtStart
+                            !isAtFirstPage && !isAtStart,
                           );
                           // Cacher la flèche droite si on est à la dernière page
                           setShowScrollIndicator(!isAtEnd);
@@ -1557,7 +1587,7 @@ export function DashboardScreen() {
                         const totalWidth = contentSize.width;
 
                         const currentPageIndex = Math.round(
-                          scrollX / pageWidth
+                          scrollX / pageWidth,
                         );
                         setCurrentPage(currentPageIndex);
 
@@ -1575,7 +1605,7 @@ export function DashboardScreen() {
 
                         if (totalWidth > pageWidth && needsScroll) {
                           setShowLeftScrollIndicator(
-                            !isAtFirstPage && !isAtStart
+                            !isAtFirstPage && !isAtStart,
                           );
                           setShowScrollIndicator(!isAtEnd);
                         } else {
@@ -1594,7 +1624,7 @@ export function DashboardScreen() {
                         const totalWidth = contentSize.width;
 
                         const currentPageIndex = Math.round(
-                          scrollX / pageWidth
+                          scrollX / pageWidth,
                         );
                         setCurrentPage(currentPageIndex);
 
@@ -1612,7 +1642,7 @@ export function DashboardScreen() {
 
                         if (totalWidth > pageWidth && needsScroll) {
                           setShowLeftScrollIndicator(
-                            !isAtFirstPage && !isAtStart
+                            !isAtFirstPage && !isAtStart,
                           );
                           setShowScrollIndicator(!isAtEnd);
                         } else {
@@ -1714,7 +1744,7 @@ export function DashboardScreen() {
                           if (statsScrollViewRef.current) {
                             const targetPage = Math.min(
                               totalPages - 1,
-                              currentPage + 1
+                              currentPage + 1,
                             );
                             statsScrollViewRef.current.scrollTo({
                               x: targetPage * pageWidth,
@@ -1861,7 +1891,7 @@ export function DashboardScreen() {
                                 .filter((item: any) => item && item.month)
                                 .map((item: any) => ({
                                   label: new Date(
-                                    item.month + "-01"
+                                    item.month + "-01",
                                   ).toLocaleDateString("fr-FR", {
                                     month: "short",
                                   }),
@@ -1888,7 +1918,7 @@ export function DashboardScreen() {
                                 return [];
                               }
                               const validItems = expensesByMonth.filter(
-                                (item: any) => item
+                                (item: any) => item,
                               );
                               return [
                                 {
@@ -1897,7 +1927,7 @@ export function DashboardScreen() {
                                     validItems.reduce(
                                       (sum: number, item: any) =>
                                         sum + (item.income || 0),
-                                      0
+                                      0,
                                     ) || 0,
                                   color: "#10b981",
                                 },
@@ -1907,7 +1937,7 @@ export function DashboardScreen() {
                                     validItems.reduce(
                                       (sum: number, item: any) =>
                                         sum + (item.outcome || 0),
-                                      0
+                                      0,
                                     ) || 0,
                                   color: "#ef4444",
                                 },
@@ -1953,7 +1983,7 @@ export function DashboardScreen() {
                               .filter((item: any) => item && item.month)
                               .map((item: any) => ({
                                 label: new Date(
-                                  item.month + "-01"
+                                  item.month + "-01",
                                 ).toLocaleDateString("fr-FR", {
                                   month: "short",
                                   year: selectedYear ? undefined : "numeric",
@@ -2018,6 +2048,58 @@ export function DashboardScreen() {
                               : [];
                           })()}
                           currency={stats?.company?.currency || "GNF"}
+                        />
+                      </View>
+                    )}
+
+                  {/* Graphique Répartition des Dépenses par Catégorie (Admin uniquement) */}
+                  {isAdmin &&
+                    stats.charts?.expensesByCategory &&
+                    Array.isArray(stats.charts?.expensesByCategory) &&
+                    stats.charts?.expensesByCategory.length > 0 && (
+                      <View
+                        className={`p-5 rounded-xl shadow-sm mb-6 ${
+                          isDark ? "bg-[#1e293b]" : "bg-gray-50"
+                        }`}
+                      >
+                        <Text
+                          className={`text-xl font-bold mb-2 ${
+                            isDark ? "text-gray-100" : "text-gray-900"
+                          }`}
+                        >
+                          Répartition des Dépenses : Famille vs Business
+                        </Text>
+                        <Text
+                          className={`text-sm mb-6 ${
+                            isDark ? "text-gray-400" : "text-gray-600"
+                          }`}
+                        >
+                          Analyse comparative des dépenses par catégorie
+                        </Text>
+                        <PieChartComponent
+                          data={(() => {
+                            const expensesByCategory =
+                              stats?.charts?.expensesByCategory;
+                            if (
+                              !Array.isArray(expensesByCategory) ||
+                              expensesByCategory.length === 0
+                            ) {
+                              return [];
+                            }
+                            return expensesByCategory
+                              .filter((item: any) => item && item.category)
+                              .map((item: any) => {
+                                // Mapper "Personnelle" (de l'API) vers "Famille" (pour l'affichage)
+                                const category = item.category === "Personnelle" ? "Famille" : item.category;
+                                return {
+                                  name: category === "Famille" ? "Famille" : "Business",
+                                  value: item.amount || 0,
+                                  color: category === "Famille" ? "#ec4899" : "#10b981",
+                                };
+                              });
+                          })()}
+                          currency={stats?.company?.currency || "GNF"}
+                          height={400}
                         />
                       </View>
                     )}

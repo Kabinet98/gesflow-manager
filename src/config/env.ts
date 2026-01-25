@@ -40,6 +40,13 @@ export const getApiBaseUrl = () => {
   }
 
   // En production, utiliser la valeur du .env ou la valeur par défaut
+  // En production, ne JAMAIS utiliser localhost
+  if (!__DEV__) {
+    // En production, forcer une URL de production
+    if (apiUrl && (apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1') || apiUrl.includes('192.168') || apiUrl.includes('10.0'))) {
+      throw new Error('Configuration invalide: localhost ne peut pas être utilisé en production. Veuillez définir API_BASE_URL avec une URL de production.');
+    }
+  }
   return apiUrl || 'http://localhost:3000';
 };
 

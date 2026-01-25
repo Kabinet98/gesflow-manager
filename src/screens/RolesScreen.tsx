@@ -178,6 +178,11 @@ export function RolesScreen() {
     });
   }, [roles, searchTerm]);
 
+  // Vérifier si tous les champs obligatoires sont remplis
+  const isFormValid = useMemo(() => {
+    return formData.name.trim() !== "";
+  }, [formData]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     try {
@@ -1015,33 +1020,37 @@ export function RolesScreen() {
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <View className="gap-4 pb-4">
             {/* Nom */}
-            <Input
-              label="Nom du rôle *"
-              value={formData.name}
-              onChangeText={(text) =>
-                setFormData({ ...formData, name: text })
-              }
-              placeholder="Ex: Gestionnaire"
-            />
+            <View>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Nom du rôle <Text className="text-red-500">*</Text>
+              </Text>
+              <Input
+                value={formData.name}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, name: text })
+                }
+                placeholder="Ex: Gestionnaire"
+              />
+            </View>
 
             {/* Description */}
-            <Textarea
-              label="Description"
-              value={formData.description}
-              onChangeText={(text) =>
-                setFormData({ ...formData, description: text })
-              }
-              placeholder="Description du rôle..."
-              rows={3}
-            />
+            <View>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Description
+              </Text>
+              <Textarea
+                value={formData.description}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, description: text })
+                }
+                placeholder="Description du rôle..."
+                rows={3}
+              />
+            </View>
 
             {/* Permissions */}
             <View className="gap-4">
-              <Text
-                className={`text-sm font-semibold ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+              <Text className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Permissions
               </Text>
               <View
@@ -1195,7 +1204,7 @@ export function RolesScreen() {
               </Button>
               <Button
                 onPress={handleSubmit}
-                disabled={isSubmitting || !formData.name.trim()}
+                disabled={isSubmitting || !isFormValid}
                 loading={isSubmitting}
                 className="flex-1"
               >

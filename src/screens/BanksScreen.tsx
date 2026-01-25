@@ -451,6 +451,12 @@ export function BanksScreen() {
     });
   }, [banks, searchTerm, countryFilter, statusFilter]);
 
+  // Vérifier si tous les champs obligatoires sont remplis
+  // Basé sur les patterns de gesflow, les champs obligatoires sont généralement: name et countryId
+  const isFormValid = useMemo(() => {
+    return formData.name.trim() !== "" && formData.countryId !== "";
+  }, [formData]);
+
   // Gestion du refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -519,8 +525,13 @@ export function BanksScreen() {
 
   // Soumettre le formulaire
   const handleSubmit = useCallback(async () => {
+    // Validation côté client
     if (!formData.name.trim()) {
       Alert.alert("Erreur", "Le nom de la banque est requis");
+      return;
+    }
+    if (!formData.countryId) {
+      Alert.alert("Erreur", "Le pays est requis");
       return;
     }
 
@@ -548,10 +559,29 @@ export function BanksScreen() {
       setEditingBank(null);
       Alert.alert("Succès", editingBank ? "Banque mise à jour" : "Banque créée");
     } catch (err: any) {
-      Alert.alert(
-        "Erreur",
-        err.response?.data?.error || "Une erreur est survenue"
-      );
+      // Afficher les détails de validation si disponibles
+      const validationDetails = err.response?.data?.details;
+      let errorMessage =
+        err.response?.data?.error ||
+        err.message ||
+        "Une erreur est survenue";
+
+      if (
+        validationDetails &&
+        Array.isArray(validationDetails) &&
+        validationDetails.length > 0
+      ) {
+        // Construire un message détaillé avec tous les champs manquants
+        const missingFields = validationDetails
+          .map((detail: any) => {
+            const fieldName = detail.path || detail.field || "champ";
+            return `- ${fieldName}: ${detail.message || "requis"}`;
+          })
+          .join("\n");
+        errorMessage = `${errorMessage}\n\nChamps manquants ou invalides:\n${missingFields}`;
+      }
+
+      Alert.alert("Erreur", errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -928,30 +958,38 @@ export function BanksScreen() {
         title="Filtres"
       >
         <View className="gap-4">
-          <Select
-            label="Pays"
-            value={countryFilter}
-            onValueChange={setCountryFilter}
-            placeholder="Tous les pays"
-            options={[
-              { label: "Tous les pays", value: "" },
-              ...(countries?.map((country: Country) => ({
-                label: country.name,
-                value: country.id,
-              })) || []),
-            ]}
-          />
+          <View>
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Pays
+            </Text>
+            <Select
+              value={countryFilter}
+              onValueChange={setCountryFilter}
+              placeholder="Tous les pays"
+              options={[
+                { label: "Tous les pays", value: "" },
+                ...(countries?.map((country: Country) => ({
+                  label: country.name,
+                  value: country.id,
+                })) || []),
+              ]}
+            />
+          </View>
 
-          <Select
-            label="Statut"
-            value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value as "ALL" | "ACTIVE" | "INACTIVE")}
-            options={[
-              { label: "Tous", value: "ALL" },
-              { label: "Actif", value: "ACTIVE" },
-              { label: "Inactif", value: "INACTIVE" },
-            ]}
-          />
+          <View>
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Statut
+            </Text>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => setStatusFilter(value as "ALL" | "ACTIVE" | "INACTIVE")}
+              options={[
+                { label: "Tous", value: "ALL" },
+                { label: "Actif", value: "ACTIVE" },
+                { label: "Inactif", value: "INACTIVE" },
+              ]}
+            />
+          </View>
 
           <View className="flex-row gap-3 mt-4">
             <Button
@@ -993,7 +1031,7 @@ export function BanksScreen() {
             </Button>
             <Button
               onPress={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isFormValid}
               className="flex-1"
             >
               {isSubmitting ? (
@@ -1009,11 +1047,7 @@ export function BanksScreen() {
       >
         <View className="gap-4">
           <View>
-            <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               Nom <Text className="text-red-500">*</Text>
             </Text>
             <TextInput
@@ -1021,25 +1055,22 @@ export function BanksScreen() {
               onChangeText={(text) => setFormData({ ...formData, name: text })}
               placeholder="Nom de la banque"
               placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-              className={`px-4 py-3 rounded-xl border text-sm ${
+              className={`px-4 py-3 rounded-lg border ${
                 isDark
-                  ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                  : "bg-white border-gray-300 text-gray-900"
+                  ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                  : "bg-gray-100 border-gray-300 text-gray-900"
               }`}
               style={{
                 textAlignVertical: "center",
                 includeFontPadding: false,
                 paddingVertical: 0,
+                minHeight: 48,
               }}
             />
           </View>
 
           <View>
-            <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               Code
             </Text>
             <TextInput
@@ -1047,38 +1078,39 @@ export function BanksScreen() {
               onChangeText={(text) => setFormData({ ...formData, code: text })}
               placeholder="Code de la banque"
               placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-              className={`px-4 py-3 rounded-xl border text-sm ${
+              className={`px-4 py-3 rounded-lg border ${
                 isDark
-                  ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                  : "bg-white border-gray-300 text-gray-900"
+                  ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                  : "bg-gray-100 border-gray-300 text-gray-900"
               }`}
               style={{
                 textAlignVertical: "center",
                 includeFontPadding: false,
                 paddingVertical: 0,
+                minHeight: 48,
               }}
             />
           </View>
 
-          <Select
-            label="Pays"
-            value={formData.countryId}
-            onValueChange={(value) => setFormData({ ...formData, countryId: value })}
-            placeholder="Sélectionner un pays"
-            options={
-              countries?.map((country: Country) => ({
-                label: country.name,
-                value: country.id,
-              })) || []
-            }
-          />
+          <View>
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Pays <Text className="text-red-500">*</Text>
+            </Text>
+            <Select
+              value={formData.countryId}
+              onValueChange={(value) => setFormData({ ...formData, countryId: value })}
+              placeholder="Sélectionner un pays"
+              options={
+                countries?.map((country: Country) => ({
+                  label: country.name,
+                  value: country.id,
+                })) || []
+              }
+            />
+          </View>
 
           <View>
-            <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               Adresse
             </Text>
             <TextInput
@@ -1088,21 +1120,17 @@ export function BanksScreen() {
               placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
               multiline
               numberOfLines={3}
-              className={`px-4 py-3 rounded-xl border text-sm ${
+              className={`px-4 py-3 rounded-lg border ${
                 isDark
-                  ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                  : "bg-white border-gray-300 text-gray-900"
+                  ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                  : "bg-gray-100 border-gray-300 text-gray-900"
               }`}
               style={{ textAlignVertical: "top", minHeight: 80 }}
             />
           </View>
 
           <View>
-            <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               Téléphone
             </Text>
             <TextInput
@@ -1111,25 +1139,22 @@ export function BanksScreen() {
               placeholder="+224 XXX XXX XXX"
               placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
               keyboardType="phone-pad"
-              className={`px-4 py-3 rounded-xl border text-sm ${
+              className={`px-4 py-3 rounded-lg border ${
                 isDark
-                  ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                  : "bg-white border-gray-300 text-gray-900"
+                  ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                  : "bg-gray-100 border-gray-300 text-gray-900"
               }`}
               style={{
                 textAlignVertical: "center",
                 includeFontPadding: false,
                 paddingVertical: 0,
+                minHeight: 48,
               }}
             />
           </View>
 
           <View>
-            <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               Email
             </Text>
             <TextInput
@@ -1139,25 +1164,22 @@ export function BanksScreen() {
               placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
               keyboardType="email-address"
               autoCapitalize="none"
-              className={`px-4 py-3 rounded-xl border text-sm ${
+              className={`px-4 py-3 rounded-lg border ${
                 isDark
-                  ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                  : "bg-white border-gray-300 text-gray-900"
+                  ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                  : "bg-gray-100 border-gray-300 text-gray-900"
               }`}
               style={{
                 textAlignVertical: "center",
                 includeFontPadding: false,
                 paddingVertical: 0,
+                minHeight: 48,
               }}
             />
           </View>
 
           <View>
-            <Text
-              className={`text-sm font-semibold mb-2 ${
-                isDark ? "text-gray-300" : "text-gray-700"
-              }`}
-            >
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               Site web
             </Text>
             <TextInput
@@ -1167,15 +1189,16 @@ export function BanksScreen() {
               placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
               keyboardType="url"
               autoCapitalize="none"
-              className={`px-4 py-3 rounded-xl border text-sm ${
+              className={`px-4 py-3 rounded-lg border ${
                 isDark
-                  ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                  : "bg-white border-gray-300 text-gray-900"
+                  ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                  : "bg-gray-100 border-gray-300 text-gray-900"
               }`}
               style={{
                 textAlignVertical: "center",
                 includeFontPadding: false,
                 paddingVertical: 0,
+                minHeight: 48,
               }}
             />
           </View>

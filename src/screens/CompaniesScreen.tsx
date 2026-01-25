@@ -43,7 +43,10 @@ import {
 } from "@hugeicons/core-free-icons";
 import { CompaniesSkeleton } from "@/components/skeletons/CompaniesSkeleton";
 import { Header } from "@/components/Header";
-import { TAB_BAR_PADDING_BOTTOM, REFRESH_CONTROL_COLOR } from "@/constants/layout";
+import {
+  TAB_BAR_PADDING_BOTTOM,
+  REFRESH_CONTROL_COLOR,
+} from "@/constants/layout";
 import { Drawer } from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
@@ -234,13 +237,14 @@ const SwipeableCompanyDocument: React.FC<SwipeableCompanyDocumentProps> = ({
                           {
                             documentId: doc.id,
                             title: newTitle.trim(),
-                          }
+                          },
                         );
                         await onReload();
                       } catch (error: any) {
                         Alert.alert(
                           "Erreur",
-                          error.response?.data?.error || "Impossible de modifier le titre"
+                          error.response?.data?.error ||
+                            "Impossible de modifier le titre",
                         );
                       }
                     }
@@ -248,7 +252,7 @@ const SwipeableCompanyDocument: React.FC<SwipeableCompanyDocumentProps> = ({
                 },
               ],
               "plain-text",
-              doc.title
+              doc.title,
             );
           }}
           style={{
@@ -305,18 +309,18 @@ const SwipeableCompanyDocument: React.FC<SwipeableCompanyDocumentProps> = ({
                   onPress: async () => {
                     try {
                       await api.delete(
-                        `/api/companies/${editingCompany?.id}/documents/${doc.id}`
+                        `/api/companies/${editingCompany?.id}/documents/${doc.id}`,
                       );
                       await onReload();
                     } catch (error: any) {
                       Alert.alert(
                         "Erreur",
-                        "Impossible de supprimer le document"
+                        "Impossible de supprimer le document",
                       );
                     }
                   },
                 },
-              ]
+              ],
             );
           }}
           style={{
@@ -635,7 +639,7 @@ export function CompaniesScreen() {
       if (!url.startsWith("http")) {
         Alert.alert(
           "Erreur",
-          "Impossible de construire une URL valide pour le document"
+          "Impossible de construire une URL valide pour le document",
         );
         return;
       }
@@ -647,10 +651,7 @@ export function CompaniesScreen() {
         Alert.alert("Erreur", "Impossible d'ouvrir le document");
       }
     } catch (error: any) {
-      Alert.alert(
-        "Erreur",
-        error.message || "Impossible d'ouvrir le document"
-      );
+      Alert.alert("Erreur", error.message || "Impossible d'ouvrir le document");
     }
   };
 
@@ -718,22 +719,22 @@ export function CompaniesScreen() {
 
   const handleEdit = async (company: Company) => {
     if (!canUpdate) return;
-    
+
     // Charger les détails complets de l'entreprise pour s'assurer que tous les champs sont disponibles
     try {
       const response = await api.get(`/api/companies/${company.id}`);
       const fullCompany = response.data;
-      
+
       if (!fullCompany.activitySector?.id) {
         Alert.alert(
           "Erreur",
-          "Cette entreprise n'a pas de secteur d'activité. Veuillez en sélectionner un."
+          "Cette entreprise n'a pas de secteur d'activité. Veuillez en sélectionner un.",
         );
         return;
       }
-      
+
       setEditingCompany(fullCompany);
-      
+
       setFormData({
         name: fullCompany.name,
         registrationNumber: fullCompany.registrationNumber,
@@ -753,14 +754,17 @@ export function CompaniesScreen() {
       await loadCompanyDocuments(company.id);
       setShowCompanyForm(true);
     } catch (error: any) {
-      Alert.alert("Erreur", "Impossible de charger les détails de l'entreprise");
+      Alert.alert(
+        "Erreur",
+        "Impossible de charger les détails de l'entreprise",
+      );
     }
   };
 
   const handleView = async (company: Company) => {
     setViewingCompany(null);
     setShowViewModal(true);
-    
+
     try {
       // Charger les détails complets de l'entreprise (inclut les documents)
       const response = await api.get(`/api/companies/${company.id}`);
@@ -775,7 +779,10 @@ export function CompaniesScreen() {
         }
       }
     } catch (error: any) {
-      Alert.alert("Erreur", "Impossible de charger les détails de l'entreprise");
+      Alert.alert(
+        "Erreur",
+        "Impossible de charger les détails de l'entreprise",
+      );
       setShowViewModal(false);
     }
   };
@@ -827,7 +834,7 @@ export function CompaniesScreen() {
       ) {
         Alert.alert(
           "Package manquant",
-          "Veuillez installer expo-document-picker: npm install expo-document-picker"
+          "Veuillez installer expo-document-picker: npm install expo-document-picker",
         );
       }
     } finally {
@@ -879,13 +886,29 @@ export function CompaniesScreen() {
     }
   };
 
+  // Vérifier si tous les champs obligatoires sont remplis
+  const isFormValid = useMemo(() => {
+    const documentsWithoutTitle = documents.filter((doc) => !doc.title.trim());
+    if (documentsWithoutTitle.length > 0) return false;
+
+    return (
+      formData.name.trim() &&
+      formData.registrationNumber.trim() &&
+      formData.countryId &&
+      formData.activitySectorId
+    );
+  }, [formData, documents]);
+
   const handleSubmit = async () => {
-    if (isSubmitting) return;
+    if (isSubmitting || !isFormValid) return;
 
     // Vérifier que tous les documents ont un titre
     const documentsWithoutTitle = documents.filter((doc) => !doc.title.trim());
     if (documentsWithoutTitle.length > 0) {
-      Alert.alert("Erreur", "Veuillez renseigner l'intitulé pour tous les documents");
+      Alert.alert(
+        "Erreur",
+        "Veuillez renseigner l'intitulé pour tous les documents",
+      );
       return;
     }
 
@@ -942,10 +965,12 @@ export function CompaniesScreen() {
           : null;
       }
 
-
       if (editingCompany) {
         // Mise à jour
-        const response = await api.put(`/api/companies/${editingCompany.id}`, payload);
+        const response = await api.put(
+          `/api/companies/${editingCompany.id}`,
+          payload,
+        );
         companyId = editingCompany.id;
       } else {
         // Création
@@ -967,30 +992,37 @@ export function CompaniesScreen() {
       setEditingCompany(null);
       setDocuments([]);
       setCompanyDocuments([]);
-      
+
       // Rafraîchir la query locale
       await refetch();
-      
+
       // Invalider les queries pour que les autres écrans se mettent à jour
-      queryClient.invalidateQueries({ 
-        queryKey: ["companies"]
+      queryClient.invalidateQueries({
+        queryKey: ["companies"],
       });
-      queryClient.invalidateQueries({ 
-        queryKey: ["dashboard-stats"]
+      queryClient.invalidateQueries({
+        queryKey: ["dashboard-stats"],
       });
-      queryClient.invalidateQueries({ 
-        queryKey: ["dashboard"]
+      queryClient.invalidateQueries({
+        queryKey: ["dashboard"],
       });
     } catch (error: any) {
       // Afficher les détails de validation si disponibles
       const validationDetails = error.response?.data?.details;
-      let errorMessage = error.response?.data?.error || error.message || "Une erreur est survenue";
-      
-      if (validationDetails && Array.isArray(validationDetails) && validationDetails.length > 0) {
+      let errorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "Une erreur est survenue";
+
+      if (
+        validationDetails &&
+        Array.isArray(validationDetails) &&
+        validationDetails.length > 0
+      ) {
         const firstError = validationDetails[0];
         errorMessage = `${errorMessage}\n\n${firstError.path}: ${firstError.message}`;
       }
-      
+
       Alert.alert("Erreur", errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -1014,24 +1046,26 @@ export function CompaniesScreen() {
       setShowDeleteDrawer(false);
       setCompanyToDelete(null);
       setDeleteConfirmation("");
-      
+
       // Rafraîchir la query locale
       await refetch();
-      
+
       // Invalider les queries pour que les autres écrans se mettent à jour
-      queryClient.invalidateQueries({ 
-        queryKey: ["companies"]
+      queryClient.invalidateQueries({
+        queryKey: ["companies"],
       });
-      queryClient.invalidateQueries({ 
-        queryKey: ["dashboard-stats"]
+      queryClient.invalidateQueries({
+        queryKey: ["dashboard-stats"],
       });
-      queryClient.invalidateQueries({ 
-        queryKey: ["dashboard"]
+      queryClient.invalidateQueries({
+        queryKey: ["dashboard"],
       });
     } catch (error: any) {
       Alert.alert(
         "Erreur",
-        error.response?.data?.error || error.message || "Une erreur est survenue"
+        error.response?.data?.error ||
+          error.message ||
+          "Une erreur est survenue",
       );
     } finally {
       setIsDeleting(false);
@@ -1054,7 +1088,7 @@ export function CompaniesScreen() {
 
   const totalTableWidth = Object.values(columnWidths).reduce(
     (sum, width) => sum + width,
-    0
+    0,
   );
 
   if (!canView) {
@@ -1501,7 +1535,9 @@ export function CompaniesScreen() {
                                       : "#6b7280",
                                 }}
                               >
-                                {company.status === "ACTIVE" ? "Actif" : "Inactif"}
+                                {company.status === "ACTIVE"
+                                  ? "Actif"
+                                  : "Inactif"}
                               </Text>
                             </View>
                           </View>
@@ -1682,7 +1718,7 @@ export function CompaniesScreen() {
             </TouchableOpacity>
             <Button
               onPress={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isFormValid}
               loading={isSubmitting}
               className="flex-1 h-12 py-0"
               style={{ backgroundColor: CHART_COLOR }}
@@ -1696,11 +1732,7 @@ export function CompaniesScreen() {
           <View style={{ gap: 20 }}>
             {/* Nom */}
             <View>
-              <Text
-                className={`text-sm font-semibold mb-2 ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Nom de l'entreprise <Text className="text-red-500">*</Text>
               </Text>
               <TextInput
@@ -1710,26 +1742,23 @@ export function CompaniesScreen() {
                 }
                 placeholder="Nom de l'entreprise"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                className={`px-4 py-3 rounded-xl border text-sm ${
+                className={`px-4 py-3 rounded-lg border ${
                   isDark
-                    ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                    : "bg-white border-gray-300 text-gray-900"
+                    ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                    : "bg-gray-100 border-gray-300 text-gray-900"
                 }`}
                 style={{
-                  textAlignVertical: 'center',
+                  textAlignVertical: "center",
                   includeFontPadding: false,
                   paddingVertical: 0,
+                  minHeight: 48,
                 }}
               />
             </View>
 
             {/* Numéro d'enregistrement */}
             <View>
-              <Text
-                className={`text-sm font-semibold mb-2 ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Numéro d'enregistrement <Text className="text-red-500">*</Text>
               </Text>
               <TextInput
@@ -1739,75 +1768,81 @@ export function CompaniesScreen() {
                 }
                 placeholder="Numéro d'enregistrement"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                className={`px-4 py-3 rounded-xl border text-sm ${
+                className={`px-4 py-3 rounded-lg border ${
                   isDark
-                    ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                    : "bg-white border-gray-300 text-gray-900"
+                    ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                    : "bg-gray-100 border-gray-300 text-gray-900"
                 }`}
                 style={{
-                  textAlignVertical: 'center',
+                  textAlignVertical: "center",
                   includeFontPadding: false,
                   paddingVertical: 0,
+                  minHeight: 48,
                 }}
               />
             </View>
 
             {/* Pays */}
-            <Select
-              label="Pays"
-              required
-              value={formData.countryId}
-              onValueChange={(value) =>
-                setFormData({ ...formData, countryId: value })
-              }
-              placeholder="Sélectionner un pays"
-              options={
-                countries?.map((country: Country) => ({
-                  label: country.name,
-                  value: country.id,
-                })) || []
-              }
-            />
+            <View>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Pays <Text className="text-red-500">*</Text>
+              </Text>
+              <Select
+                value={formData.countryId}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, countryId: value })
+                }
+                placeholder="Sélectionner un pays"
+                options={
+                  countries?.map((country: Country) => ({
+                    label: country.name,
+                    value: country.id,
+                  })) || []
+                }
+              />
+            </View>
 
             {/* Devise */}
-            <Select
-              label="Devise"
-              required
-              value={formData.currency}
-              onValueChange={(value) =>
-                setFormData({ ...formData, currency: value })
-              }
-              placeholder="Sélectionner une devise"
-              options={CURRENCIES.map((currency) => ({
-                label: `${currency.code} - ${currency.name}`,
-                value: currency.code,
-              }))}
-            />
+            <View>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Devise <Text className="text-red-500">*</Text>
+              </Text>
+              <Select
+                value={formData.currency}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, currency: value })
+                }
+                placeholder="Sélectionner une devise"
+                options={CURRENCIES.map((currency) => ({
+                  label: `${currency.code} - ${currency.name}`,
+                  value: currency.code,
+                }))}
+              />
+            </View>
 
             {/* Secteur d'activité */}
             {activitySectors && activitySectors.length > 0 && (
-              <Select
-                label="Secteur d'activité"
-                required
-                value={formData.activitySectorId}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, activitySectorId: value })
-                }
-                placeholder="Sélectionner un secteur d'activité"
-                options={activitySectors.map((sector: ActivitySector) => ({
-                  label: sector.name,
-                  value: sector.id,
-                }))}
-              />
+              <View>
+                <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Secteur d'activité <Text className="text-red-500">*</Text>
+                </Text>
+                <Select
+                  value={formData.activitySectorId}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, activitySectorId: value })
+                  }
+                  placeholder="Sélectionner un secteur d'activité"
+                  options={activitySectors.map((sector: ActivitySector) => ({
+                    label: sector.name,
+                    value: sector.id,
+                  }))}
+                />
+              </View>
             )}
 
             {/* Email */}
             <View>
-              <Text
-                className={`text-sm font-semibold mb-2 ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Email
               </Text>
               <TextInput
@@ -1819,26 +1854,23 @@ export function CompaniesScreen() {
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                className={`px-4 py-3 rounded-xl border text-sm ${
+                className={`px-4 py-3 rounded-lg border ${
                   isDark
-                    ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                    : "bg-white border-gray-300 text-gray-900"
+                    ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                    : "bg-gray-100 border-gray-300 text-gray-900"
                 }`}
                 style={{
-                  textAlignVertical: 'center',
+                  textAlignVertical: "center",
                   includeFontPadding: false,
                   paddingVertical: 0,
+                  minHeight: 48,
                 }}
               />
             </View>
 
             {/* Téléphone */}
             <View>
-              <Text
-                className={`text-sm font-semibold mb-2 ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Téléphone
               </Text>
               <TextInput
@@ -1849,26 +1881,23 @@ export function CompaniesScreen() {
                 placeholder="+224 XXX XXX XXX"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="phone-pad"
-                className={`px-4 py-3 rounded-xl border text-sm ${
+                className={`px-4 py-3 rounded-lg border ${
                   isDark
-                    ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                    : "bg-white border-gray-300 text-gray-900"
+                    ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                    : "bg-gray-100 border-gray-300 text-gray-900"
                 }`}
                 style={{
-                  textAlignVertical: 'center',
+                  textAlignVertical: "center",
                   includeFontPadding: false,
                   paddingVertical: 0,
+                  minHeight: 48,
                 }}
               />
             </View>
 
             {/* Site web */}
             <View>
-              <Text
-                className={`text-sm font-semibold mb-2 ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Site web
               </Text>
               <TextInput
@@ -1880,26 +1909,23 @@ export function CompaniesScreen() {
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="url"
                 autoCapitalize="none"
-                className={`px-4 py-3 rounded-xl border text-sm ${
+                className={`px-4 py-3 rounded-lg border ${
                   isDark
-                    ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                    : "bg-white border-gray-300 text-gray-900"
+                    ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                    : "bg-gray-100 border-gray-300 text-gray-900"
                 }`}
                 style={{
-                  textAlignVertical: 'center',
+                  textAlignVertical: "center",
                   includeFontPadding: false,
                   paddingVertical: 0,
+                  minHeight: 48,
                 }}
               />
             </View>
 
             {/* Adresse */}
             <View>
-              <Text
-                className={`text-sm font-semibold mb-2 ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Adresse
               </Text>
               <TextInput
@@ -1911,10 +1937,10 @@ export function CompaniesScreen() {
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 multiline
                 numberOfLines={3}
-                className={`px-4 py-3 rounded-xl border text-sm ${
+                className={`px-4 py-3 rounded-lg border ${
                   isDark
-                    ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                    : "bg-white border-gray-300 text-gray-900"
+                    ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                    : "bg-gray-100 border-gray-300 text-gray-900"
                 }`}
                 style={{ textAlignVertical: "top", minHeight: 80 }}
               />
@@ -1922,37 +1948,35 @@ export function CompaniesScreen() {
 
             {/* Seuil de dépenses */}
             <View>
-              <Text
-                className={`text-sm font-semibold mb-2 ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Seuil de dépenses
               </Text>
               <TextInput
                 value={formData.expenseThreshold}
                 onChangeText={(text) => {
                   // Permettre uniquement les nombres et un point décimal
-                  const numericValue = text.replace(/[^0-9.]/g, '');
+                  const numericValue = text.replace(/[^0-9.]/g, "");
                   // Permettre un seul point décimal
-                  const parts = numericValue.split('.');
-                  const filteredValue = parts.length > 2 
-                    ? parts[0] + '.' + parts.slice(1).join('')
-                    : numericValue;
+                  const parts = numericValue.split(".");
+                  const filteredValue =
+                    parts.length > 2
+                      ? parts[0] + "." + parts.slice(1).join("")
+                      : numericValue;
                   setFormData({ ...formData, expenseThreshold: filteredValue });
                 }}
-                placeholder="0"
+                placeholder="0.00"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="numeric"
-                className={`px-4 py-3 rounded-xl border text-sm ${
+                className={`px-4 py-3 rounded-lg border ${
                   isDark
-                    ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                    : "bg-white border-gray-300 text-gray-900"
+                    ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                    : "bg-gray-100 border-gray-300 text-gray-900"
                 }`}
                 style={{
-                  textAlignVertical: 'center',
+                  textAlignVertical: "center",
                   includeFontPadding: false,
                   paddingVertical: 0,
+                  minHeight: 48,
                 }}
               />
             </View>
@@ -2013,8 +2037,8 @@ export function CompaniesScreen() {
                           onChangeText={(text) => {
                             setDocuments(
                               documents.map((d) =>
-                                d.id === doc.id ? { ...d, title: text } : d
-                              )
+                                d.id === doc.id ? { ...d, title: text } : d,
+                              ),
                             );
                           }}
                           placeholder="Intitulé du document"
@@ -2025,7 +2049,7 @@ export function CompaniesScreen() {
                               : "bg-white border-gray-300 text-gray-900"
                           }`}
                           style={{
-                            textAlignVertical: 'center',
+                            textAlignVertical: "center",
                             includeFontPadding: false,
                             paddingVertical: 0,
                           }}
@@ -2041,7 +2065,9 @@ export function CompaniesScreen() {
                       </View>
                       <TouchableOpacity
                         onPress={() => {
-                          setDocuments(documents.filter((d) => d.id !== doc.id));
+                          setDocuments(
+                            documents.filter((d) => d.id !== doc.id),
+                          );
                         }}
                         className="p-2 rounded-full"
                         style={{ backgroundColor: "#ef444420" }}
@@ -2308,11 +2334,16 @@ export function CompaniesScreen() {
                         </Text>
                         <TouchableOpacity
                           onPress={() => {
-                            const url = viewingCompany.website?.startsWith("http")
+                            const url = viewingCompany.website?.startsWith(
+                              "http",
+                            )
                               ? viewingCompany.website
                               : `https://${viewingCompany.website}`;
                             Linking.openURL(url).catch(() => {
-                              Alert.alert("Erreur", "Impossible d'ouvrir l'URL");
+                              Alert.alert(
+                                "Erreur",
+                                "Impossible d'ouvrir l'URL",
+                              );
                             });
                           }}
                         >
@@ -2360,7 +2391,9 @@ export function CompaniesScreen() {
                             isDark ? "text-gray-100" : "text-gray-900"
                           }`}
                         >
-                          {viewingCompany.expenseThreshold.toLocaleString("fr-FR")}{" "}
+                          {viewingCompany.expenseThreshold.toLocaleString(
+                            "fr-FR",
+                          )}{" "}
                           {viewingCompany.currency || "GNF"}
                         </Text>
                       </View>
@@ -2441,50 +2474,54 @@ export function CompaniesScreen() {
                         0}
                       )
                     </Text>
-                    {((viewingCompany as any).documents?.length > 0 ||
-                      companyDocuments.length > 0) ? (
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {(viewingCompany as any).documents?.length > 0 ||
+                    companyDocuments.length > 0 ? (
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                      >
                         <View className="flex-row gap-3">
-                          {((viewingCompany as any).documents || companyDocuments).map(
-                            (doc: any) => (
-                              <TouchableOpacity
-                                key={doc.id}
-                                onPress={() => openDocument(doc)}
-                                className={`p-3 rounded-lg border ${
-                                  isDark
-                                    ? "bg-[#1e293b] border-gray-700"
-                                    : "bg-gray-50 border-gray-200"
-                                }`}
-                                style={{ minWidth: 150 }}
-                                activeOpacity={0.7}
-                              >
-                                <View className="flex-row items-center gap-2 mb-2">
-                                  <HugeiconsIcon
-                                    icon={File01Icon}
-                                    size={16}
-                                    color={isDark ? "#9ca3af" : "#6b7280"}
-                                  />
-                                  <Text
-                                    className={`text-xs font-medium flex-1 ${
-                                      isDark ? "text-gray-300" : "text-gray-700"
-                                    }`}
-                                    numberOfLines={1}
-                                  >
-                                    {doc.title || doc.filename}
-                                  </Text>
-                                </View>
+                          {(
+                            (viewingCompany as any).documents ||
+                            companyDocuments
+                          ).map((doc: any) => (
+                            <TouchableOpacity
+                              key={doc.id}
+                              onPress={() => openDocument(doc)}
+                              className={`p-3 rounded-lg border ${
+                                isDark
+                                  ? "bg-[#1e293b] border-gray-700"
+                                  : "bg-gray-50 border-gray-200"
+                              }`}
+                              style={{ minWidth: 150 }}
+                              activeOpacity={0.7}
+                            >
+                              <View className="flex-row items-center gap-2 mb-2">
+                                <HugeiconsIcon
+                                  icon={File01Icon}
+                                  size={16}
+                                  color={isDark ? "#9ca3af" : "#6b7280"}
+                                />
                                 <Text
-                                  className={`text-[10px] ${
-                                    isDark ? "text-gray-500" : "text-gray-500"
+                                  className={`text-xs font-medium flex-1 ${
+                                    isDark ? "text-gray-300" : "text-gray-700"
                                   }`}
+                                  numberOfLines={1}
                                 >
-                                  {new Date(doc.createdAt).toLocaleDateString(
-                                    "fr-FR"
-                                  )}
+                                  {doc.title || doc.filename}
                                 </Text>
-                              </TouchableOpacity>
-                            )
-                          )}
+                              </View>
+                              <Text
+                                className={`text-[10px] ${
+                                  isDark ? "text-gray-500" : "text-gray-500"
+                                }`}
+                              >
+                                {new Date(doc.createdAt).toLocaleDateString(
+                                  "fr-FR",
+                                )}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
                         </View>
                       </ScrollView>
                     ) : (
@@ -2573,7 +2610,8 @@ export function CompaniesScreen() {
               Êtes-vous sûr de vouloir supprimer l'entreprise{" "}
               <Text className="font-bold">{companyToDelete.name}</Text> ?
               {"\n\n"}
-              Cette action est irréversible et supprimera toutes les données associées.
+              Cette action est irréversible et supprimera toutes les données
+              associées.
             </Text>
             <View>
               <View className="flex-row items-center justify-between mb-3">
@@ -2623,7 +2661,7 @@ export function CompaniesScreen() {
                 contextMenuHidden={false}
                 selectTextOnFocus={true}
                 style={{
-                  textAlignVertical: 'center',
+                  textAlignVertical: "center",
                   includeFontPadding: false,
                   paddingVertical: 0,
                 }}

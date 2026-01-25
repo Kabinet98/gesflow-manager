@@ -35,7 +35,11 @@
         "simulator": false,
         "buildConfiguration": "Release"
       },
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "API_BASE_URL": "https://your-production-domain.com",
+        "NODE_ENV": "production"
+      }
     }
   },
   "submit": {

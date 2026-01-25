@@ -125,6 +125,11 @@ export function InvestmentCategoriesScreen() {
     });
   }, [categories, searchTerm]);
 
+  // Vérifier si tous les champs obligatoires sont remplis
+  const isFormValid = useMemo(() => {
+    return formData.name.trim() !== "";
+  }, [formData]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     try {
@@ -558,12 +563,8 @@ export function InvestmentCategoriesScreen() {
               />
             </View>
 
-            <View className="gap-2">
-              <Text
-                className={`text-sm font-semibold ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+            <View>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Description
               </Text>
               <Textarea
@@ -576,13 +577,9 @@ export function InvestmentCategoriesScreen() {
               />
             </View>
 
-            <View className="gap-2">
+            <View>
               <View className="flex-row items-center justify-between">
-                <Text
-                  className={`text-sm font-semibold ${
-                    isDark ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
+                <Text className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                   Actif
                 </Text>
                 <Switch
@@ -612,7 +609,7 @@ export function InvestmentCategoriesScreen() {
               </Button>
               <Button
                 onPress={handleSubmit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !isFormValid}
                 className="flex-1"
                 style={{ backgroundColor: CHART_COLOR }}
               >
@@ -685,14 +682,15 @@ export function InvestmentCategoriesScreen() {
                     onChangeText={setDeleteConfirmation}
                     placeholder={categoryToDelete.name}
                     placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                    className={`flex-1 px-4 py-2.5 rounded-lg border ${
+                    className={`flex-1 px-4 py-3 rounded-lg border ${
                       isDark
-                        ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                        : "bg-white border-gray-300 text-gray-900"
+                        ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                        : "bg-gray-100 border-gray-300 text-gray-900"
                     }`}
                     style={{
                       textAlignVertical: "center",
                       includeFontPadding: false,
+                      minHeight: 48,
                     }}
                   />
                   <TouchableOpacity

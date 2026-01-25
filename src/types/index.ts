@@ -58,6 +58,7 @@ export interface Expense {
   loanId?: string | null;
   isLoanInvestment?: boolean;
   installmentPaymentReversed?: boolean; // Indique si le paiement d'échéance a été annulé
+  category?: 'Business' | 'Famille' | null;
 }
 
 export interface Investment {

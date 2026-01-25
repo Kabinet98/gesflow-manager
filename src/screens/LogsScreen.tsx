@@ -1099,12 +1099,8 @@ export function LogsScreen() {
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <View className="gap-4 pb-4">
             {/* Filtre par type d'action */}
-            <View className="gap-2">
-              <Text
-                className={`text-sm font-semibold ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+            <View>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Type d'action
               </Text>
               <Select
@@ -1122,12 +1118,8 @@ export function LogsScreen() {
             </View>
 
             {/* Filtre par ressource */}
-            <View className="gap-2">
-              <Text
-                className={`text-sm font-semibold ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+            <View>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Ressource
               </Text>
               <Select
@@ -1145,12 +1137,8 @@ export function LogsScreen() {
             </View>
 
             {/* Filtre par utilisateur */}
-            <View className="gap-2">
-              <Text
-                className={`text-sm font-semibold ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+            <View>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Utilisateur
               </Text>
               <Select
@@ -1168,12 +1156,8 @@ export function LogsScreen() {
             </View>
 
             {/* Filtre captures d'écran */}
-            <View className="gap-2">
-              <Text
-                className={`text-sm font-semibold ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+            <View>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Type de log
               </Text>
               <Select
@@ -1188,12 +1172,8 @@ export function LogsScreen() {
             </View>
 
             {/* Date de début */}
-            <View className="gap-2">
-              <Text
-                className={`text-sm font-semibold ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+            <View>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 À partir de cette date
               </Text>
               <TextInput
@@ -1201,26 +1181,23 @@ export function LogsScreen() {
                 onChangeText={setStartDate}
                 placeholder="YYYY-MM-DD"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                className={`h-12 px-4 rounded-lg border text-base ${
+                className={`px-4 py-3 rounded-lg border ${
                   isDark
-                    ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                    : "bg-white border-gray-300 text-gray-900"
+                    ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                    : "bg-gray-100 border-gray-300 text-gray-900"
                 }`}
                 style={{
                   textAlignVertical: "center",
                   includeFontPadding: false,
                   paddingVertical: 0,
+                  minHeight: 48,
                 }}
               />
             </View>
 
             {/* Date de fin */}
-            <View className="gap-2">
-              <Text
-                className={`text-sm font-semibold ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+            <View>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Jusqu'à cette date
               </Text>
               <TextInput
@@ -1228,15 +1205,16 @@ export function LogsScreen() {
                 onChangeText={setEndDate}
                 placeholder="YYYY-MM-DD"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                className={`h-12 px-4 rounded-lg border text-base ${
+                className={`px-4 py-3 rounded-lg border ${
                   isDark
-                    ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                    : "bg-white border-gray-300 text-gray-900"
+                    ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                    : "bg-gray-100 border-gray-300 text-gray-900"
                 }`}
                 style={{
                   textAlignVertical: "center",
                   includeFontPadding: false,
                   paddingVertical: 0,
+                  minHeight: 48,
                 }}
               />
             </View>

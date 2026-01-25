@@ -26,12 +26,12 @@ export function Input({ label, error, className, ...props }: InputProps) {
       <TextInput
         {...props}
         className={cn(
-          'h-12 px-4 rounded-lg border',
+          'px-4 py-3 rounded-lg border',
           error
             ? 'border-red-500'
             : isDark
-            ? 'bg-[#1e293b] border-gray-600 text-gray-100'
-            : 'bg-white border-gray-300 text-gray-900',
+            ? 'bg-[#1e293b] border-gray-700 text-gray-100'
+            : 'bg-gray-100 border-gray-300 text-gray-900',
           className
         )}
         placeholderTextColor={isDark ? '#6b7280' : '#9ca3af'}
@@ -40,6 +40,7 @@ export function Input({ label, error, className, ...props }: InputProps) {
             textAlignVertical: 'center',
             includeFontPadding: false,
             paddingVertical: 0,
+            minHeight: 48,
           },
           props.style,
         ]}

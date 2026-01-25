@@ -39,6 +39,7 @@ const emailPasswordSchema = z.object({
 type EmailPasswordFormData = z.infer<typeof emailPasswordSchema>;
 
 type AuthStep = "email" | "2fa" | "security" | "complete";
+type ForgotPasswordStep = "email" | "otp" | "security" | "reset";
 
 interface SecurityQuestion {
   id: string;
@@ -70,6 +71,39 @@ export function LoginScreen() {
     password: string;
   } | null>(null);
 
+  // États pour le flux de réinitialisation de mot de passe
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [forgotPasswordStep, setForgotPasswordStep] =
+    useState<ForgotPasswordStep>("email");
+  const [forgotPasswordOtpCode, setForgotPasswordOtpCode] = useState("");
+  const [forgotPasswordRequiresMFA, setForgotPasswordRequiresMFA] =
+    useState(false);
+  const [forgotPasswordRequiresSecurity, setForgotPasswordRequiresSecurity] =
+    useState(false);
+  const [forgotPasswordSecurityQuestions, setForgotPasswordSecurityQuestions] =
+    useState<SecurityQuestion[]>([]);
+  const [forgotPasswordSecurityAnswers, setForgotPasswordSecurityAnswers] =
+    useState<Record<string, string>>({});
+  const [
+    forgotPasswordCurrentQuestionIndex,
+    setForgotPasswordCurrentQuestionIndex,
+  ] = useState(0);
+  const [forgotPasswordCurrentAnswer, setForgotPasswordCurrentAnswer] =
+    useState("");
+  const [forgotPasswordShowAnswer, setForgotPasswordShowAnswer] =
+    useState(false);
+  const [forgotPasswordMfaValidated, setForgotPasswordMfaValidated] =
+    useState(false);
+  const [forgotPasswordSecurityValidated, setForgotPasswordSecurityValidated] =
+    useState(false);
+  const [forgotPasswordIsSubmitting, setForgotPasswordIsSubmitting] =
+    useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const {
     control,
     handleSubmit,
@@ -99,27 +133,36 @@ export function LoginScreen() {
       // Si succès, connexion complète (pas de 2FA ni questions)
       setAuthError(null);
     } catch (error: any) {
-
       // TOUJOURS utiliser le message du backend en priorité
       const backendError = error.response?.data?.error;
-      const errorMessage = backendError || error.message || "Erreur de connexion";
+      const errorMessage =
+        backendError || error.message || "Erreur de connexion";
 
-      if (errorMessage === "CODE_REQUIRED" || backendError === "CODE_REQUIRED") {
+      if (
+        errorMessage === "CODE_REQUIRED" ||
+        backendError === "CODE_REQUIRED"
+      ) {
         // Passer à l'étape 2FA
         setStoredCredentials({ email: data.email, password: data.password });
         setStep("2fa");
         setAuthError(null);
         setOtpCode("");
-      } else if (errorMessage === "SECURITY_QUESTIONS_REQUIRED" || backendError === "SECURITY_QUESTIONS_REQUIRED") {
+      } else if (
+        errorMessage === "SECURITY_QUESTIONS_REQUIRED" ||
+        backendError === "SECURITY_QUESTIONS_REQUIRED"
+      ) {
         // Passer directement aux questions de sécurité (pas de 2FA)
         setStoredCredentials({ email: data.email, password: data.password });
         setIsAccountDisabled(false); // Réinitialiser l'état au début d'une nouvelle tentative
-        
+
         // D'abord essayer de récupérer depuis la réponse d'erreur
-        const rawQuestions = error.response?.data?.questions || error.response?.data?.securityQuestions || [];
-        
+        const rawQuestions =
+          error.response?.data?.questions ||
+          error.response?.data?.securityQuestions ||
+          [];
+
         let questions: SecurityQuestion[] = [];
-        
+
         if (Array.isArray(rawQuestions) && rawQuestions.length > 0) {
           // Questions dans la réponse
           questions = rawQuestions.map((q: any, index: number) => ({
@@ -132,9 +175,11 @@ export function LoginScreen() {
           questions = await fetchSecurityQuestions(data.email);
           setLoading(false);
         }
-        
+
         if (questions.length === 0) {
-          setAuthError("Erreur: Aucune question de sécurité trouvée. Veuillez contacter l'administrateur.");
+          setAuthError(
+            "Erreur: Aucune question de sécurité trouvée. Veuillez contacter l'administrateur.",
+          );
         } else {
           setSecurityQuestions(questions);
           setStep("security");
@@ -155,7 +200,7 @@ export function LoginScreen() {
         const finalMessage = backendError || errorMessage;
         const errorLower = finalMessage.toLowerCase();
         const statusCode = error.response?.status;
-        
+
         // Vérifier si le compte est désactivé (priorité haute)
         const isAccountDisabledError =
           errorLower.includes("désactivé") ||
@@ -209,18 +254,24 @@ export function LoginScreen() {
       // Si succès, connexion complète
       setAuthError(null);
     } catch (error: any) {
-
       // TOUJOURS utiliser le message du backend en priorité
       const backendError = error.response?.data?.error;
-      const errorMessage = backendError || error.message || "Erreur de connexion";
+      const errorMessage =
+        backendError || error.message || "Erreur de connexion";
 
-      if (errorMessage === "SECURITY_QUESTIONS_REQUIRED" || backendError === "SECURITY_QUESTIONS_REQUIRED") {
+      if (
+        errorMessage === "SECURITY_QUESTIONS_REQUIRED" ||
+        backendError === "SECURITY_QUESTIONS_REQUIRED"
+      ) {
         // Passer aux questions de sécurité
         // D'abord essayer de récupérer depuis la réponse d'erreur
-        const rawQuestions = error.response?.data?.questions || error.response?.data?.securityQuestions || [];
-        
+        const rawQuestions =
+          error.response?.data?.questions ||
+          error.response?.data?.securityQuestions ||
+          [];
+
         let questions: SecurityQuestion[] = [];
-        
+
         if (Array.isArray(rawQuestions) && rawQuestions.length > 0) {
           // Questions dans la réponse
           questions = rawQuestions.map((q: any, index: number) => ({
@@ -233,9 +284,11 @@ export function LoginScreen() {
             questions = await fetchSecurityQuestions(storedCredentials.email);
           }
         }
-        
+
         if (questions.length === 0) {
-          setAuthError("Erreur: Aucune question de sécurité trouvée. Veuillez contacter l'administrateur.");
+          setAuthError(
+            "Erreur: Aucune question de sécurité trouvée. Veuillez contacter l'administrateur.",
+          );
         } else {
           setSecurityQuestions(questions);
           setStep("security");
@@ -253,17 +306,19 @@ export function LoginScreen() {
   };
 
   // Fonction pour récupérer les questions de sécurité (comme dans GesFlow)
-  const fetchSecurityQuestions = async (email: string): Promise<SecurityQuestion[]> => {
+  const fetchSecurityQuestions = async (
+    email: string,
+  ): Promise<SecurityQuestion[]> => {
     try {
       // Utiliser l'endpoint POST /api/auth/security-questions comme dans GesFlow
       const response = await api.post(
         "/api/auth/security-questions",
         { email, count: 2 }, // count: 2 pour récupérer 2 questions (comme dans GesFlow)
-        { skipAuthError: true }
+        { skipAuthError: true },
       );
-      
+
       const rawQuestions = response.data?.questions || [];
-      
+
       // Normaliser le format des questions
       return Array.isArray(rawQuestions)
         ? rawQuestions.map((q: any) => ({
@@ -290,7 +345,7 @@ export function LoginScreen() {
 
     // Vérifier que toutes les questions ont une réponse
     const allAnswered = securityQuestions.every(
-      (q) => securityAnswers[q.id] && securityAnswers[q.id].trim() !== ""
+      (q) => securityAnswers[q.id] && securityAnswers[q.id].trim() !== "",
     );
 
     if (!allAnswered) {
@@ -306,7 +361,7 @@ export function LoginScreen() {
       // Le backend DOIT valider les réponses aux questions de sécurité
       // Si on met securityAnswersValidated: true, le backend saute la validation
       // et génère un token même si les réponses sont incorrectes
-      
+
       // Normaliser les réponses pour qu'elles ne soient pas sensibles à la casse
       // Convertir toutes les réponses en minuscules et trim
       const normalizedAnswers: Record<string, string> = {};
@@ -315,7 +370,7 @@ export function LoginScreen() {
           .trim()
           .toLowerCase();
       });
-      
+
       const response = await authService.login({
         email: storedCredentials.email,
         password: storedCredentials.password,
@@ -327,7 +382,6 @@ export function LoginScreen() {
       // Si succès, connexion complète
       setAuthError(null);
     } catch (error: any) {
-
       // RÈGLE ABSOLUE : Si error.response existe, c'est une erreur du backend
       // Les erreurs du backend (questions incorrectes) ont la priorité
 
@@ -350,17 +404,17 @@ export function LoginScreen() {
 
         if (isSecurityQuestionError) {
           // Vérifier si le compte est désactivé
-          const isDisabled = 
+          const isDisabled =
             backendError.includes("Compte désactivé") ||
             backendError.includes("compte désactivé") ||
             backendError.toLowerCase().includes("account disabled") ||
             backendError.toLowerCase().includes("compte bloqué");
-          
+
           if (isDisabled) {
             setIsAccountDisabled(true);
             setAuthError(
               "Votre compte a été désactivé en raison de tentatives de connexion échouées.\n\n" +
-              "Veuillez contacter l'administrateur pour réactiver votre compte."
+                "Veuillez contacter l'administrateur pour réactiver votre compte.",
             );
           } else {
             setIsAccountDisabled(false);
@@ -386,17 +440,17 @@ export function LoginScreen() {
 
         if (isSecurityQuestionErrorInMessage) {
           // Vérifier si le compte est désactivé
-          const isDisabled = 
+          const isDisabled =
             errorMessage.includes("Compte désactivé") ||
             errorMessage.includes("compte désactivé") ||
             errorMessage.toLowerCase().includes("account disabled") ||
             errorMessage.toLowerCase().includes("compte bloqué");
-          
+
           if (isDisabled) {
             setIsAccountDisabled(true);
             setAuthError(
               "Votre compte a été désactivé en raison de tentatives de connexion échouées.\n\n" +
-              "Veuillez contacter l'administrateur pour réactiver votre compte."
+                "Veuillez contacter l'administrateur pour réactiver votre compte.",
             );
           } else {
             setIsAccountDisabled(false);
@@ -411,14 +465,16 @@ export function LoginScreen() {
 
       // PRIORITÉ 3 : Autres erreurs - TOUJOURS utiliser le message du backend en priorité
       // Si aucun message n'est disponible, utiliser error.message qui peut contenir des infos utiles
-      const finalError = backendError || errorMessage || error.message || 
+      const finalError =
+        backendError ||
+        errorMessage ||
+        error.message ||
         "Une erreur est survenue lors de la connexion. Veuillez réessayer.";
       setAuthError(finalError);
     } finally {
       setLoading(false);
     }
   };
-
 
   // Retour à l'étape précédente
   const handleGoBack = () => {
@@ -442,6 +498,247 @@ export function LoginScreen() {
       setSecurityAnswers({});
       setAuthError(null);
       setIsAccountDisabled(false);
+    }
+  };
+
+  // Fonctions pour le flux de réinitialisation de mot de passe
+  const handleForgotPasswordInit = async (email: string) => {
+    setForgotPasswordIsSubmitting(true);
+    setAuthError(null);
+
+    try {
+      const response = await api.post(
+        "/api/auth/forgot-password/init",
+        { email },
+        { skipAuthError: true },
+      );
+
+      const responseData = response.data;
+
+      if (responseData.success) {
+        setForgotPasswordEmail(email);
+        setForgotPasswordRequiresMFA(responseData.requiresMFA);
+        setForgotPasswordRequiresSecurity(
+          responseData.requiresSecurityQuestions,
+        );
+
+        if (responseData.securityQuestions) {
+          setForgotPasswordSecurityQuestions(
+            responseData.securityQuestions.map((q: any) => ({
+              id: q.id,
+              question: q.question,
+            })),
+          );
+        }
+
+        if (responseData.requiresMFA) {
+          setForgotPasswordStep("otp");
+        } else if (responseData.requiresSecurityQuestions) {
+          setForgotPasswordStep("security");
+          setForgotPasswordCurrentQuestionIndex(0);
+          setForgotPasswordCurrentAnswer("");
+          setForgotPasswordSecurityAnswers({});
+        } else {
+          setForgotPasswordStep("reset");
+        }
+      } else {
+        setAuthError(responseData.message || "Une erreur est survenue");
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        "Une erreur est survenue";
+      setAuthError(errorMessage);
+    } finally {
+      setForgotPasswordIsSubmitting(false);
+    }
+  };
+
+  const handleForgotPasswordValidateOTP = async () => {
+    if (forgotPasswordOtpCode.length !== 6) {
+      setAuthError("Veuillez entrer un code à 6 chiffres");
+      return;
+    }
+
+    setForgotPasswordIsSubmitting(true);
+    setAuthError(null);
+
+    try {
+      const response = await api.post(
+        "/api/auth/forgot-password/validate-otp",
+        {
+          email: forgotPasswordEmail,
+          code: forgotPasswordOtpCode,
+        },
+        { skipAuthError: true },
+      );
+
+      if (response.data.valid) {
+        setForgotPasswordMfaValidated(true);
+        if (forgotPasswordRequiresSecurity) {
+          setForgotPasswordStep("security");
+          setForgotPasswordCurrentQuestionIndex(0);
+          setForgotPasswordCurrentAnswer("");
+          setForgotPasswordSecurityAnswers({});
+        } else {
+          setForgotPasswordStep("reset");
+        }
+      } else {
+        setAuthError(response.data.error || "Code invalide");
+        setForgotPasswordOtpCode("");
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "Code d'authentification invalide";
+      setAuthError(errorMessage);
+      setForgotPasswordOtpCode("");
+    } finally {
+      setForgotPasswordIsSubmitting(false);
+    }
+  };
+
+  const handleForgotPasswordValidateSecurity = async () => {
+    if (!forgotPasswordCurrentAnswer.trim()) {
+      setAuthError("Veuillez répondre à la question");
+      return;
+    }
+
+    setForgotPasswordIsSubmitting(true);
+    setAuthError(null);
+
+    try {
+      const currentQuestion =
+        forgotPasswordSecurityQuestions[forgotPasswordCurrentQuestionIndex];
+      const allAnswers = {
+        ...forgotPasswordSecurityAnswers,
+        [currentQuestion.id]: forgotPasswordCurrentAnswer.trim().toLowerCase(),
+      };
+
+      if (
+        forgotPasswordCurrentQuestionIndex <
+        forgotPasswordSecurityQuestions.length - 1
+      ) {
+        // Passer à la question suivante
+        setForgotPasswordSecurityAnswers(allAnswers);
+        setForgotPasswordCurrentQuestionIndex(
+          forgotPasswordCurrentQuestionIndex + 1,
+        );
+        setForgotPasswordCurrentAnswer(
+          forgotPasswordSecurityAnswers[
+            forgotPasswordSecurityQuestions[
+              forgotPasswordCurrentQuestionIndex + 1
+            ].id
+          ] || "",
+        );
+        setForgotPasswordShowAnswer(false);
+      } else {
+        // Dernière question, valider toutes les réponses
+        const response = await api.post(
+          "/api/auth/forgot-password/validate-security",
+          {
+            email: forgotPasswordEmail,
+            answers: allAnswers,
+          },
+          { skipAuthError: true },
+        );
+
+        if (response.data.valid) {
+          setForgotPasswordSecurityValidated(true);
+          setForgotPasswordStep("reset");
+        } else {
+          setAuthError(response.data.error || "Réponses incorrectes");
+          setForgotPasswordSecurityAnswers({});
+          setForgotPasswordCurrentAnswer("");
+          setForgotPasswordCurrentQuestionIndex(0);
+        }
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "Une erreur est survenue";
+      setAuthError(errorMessage);
+      setForgotPasswordSecurityAnswers({});
+      setForgotPasswordCurrentAnswer("");
+      setForgotPasswordCurrentQuestionIndex(0);
+    } finally {
+      setForgotPasswordIsSubmitting(false);
+    }
+  };
+
+  const handleForgotPasswordReset = async () => {
+    if (!newPassword || !confirmPassword) {
+      setAuthError("Veuillez remplir tous les champs");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setAuthError("Les mots de passe ne correspondent pas");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setAuthError("Le mot de passe doit contenir au moins 8 caractères");
+      return;
+    }
+
+    setForgotPasswordIsSubmitting(true);
+    setAuthError(null);
+
+    try {
+      const response = await api.post(
+        "/api/auth/forgot-password/reset",
+        {
+          email: forgotPasswordEmail,
+          newPassword,
+          confirmPassword,
+        },
+        { skipAuthError: true },
+      );
+
+      if (response.data.success) {
+        Alert.alert(
+          "Succès",
+          "Mot de passe modifié avec succès. Vous pouvez maintenant vous connecter.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                // Réinitialiser tous les états
+                setShowForgotPassword(false);
+                setForgotPasswordStep("email");
+                setForgotPasswordEmail("");
+                setForgotPasswordOtpCode("");
+                setForgotPasswordRequiresMFA(false);
+                setForgotPasswordRequiresSecurity(false);
+                setForgotPasswordSecurityQuestions([]);
+                setForgotPasswordSecurityAnswers({});
+                setForgotPasswordCurrentQuestionIndex(0);
+                setForgotPasswordCurrentAnswer("");
+                setForgotPasswordMfaValidated(false);
+                setForgotPasswordSecurityValidated(false);
+                setNewPassword("");
+                setConfirmPassword("");
+                setAuthError(null);
+              },
+            },
+          ],
+        );
+      } else {
+        setAuthError(response.data.error || "Une erreur est survenue");
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "Une erreur est survenue lors de la modification du mot de passe";
+      setAuthError(errorMessage);
+    } finally {
+      setForgotPasswordIsSubmitting(false);
     }
   };
 
@@ -578,6 +875,21 @@ export function LoginScreen() {
           )}
         />
       </Animated.View>
+
+      {/* Bouton Mot de passe oublié */}
+      <Animated.View
+        entering={FadeInDown.delay(450).duration(600)}
+        style={{ marginBottom: 20, alignItems: "flex-end" }}
+      >
+        <TouchableOpacity
+          onPress={() => setShowForgotPassword(true)}
+          activeOpacity={0.7}
+        >
+          <Text className="text-sm text-primary-dynamic underline">
+            Mot de passe oublié ?
+          </Text>
+        </TouchableOpacity>
+      </Animated.View>
     </>
   );
 
@@ -592,20 +904,23 @@ export function LoginScreen() {
           Code d'authentification à deux facteurs
         </Text>
         <Text className="text-sm text-gray-400 mb-6 text-center">
-          Entrez le code à 6 chiffres généré par votre application d'authentification
+          Entrez le code à 6 chiffres généré par votre application
+          d'authentification
         </Text>
       </Animated.View>
-      
+
       <Animated.View
         entering={FadeInDown.delay(400).duration(600)}
         style={{ marginBottom: 20 }}
       >
-        <View style={{ 
-          alignItems: "center", 
-          justifyContent: "center",
-          width: "100%",
-          paddingHorizontal: 0,
-        }}>
+        <View
+          style={{
+            alignItems: "center",
+            justifyContent: "center",
+            width: "100%",
+            paddingHorizontal: 0,
+          }}
+        >
           <InputOTP
             maxLength={6}
             value={otpCode}
@@ -715,9 +1030,7 @@ export function LoginScreen() {
                 >
                   <HugeiconsIcon
                     icon={
-                      showSecurityAnswers[question.id]
-                        ? ViewOffIcon
-                        : EyeIcon
+                      showSecurityAnswers[question.id] ? ViewOffIcon : EyeIcon
                     }
                     size={24}
                     color="#9ca3af"
@@ -732,6 +1045,20 @@ export function LoginScreen() {
   };
 
   const getStepTitle = () => {
+    if (showForgotPassword) {
+      switch (forgotPasswordStep) {
+        case "email":
+          return "Réinitialisation du mot de passe";
+        case "otp":
+          return "Code d'authentification";
+        case "security":
+          return "Questions de sécurité";
+        case "reset":
+          return "Nouveau mot de passe";
+        default:
+          return "Réinitialisation du mot de passe";
+      }
+    }
     switch (step) {
       case "email":
         return "Connectez-vous à votre compte";
@@ -745,6 +1072,27 @@ export function LoginScreen() {
   };
 
   const getStepButtonText = () => {
+    if (showForgotPassword) {
+      switch (forgotPasswordStep) {
+        case "email":
+          return forgotPasswordIsSubmitting ? "Vérification..." : "Continuer";
+        case "otp":
+          return forgotPasswordIsSubmitting ? "Vérification..." : "Vérifier";
+        case "security":
+          return forgotPasswordIsSubmitting
+            ? "Vérification..."
+            : forgotPasswordCurrentQuestionIndex <
+                forgotPasswordSecurityQuestions.length - 1
+              ? "Suivant"
+              : "Vérifier";
+        case "reset":
+          return forgotPasswordIsSubmitting
+            ? "Modification..."
+            : "Modifier le mot de passe";
+        default:
+          return "Continuer";
+      }
+    }
     switch (step) {
       case "email":
         return loading ? "Connexion..." : "Se connecter";
@@ -758,18 +1106,304 @@ export function LoginScreen() {
   };
 
   const handleStepSubmit = () => {
-    switch (step) {
-      case "email":
-        handleSubmit(onSubmitEmailPassword)();
-        break;
-      case "2fa":
-        onSubmit2FA();
-        break;
-      case "security":
-        onSubmitSecurityQuestions();
-        break;
+    if (showForgotPassword) {
+      switch (forgotPasswordStep) {
+        case "email":
+          if (forgotPasswordEmail.trim()) {
+            handleForgotPasswordInit(forgotPasswordEmail.trim());
+          }
+          break;
+        case "otp":
+          handleForgotPasswordValidateOTP();
+          break;
+        case "security":
+          handleForgotPasswordValidateSecurity();
+          break;
+        case "reset":
+          handleForgotPasswordReset();
+          break;
+      }
+    } else {
+      switch (step) {
+        case "email":
+          handleSubmit(onSubmitEmailPassword)();
+          break;
+        case "2fa":
+          onSubmit2FA();
+          break;
+        case "security":
+          onSubmitSecurityQuestions();
+          break;
+      }
     }
   };
+
+  // Rendu pour le flux de réinitialisation de mot de passe
+  const renderForgotPasswordEmailStep = () => (
+    <>
+      <Animated.View
+        entering={FadeInDown.delay(300).duration(600)}
+        style={{ marginBottom: 20 }}
+      >
+        <TextInput
+          value={forgotPasswordEmail}
+          onChangeText={(text) => {
+            setForgotPasswordEmail(text);
+            if (authError) setAuthError(null);
+          }}
+          placeholder="Email"
+          placeholderTextColor="#6b7280"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          style={{
+            height: 56,
+            paddingHorizontal: 20,
+            borderRadius: 16,
+            fontSize: 16,
+            color: "#ffffff",
+            backgroundColor: "rgba(255, 255, 255, 0.08)",
+            borderWidth: 1,
+            borderColor: authError
+              ? "rgba(239, 68, 68, 0.5)"
+              : "rgba(255, 255, 255, 0.15)",
+          }}
+        />
+      </Animated.View>
+    </>
+  );
+
+  const renderForgotPasswordOTPStep = () => (
+    <>
+      <Animated.View
+        entering={FadeInDown.delay(300).duration(600)}
+        style={{ marginBottom: 20 }}
+      >
+        <Text className="text-base font-semibold text-gray-300 mb-2 text-center">
+          Code d'authentification à deux facteurs
+        </Text>
+        <Text className="text-sm text-gray-400 mb-6 text-center">
+          Entrez le code à 6 chiffres généré par votre application
+          d'authentification
+        </Text>
+      </Animated.View>
+      <Animated.View
+        entering={FadeInDown.delay(400).duration(600)}
+        style={{ marginBottom: 20 }}
+      >
+        <View
+          style={{
+            alignItems: "center",
+            justifyContent: "center",
+            width: "100%",
+          }}
+        >
+          <InputOTP
+            maxLength={6}
+            value={forgotPasswordOtpCode}
+            onChange={(value) => {
+              setForgotPasswordOtpCode(value);
+              if (authError) setAuthError(null);
+            }}
+            autoFocus={true}
+            disabled={forgotPasswordIsSubmitting}
+          />
+        </View>
+      </Animated.View>
+    </>
+  );
+
+  const renderForgotPasswordSecurityStep = () => {
+    if (forgotPasswordSecurityQuestions.length === 0) {
+      return (
+        <Animated.View
+          entering={FadeInDown.duration(400)}
+          style={{ marginBottom: 24 }}
+        >
+          <Text className="text-base font-semibold text-gray-300 mb-2 text-center">
+            Questions de sécurité
+          </Text>
+          <Text className="text-sm text-red-400 mb-6 text-center">
+            Aucune question de sécurité disponible.
+          </Text>
+        </Animated.View>
+      );
+    }
+
+    const currentQuestion =
+      forgotPasswordSecurityQuestions[forgotPasswordCurrentQuestionIndex];
+
+    return (
+      <>
+        <Animated.View
+          entering={FadeInDown.duration(400)}
+          style={{ marginBottom: 24 }}
+        >
+          <Text className="text-base font-semibold text-gray-300 mb-2 text-center">
+            Questions de sécurité
+          </Text>
+          <Text className="text-sm text-gray-400 mb-4 text-center">
+            Question {forgotPasswordCurrentQuestionIndex + 1} sur{" "}
+            {forgotPasswordSecurityQuestions.length}
+          </Text>
+          <Text className="text-sm font-medium text-gray-300 mb-4">
+            {currentQuestion.question}
+          </Text>
+          <View style={{ position: "relative" }}>
+            <TextInput
+              value={forgotPasswordCurrentAnswer}
+              onChangeText={(text) => {
+                setForgotPasswordCurrentAnswer(text);
+                if (authError) setAuthError(null);
+              }}
+              placeholder="Votre réponse"
+              placeholderTextColor="#6b7280"
+              secureTextEntry={!forgotPasswordShowAnswer}
+              style={{
+                height: 56,
+                paddingHorizontal: 20,
+                paddingRight: 60,
+                borderRadius: 16,
+                fontSize: 16,
+                color: "#ffffff",
+                backgroundColor: "rgba(255, 255, 255, 0.08)",
+                borderWidth: 1,
+                borderColor: "rgba(255, 255, 255, 0.15)",
+              }}
+            />
+            <TouchableOpacity
+              onPress={() =>
+                setForgotPasswordShowAnswer(!forgotPasswordShowAnswer)
+              }
+              style={{
+                position: "absolute",
+                right: 16,
+                top: 0,
+                bottom: 0,
+                justifyContent: "center",
+                alignItems: "center",
+                width: 40,
+                height: 56,
+              }}
+              activeOpacity={0.7}
+            >
+              <HugeiconsIcon
+                icon={forgotPasswordShowAnswer ? ViewOffIcon : EyeIcon}
+                size={24}
+                color="#9ca3af"
+              />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </>
+    );
+  };
+
+  const renderForgotPasswordResetStep = () => (
+    <>
+      <Animated.View
+        entering={FadeInDown.delay(300).duration(600)}
+        style={{ marginBottom: 20 }}
+      >
+        <View style={{ position: "relative" }}>
+          <TextInput
+            value={newPassword}
+            onChangeText={(text) => {
+              setNewPassword(text);
+              if (authError) setAuthError(null);
+            }}
+            placeholder="Nouveau mot de passe"
+            placeholderTextColor="#6b7280"
+            secureTextEntry={!showNewPassword}
+            style={{
+              height: 56,
+              paddingHorizontal: 20,
+              paddingRight: 60,
+              borderRadius: 16,
+              fontSize: 16,
+              color: "#ffffff",
+              backgroundColor: "rgba(255, 255, 255, 0.08)",
+              borderWidth: 1,
+              borderColor: authError
+                ? "rgba(239, 68, 68, 0.5)"
+                : "rgba(255, 255, 255, 0.15)",
+            }}
+          />
+          <TouchableOpacity
+            onPress={() => setShowNewPassword(!showNewPassword)}
+            style={{
+              position: "absolute",
+              right: 16,
+              top: 0,
+              bottom: 0,
+              justifyContent: "center",
+              alignItems: "center",
+              width: 40,
+              height: 56,
+            }}
+            activeOpacity={0.7}
+          >
+            <HugeiconsIcon
+              icon={showNewPassword ? ViewOffIcon : EyeIcon}
+              size={24}
+              color="#9ca3af"
+            />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+      <Animated.View
+        entering={FadeInDown.delay(400).duration(600)}
+        style={{ marginBottom: 20 }}
+      >
+        <View style={{ position: "relative" }}>
+          <TextInput
+            value={confirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              if (authError) setAuthError(null);
+            }}
+            placeholder="Confirmer le mot de passe"
+            placeholderTextColor="#6b7280"
+            secureTextEntry={!showConfirmPassword}
+            style={{
+              height: 56,
+              paddingHorizontal: 20,
+              paddingRight: 60,
+              borderRadius: 16,
+              fontSize: 16,
+              color: "#ffffff",
+              backgroundColor: "rgba(255, 255, 255, 0.08)",
+              borderWidth: 1,
+              borderColor: authError
+                ? "rgba(239, 68, 68, 0.5)"
+                : "rgba(255, 255, 255, 0.15)",
+            }}
+          />
+          <TouchableOpacity
+            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            style={{
+              position: "absolute",
+              right: 16,
+              top: 0,
+              bottom: 0,
+              justifyContent: "center",
+              alignItems: "center",
+              width: 40,
+              height: 56,
+            }}
+            activeOpacity={0.7}
+          >
+            <HugeiconsIcon
+              icon={showConfirmPassword ? ViewOffIcon : EyeIcon}
+              size={24}
+              color="#9ca3af"
+            />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+    </>
+  );
 
   return (
     <SafeAreaView className="flex-1" edges={["top", "bottom"]}>
@@ -817,14 +1451,30 @@ export function LoginScreen() {
             </Text>
           </Animated.View>
 
-          {/* Bouton Retour (si pas sur l'étape email) */}
-          {step !== "email" && !isAccountDisabled && (
+          {/* Bouton Retour */}
+          {showForgotPassword && forgotPasswordStep === "email" && (
             <Animated.View
               entering={FadeInDown.duration(400)}
               style={{ marginBottom: 20 }}
             >
               <TouchableOpacity
-                onPress={handleGoBack}
+                onPress={() => {
+                  setShowForgotPassword(false);
+                  setForgotPasswordStep("email");
+                  setForgotPasswordEmail("");
+                  setForgotPasswordOtpCode("");
+                  setForgotPasswordRequiresMFA(false);
+                  setForgotPasswordRequiresSecurity(false);
+                  setForgotPasswordSecurityQuestions([]);
+                  setForgotPasswordSecurityAnswers({});
+                  setForgotPasswordCurrentQuestionIndex(0);
+                  setForgotPasswordCurrentAnswer("");
+                  setForgotPasswordMfaValidated(false);
+                  setForgotPasswordSecurityValidated(false);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                  setAuthError(null);
+                }}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
@@ -838,31 +1488,100 @@ export function LoginScreen() {
                   color="#9ca3af"
                 />
                 <Text className="text-gray-400 text-sm ml-2 font-medium">
-                  Retour
+                  Retour à la connexion
                 </Text>
               </TouchableOpacity>
             </Animated.View>
           )}
+          {(showForgotPassword
+            ? forgotPasswordStep !== "email"
+            : step !== "email") &&
+            !isAccountDisabled && (
+              <Animated.View
+                entering={FadeInDown.duration(400)}
+                style={{ marginBottom: 20 }}
+              >
+                <TouchableOpacity
+                  onPress={() => {
+                    if (showForgotPassword) {
+                      if (forgotPasswordStep === "otp") {
+                        setForgotPasswordStep("email");
+                        setForgotPasswordOtpCode("");
+                      } else if (forgotPasswordStep === "security") {
+                        if (forgotPasswordMfaValidated) {
+                          setForgotPasswordStep("otp");
+                        } else {
+                          setForgotPasswordStep("email");
+                        }
+                        setForgotPasswordSecurityAnswers({});
+                        setForgotPasswordCurrentAnswer("");
+                        setForgotPasswordCurrentQuestionIndex(0);
+                      } else if (forgotPasswordStep === "reset") {
+                        if (forgotPasswordSecurityValidated) {
+                          setForgotPasswordStep("security");
+                        } else if (forgotPasswordMfaValidated) {
+                          setForgotPasswordStep("otp");
+                        } else {
+                          setForgotPasswordStep("email");
+                        }
+                      }
+                    } else {
+                      handleGoBack();
+                    }
+                    setAuthError(null);
+                  }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingVertical: 12,
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <HugeiconsIcon
+                    icon={ArrowLeft01Icon}
+                    size={20}
+                    color="#9ca3af"
+                  />
+                  <Text className="text-gray-400 text-sm ml-2 font-medium">
+                    Retour
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
+            )}
 
           {/* Form */}
           <Animated.View
             entering={FadeInDown.delay(200).duration(600)}
             className="w-full"
           >
-            {step === "email" && renderEmailPasswordStep()}
-            {step === "2fa" && render2FAStep()}
-            {step === "security" && renderSecurityQuestionsStep()}
+            {showForgotPassword ? (
+              <>
+                {forgotPasswordStep === "email" &&
+                  renderForgotPasswordEmailStep()}
+                {forgotPasswordStep === "otp" && renderForgotPasswordOTPStep()}
+                {forgotPasswordStep === "security" &&
+                  renderForgotPasswordSecurityStep()}
+                {forgotPasswordStep === "reset" &&
+                  renderForgotPasswordResetStep()}
+              </>
+            ) : (
+              <>
+                {step === "email" && renderEmailPasswordStep()}
+                {step === "2fa" && render2FAStep()}
+                {step === "security" && renderSecurityQuestionsStep()}
+              </>
+            )}
 
             {/* Auth Error Message */}
             {authError && (
               <Animated.View
                 entering={FadeInDown.duration(400)}
-                style={{ 
+                style={{
                   marginBottom: 16,
                   padding: 16,
                   borderRadius: 12,
-                  backgroundColor: isAccountDisabled 
-                    ? "rgba(239, 68, 68, 0.1)" 
+                  backgroundColor: isAccountDisabled
+                    ? "rgba(239, 68, 68, 0.1)"
                     : "rgba(239, 68, 68, 0.05)",
                   borderWidth: 1,
                   borderColor: isAccountDisabled
@@ -870,7 +1589,7 @@ export function LoginScreen() {
                     : "rgba(239, 68, 68, 0.2)",
                 }}
               >
-                <Text 
+                <Text
                   className={`text-sm font-medium text-center ${
                     isAccountDisabled ? "text-red-400" : "text-red-400"
                   }`}
@@ -879,11 +1598,12 @@ export function LoginScreen() {
                   {authError}
                 </Text>
                 {isAccountDisabled && (
-                  <Text 
+                  <Text
                     className="text-xs text-gray-400 mt-3 text-center"
                     style={{ lineHeight: 16 }}
                   >
-                    Vous ne pouvez plus effectuer de nouvelles tentatives de connexion.
+                    Vous ne pouvez plus effectuer de nouvelles tentatives de
+                    connexion.
                   </Text>
                 )}
               </Animated.View>
@@ -910,30 +1630,37 @@ export function LoginScreen() {
               >
                 <Button
                   onPress={handleStepSubmit}
-                  loading={loading}
-                  disabled={isAccountDisabled}
+                  loading={
+                    showForgotPassword ? forgotPasswordIsSubmitting : loading
+                  }
+                  disabled={
+                    isAccountDisabled ||
+                    (showForgotPassword
+                      ? forgotPasswordIsSubmitting ||
+                        (forgotPasswordStep === "email" &&
+                          !forgotPasswordEmail.trim()) ||
+                        (forgotPasswordStep === "otp" &&
+                          forgotPasswordOtpCode.length !== 6) ||
+                        (forgotPasswordStep === "security" &&
+                          !forgotPasswordCurrentAnswer.trim()) ||
+                        (forgotPasswordStep === "reset" &&
+                          (!newPassword || !confirmPassword))
+                      : false)
+                  }
                   className="h-14 bg-transparent border-0"
-                  style={{ 
+                  style={{
                     backgroundColor: "transparent",
                     opacity: isAccountDisabled ? 0.5 : 1,
                   }}
                 >
                   <Text className="text-white text-base font-semibold">
-                    {isAccountDisabled ? "Compte désactivé" : getStepButtonText()}
+                    {isAccountDisabled
+                      ? "Compte désactivé"
+                      : getStepButtonText()}
                   </Text>
                 </Button>
               </LinearGradient>
             </Animated.View>
-          </Animated.View>
-
-          {/* Footer */}
-          <Animated.View
-            entering={FadeInDown.delay(600).duration(600)}
-            className="mt-12 items-center"
-          >
-            <Text className="text-xs text-gray-500 text-center">
-              Sécurisé par authentification à deux facteurs
-            </Text>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>

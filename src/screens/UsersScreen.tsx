@@ -823,6 +823,32 @@ export function UsersScreen() {
     });
   }, [users, searchTerm, roleFilter, statusFilter]);
 
+  // Vérifier si tous les champs obligatoires sont remplis
+  const isFormValid = useMemo(() => {
+    const baseValid =
+      formData.name.trim() !== "" &&
+      formData.email.trim() !== "" &&
+      formData.roleId !== "" &&
+      (editingUser || formData.password.trim() !== "");
+
+    // Si le mot de passe est fourni, il doit avoir au moins 8 caractères
+    if (formData.password && formData.password.length > 0 && formData.password.length < 8) {
+      return false;
+    }
+
+    // Si assignCompany est coché, vérifier les champs de l'assignation
+    if (formData.assignCompany) {
+      return (
+        baseValid &&
+        formData.activitySectorId !== "" &&
+        formData.companyManager.companyId !== "" &&
+        formData.companyManager.allocatedAmount !== ""
+      );
+    }
+
+    return baseValid;
+  }, [formData, editingUser]);
+
   // Gestion du refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -1674,30 +1700,38 @@ export function UsersScreen() {
         title="Filtres"
       >
         <View className="gap-4">
-          <Select
-            label="Rôle"
-            value={roleFilter}
-            onValueChange={setRoleFilter}
-            placeholder="Tous les rôles"
-            options={[
-              { label: "Tous les rôles", value: "" },
-              ...(roles?.map((role: Role) => ({
-                label: role.name,
-                value: role.id,
-              })) || []),
-            ]}
-          />
+          <View>
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Rôle
+            </Text>
+            <Select
+              value={roleFilter}
+              onValueChange={setRoleFilter}
+              placeholder="Tous les rôles"
+              options={[
+                { label: "Tous les rôles", value: "" },
+                ...(roles?.map((role: Role) => ({
+                  label: role.name,
+                  value: role.id,
+                })) || []),
+              ]}
+            />
+          </View>
 
-          <Select
-            label="Statut"
-            value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value as "ALL" | "ACTIVE" | "INACTIVE")}
-            options={[
-              { label: "Tous", value: "ALL" },
-              { label: "Actif", value: "ACTIVE" },
-              { label: "Inactif", value: "INACTIVE" },
-            ]}
-          />
+          <View>
+            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Statut
+            </Text>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => setStatusFilter(value as "ALL" | "ACTIVE" | "INACTIVE")}
+              options={[
+                { label: "Tous", value: "ALL" },
+                { label: "Actif", value: "ACTIVE" },
+                { label: "Inactif", value: "INACTIVE" },
+              ]}
+            />
+          </View>
 
           <View className="flex-row gap-3 mt-4">
             <Button
@@ -1739,7 +1773,7 @@ export function UsersScreen() {
             </Button>
             <Button
               onPress={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isFormValid}
               className="flex-1"
             >
               {isSubmitting ? (
@@ -1757,11 +1791,7 @@ export function UsersScreen() {
           <View className="gap-4">
             {/* 1. Nom complet */}
             <View>
-              <Text
-                className={`text-sm font-semibold mb-2 ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Nom complet <Text className="text-red-500">*</Text>
               </Text>
               <TextInput
@@ -1769,26 +1799,23 @@ export function UsersScreen() {
                 onChangeText={(text) => setFormData({ ...formData, name: text })}
                 placeholder="Nom complet"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                className={`px-4 py-3 rounded-xl border text-sm ${
+                className={`px-4 py-3 rounded-lg border ${
                   isDark
-                    ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                    : "bg-white border-gray-300 text-gray-900"
+                    ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                    : "bg-gray-100 border-gray-300 text-gray-900"
                 }`}
                 style={{
                   textAlignVertical: "center",
                   includeFontPadding: false,
                   paddingVertical: 0,
+                  minHeight: 48,
                 }}
               />
             </View>
 
             {/* 2. Email */}
             <View>
-              <Text
-                className={`text-sm font-semibold mb-2 ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Email <Text className="text-red-500">*</Text>
               </Text>
               <TextInput
@@ -1798,42 +1825,42 @@ export function UsersScreen() {
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                className={`px-4 py-3 rounded-xl border text-sm ${
+                className={`px-4 py-3 rounded-lg border ${
                   isDark
-                    ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                    : "bg-white border-gray-300 text-gray-900"
+                    ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                    : "bg-gray-100 border-gray-300 text-gray-900"
                 }`}
                 style={{
                   textAlignVertical: "center",
                   includeFontPadding: false,
                   paddingVertical: 0,
+                  minHeight: 48,
                 }}
               />
             </View>
 
             {/* 3. Rôle */}
-            <Select
-              label="Rôle"
-              required
-              value={formData.roleId}
-              onValueChange={(value) => setFormData({ ...formData, roleId: value })}
-              placeholder="Sélectionner un rôle"
-              options={
-                roles?.map((role: Role) => ({
-                  label: role.name,
-                  value: role.id,
-                })) || []
-              }
-            />
+            <View>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Rôle <Text className="text-red-500">*</Text>
+              </Text>
+              <Select
+                value={formData.roleId}
+                onValueChange={(value) => setFormData({ ...formData, roleId: value })}
+                placeholder="Sélectionner un rôle"
+                options={
+                  roles?.map((role: Role) => ({
+                    label: role.name,
+                    value: role.id,
+                  })) || []
+                }
+              />
+            </View>
 
             {/* 4. Mot de passe */}
             <View>
               <View className="flex-row items-center justify-between mb-2">
-                <Text
-                  className={`text-sm font-semibold ${
-                    isDark ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
+                <Text className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                   {editingUser
                     ? "Nouveau mot de passe (optionnel)"
                     : (
@@ -1863,11 +1890,14 @@ export function UsersScreen() {
                 </TouchableOpacity>
               </View>
               <View
-                className={`flex-row items-center px-4 py-3 rounded-xl border ${
+                className={`flex-row items-center px-4 py-3 rounded-lg border ${
                   isDark
-                    ? "bg-[#1e293b] border-gray-600"
-                    : "bg-white border-gray-300"
+                    ? "bg-[#1e293b] border-gray-700"
+                    : "bg-gray-100 border-gray-300"
                 }`}
+                style={{
+                  minHeight: 48,
+                }}
               >
                 <TextInput
                   value={formData.password}
@@ -1876,7 +1906,7 @@ export function UsersScreen() {
                   placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
-                  className={`flex-1 text-sm ${
+                  className={`flex-1 ${
                     isDark ? "text-gray-100" : "text-gray-900"
                   }`}
                   style={{
@@ -1977,11 +2007,7 @@ export function UsersScreen() {
                     <View className="pl-6 border-l-2 border-blue-600/20 gap-4">
                       {/* Secteur d'activité */}
                       <View>
-                        <Text
-                          className={`text-sm font-semibold mb-2 ${
-                            isDark ? "text-gray-300" : "text-gray-700"
-                          }`}
-                        >
+                        <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                           Secteur d&apos;activité <Text className="text-red-500">*</Text>
                         </Text>
                         <Select
@@ -2001,11 +2027,7 @@ export function UsersScreen() {
                       {/* Entreprise */}
                       {formData.activitySectorId && (
                         <View>
-                          <Text
-                            className={`text-sm font-semibold mb-2 ${
-                              isDark ? "text-gray-300" : "text-gray-700"
-                            }`}
-                          >
+                          <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                             Entreprise <Text className="text-red-500">*</Text>
                           </Text>
                           <Select
@@ -2025,11 +2047,7 @@ export function UsersScreen() {
                         <>
                           {/* Solde mobilisé - design comme ExpensesScreen */}
                           <View>
-                            <Text
-                              className={`text-sm font-semibold mb-2 ${
-                                isDark ? "text-gray-300" : "text-gray-700"
-                              }`}
-                            >
+                            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                               Solde mobilisé de l&apos;entreprise
                             </Text>
                             {loadingMobilizedBalance ? (
@@ -2073,11 +2091,7 @@ export function UsersScreen() {
 
                           {/* Montant à attribuer */}
                           <View>
-                            <Text
-                              className={`text-sm font-semibold mb-2 ${
-                                isDark ? "text-gray-300" : "text-gray-700"
-                              }`}
-                            >
+                            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                               Montant à attribuer au gestionnaire <Text className="text-red-500">*</Text>
                             </Text>
                             <TextInput
@@ -2102,15 +2116,16 @@ export function UsersScreen() {
                               placeholder="0.00"
                               placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                               keyboardType="numeric"
-                              className={`px-4 py-3 rounded-xl border text-sm ${
+                              className={`px-4 py-3 rounded-lg border ${
                                 isDark
-                                  ? "bg-[#1e293b] border-gray-600 text-gray-100"
-                                  : "bg-white border-gray-300 text-gray-900"
+                                  ? "bg-[#1e293b] border-gray-700 text-gray-100"
+                                  : "bg-gray-100 border-gray-300 text-gray-900"
                               }`}
                               style={{
                                 textAlignVertical: "center",
                                 includeFontPadding: false,
                                 paddingVertical: 0,
+                                minHeight: 48,
                               }}
                             />
                             {formData.companyManager.allocatedAmount &&

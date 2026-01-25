@@ -54,7 +54,7 @@ export const Select = function Select({
     <View>
       {label && (
         <Text
-          className={`text-sm font-semibold mb-3 ${
+          className={`text-sm font-medium mb-2 ${
             isDark ? "text-gray-300" : "text-gray-700"
           }`}
         >
