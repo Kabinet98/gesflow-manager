@@ -416,6 +416,13 @@ export function TwoFactorAuthScreen() {
                       Étape 2 : Vérifier le code
                     </Text>
                     <Text
+                      className={`text-sm mb-2 ${
+                        isDark ? 'text-gray-400' : 'text-gray-600'
+                      }`}
+                    >
+                      Code <Text className="text-red-500">*</Text>
+                    </Text>
+                    <Text
                       className={`text-sm mb-4 ${
                         isDark ? 'text-gray-400' : 'text-gray-600'
                       }`}
@@ -549,6 +556,13 @@ export function TwoFactorAuthScreen() {
                   }`}
                 >
                   Désactiver MFA
+                </Text>
+                <Text
+                  className={`text-sm mb-2 ${
+                    isDark ? 'text-gray-300' : 'text-gray-700'
+                  }`}
+                >
+                  Code <Text className="text-red-500">*</Text>
                 </Text>
                 <Text
                   className={`text-sm mb-4 ${

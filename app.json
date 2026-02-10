@@ -4,37 +4,55 @@
     "slug": "gesflow-manager",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0f172a"
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.gesflow.manager"
+      "bundleIdentifier": "com.gesflow.manager",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      },
+      "usesAppleSignIn": false
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#0f172a"
       },
       "package": "com.gesflow.manager",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "notification": {
+        "icon": "./assets/logo.png",
+        "color": "#0ea5e9",
+        "sound": true
+      }
     },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/logo.png",
+          "color": "#0ea5e9",
+          "mode": "production"
+        }
+      ],
+      "expo-secure-store"
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-router"
-    ],
-    "scheme": "gesflow"
+    "extra": {
+      "API_BASE_URL": "http://localhost:3000",
+      "eas": {
+        "projectId": "1bd47c80-7355-4cdc-9803-e75dec5ba910"
+      }
+    }
   }
 }
-
-
-
-
-
-

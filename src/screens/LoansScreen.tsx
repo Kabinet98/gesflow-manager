@@ -52,6 +52,8 @@ import { TAB_BAR_PADDING_BOTTOM, REFRESH_CONTROL_COLOR } from "@/constants/layou
 import { Drawer } from "@/components/ui/Drawer";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { formatIntegerInput, formatDecimalInput } from "@/utils/numeric-input";
+import { readExcelFromBase64, parseCSVToJson } from "@/utils/excel-secure";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import * as DocumentPicker from "expo-document-picker";
@@ -925,7 +927,8 @@ export function LoansScreen() {
 
     try {
       setIsCancelling(true);
-      await api.delete(`/api/loans/${loanToCancel.id}`, {
+      const id = loanToCancel.id;
+      await api.delete(`/api/loans/${id}`, {
         skipAuthError: true,
       });
       setShowCancelDrawer(false);
@@ -1049,35 +1052,17 @@ export function LoansScreen() {
 
       const file = result.assets[0];
 
-      // Parser avec xlsx
-      let XLSX: any;
-      try {
-        XLSX = require("xlsx");
-      } catch (e) {
-        Alert.alert("Erreur", "La bibliothèque xlsx n'est pas disponible. Veuillez l'installer.");
-        return;
-      }
-
-      // Lire le fichier selon son type
-      let workbook: any;
+      // Lire le fichier selon son type (exceljs + CSV natif)
+      let data: any[];
       if (file.name?.endsWith('.csv') || file.mimeType === 'text/csv') {
-        // Pour CSV, lire comme texte
         const csvContent = await FileSystem.readAsStringAsync(file.uri);
-        workbook = XLSX.read(csvContent, { type: 'string' });
+        data = parseCSVToJson(csvContent);
       } else {
-        // Pour Excel, lire en base64
         const fileContent = await FileSystem.readAsStringAsync(file.uri, {
           encoding: FileSystem.EncodingType.Base64,
         });
-        workbook = XLSX.read(fileContent, { type: 'base64' });
+        data = await readExcelFromBase64(fileContent);
       }
-      
-      // Prendre la première feuille
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      
-      // Convertir en JSON
-      const data = XLSX.utils.sheet_to_json(worksheet, { raw: false });
 
       if (!data || data.length === 0) {
         Alert.alert("Erreur", "Le fichier est vide ou ne contient pas de données.");
@@ -1411,7 +1396,8 @@ export function LoansScreen() {
 
     try {
       setIsDeleting(true);
-      await api.delete(`/api/loans/${loanToDelete.id}`);
+      const id = loanToDelete.id;
+      await api.delete(`/api/loans/${id}`);
       setShowDeleteDrawer(false);
       setLoanToDelete(null);
       setDeleteConfirmation("");
@@ -1592,7 +1578,6 @@ export function LoansScreen() {
         const response = await api.post(`/api/loans/${loanForInstallments.id}/generate-installments`, {}, {
           skipAuthError: true,
         });
-        
         // Attendre un peu avant de recharger pour laisser le serveur traiter
         await new Promise(resolve => setTimeout(resolve, 500));
         await loadInstallments(loanForInstallments.id);
@@ -2625,14 +2610,7 @@ export function LoansScreen() {
               </Text>
               <TextInput
                 value={minAmount}
-                onChangeText={(text) => {
-                  const numericValue = text.replace(/[^0-9.]/g, '');
-                  const parts = numericValue.split('.');
-                  const filteredValue = parts.length > 2
-                    ? parts[0] + '.' + parts.slice(1).join('')
-                    : numericValue;
-                  setMinAmount(filteredValue);
-                }}
+                onChangeText={(text) => setMinAmount(formatDecimalInput(text))}
                 placeholder="0"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="numeric"
@@ -2654,14 +2632,7 @@ export function LoansScreen() {
               </Text>
               <TextInput
                 value={maxAmount}
-                onChangeText={(text) => {
-                  const numericValue = text.replace(/[^0-9.]/g, '');
-                  const parts = numericValue.split('.');
-                  const filteredValue = parts.length > 2
-                    ? parts[0] + '.' + parts.slice(1).join('')
-                    : numericValue;
-                  setMaxAmount(filteredValue);
-                }}
+                onChangeText={(text) => setMaxAmount(formatDecimalInput(text))}
                 placeholder="0"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="numeric"
@@ -2758,7 +2729,7 @@ export function LoansScreen() {
             {/* 1. Entreprise */}
             <View>
               <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Entreprise *
+                Entreprise <Text className="text-red-500">*</Text>
               </Text>
               <Select
                 value={formData.companyId}
@@ -2781,7 +2752,7 @@ export function LoansScreen() {
             {/* 2. Compte de décaissement (banque) */}
             <View>
               <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Compte de décaissement (banque) *
+                Compte de décaissement (banque) <Text className="text-red-500">*</Text>
               </Text>
               <Select
                 value={formData.bankId}
@@ -2794,18 +2765,13 @@ export function LoansScreen() {
             {/* 3. Montant */}
             <View>
               <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Montant *
+                Montant <Text className="text-red-500">*</Text>
               </Text>
               <TextInput
                 value={formData.amount}
-                onChangeText={(text) => {
-                  const numericValue = text.replace(/[^0-9.]/g, '');
-                  const parts = numericValue.split('.');
-                  const filteredValue = parts.length > 2
-                    ? parts[0] + '.' + parts.slice(1).join('')
-                    : numericValue;
-                  setFormData({ ...formData, amount: filteredValue });
-                }}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, amount: formatDecimalInput(text) })
+                }
                 placeholder="0.00"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="numeric"
@@ -2825,7 +2791,7 @@ export function LoansScreen() {
             {/* 4. Source de l'échéancier */}
             <View>
               <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Source de l'échéancier *
+                Source de l'échéancier <Text className="text-red-500">*</Text>
               </Text>
               <Select
                 value={formData.scheduleSource}
@@ -2932,14 +2898,9 @@ export function LoansScreen() {
               </Text>
               <TextInput
                 value={formData.interestRate}
-                onChangeText={(text) => {
-                  const numericValue = text.replace(/[^0-9.]/g, '');
-                  const parts = numericValue.split('.');
-                  const filteredValue = parts.length > 2
-                    ? parts[0] + '.' + parts.slice(1).join('')
-                    : numericValue;
-                  setFormData({ ...formData, interestRate: filteredValue });
-                }}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, interestRate: formatDecimalInput(text) })
+                }
                 placeholder="0.00"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="numeric"
@@ -2967,7 +2928,7 @@ export function LoansScreen() {
               <TextInput
                 value={formData.durationMonths}
                 onChangeText={(text) => {
-                  const numericValue = text.replace(/[^0-9]/g, '');
+                  const numericValue = formatIntegerInput(text);
                   setFormData({ ...formData, durationMonths: numericValue });
                   // Calculer automatiquement la date de fin
                   if (numericValue && formData.startDate) {
@@ -3120,7 +3081,7 @@ export function LoansScreen() {
             {/* 13. Date de début */}
             <View>
               <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Date de début *
+                Date de début <Text className="text-red-500">*</Text>
               </Text>
               <TextInput
                 value={formData.startDate}
@@ -3182,14 +3143,9 @@ export function LoansScreen() {
                 </Text>
                 <TextInput
                   value={formData.initialBankFees}
-                  onChangeText={(text) => {
-                    const numericValue = text.replace(/[^0-9.]/g, '');
-                    const parts = numericValue.split('.');
-                    const filteredValue = parts.length > 2
-                      ? parts[0] + '.' + parts.slice(1).join('')
-                      : numericValue;
-                    setFormData({ ...formData, initialBankFees: filteredValue });
-                  }}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, initialBankFees: formatDecimalInput(text) })
+                  }
                   placeholder={formData.initialBankFeesType === "PERCENTAGE" ? "Ex: 2.5" : "Ex: 100000"}
                   placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                   keyboardType="numeric"
@@ -4980,15 +4936,7 @@ export function LoansScreen() {
               </Text>
               <TextInput
                 value={investmentAmount}
-                onChangeText={(text) => {
-                  const numericValue = text.replace(/[^0-9.]/g, "");
-                  const parts = numericValue.split(".");
-                  const filteredValue =
-                    parts.length > 2
-                      ? parts[0] + "." + parts.slice(1).join("")
-                      : numericValue;
-                  setInvestmentAmount(filteredValue);
-                }}
+                onChangeText={(text) => setInvestmentAmount(formatDecimalInput(text))}
                 placeholder="Montant"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="numeric"

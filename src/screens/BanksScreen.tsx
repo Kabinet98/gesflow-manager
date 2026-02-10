@@ -552,7 +552,8 @@ export function BanksScreen() {
       if (editingBank) {
         await api.put(`/api/banks/${editingBank.id}`, payload);
       } else {
-        await api.post("/api/banks", payload);
+        const res = await api.post("/api/banks", payload);
+        const id = res.data?.id;
       }
       await queryClient.invalidateQueries({ queryKey: ["banks"] });
       setShowBankForm(false);
@@ -597,7 +598,9 @@ export function BanksScreen() {
 
     setIsDeleting(true);
     try {
-      await api.delete(`/api/banks/${bankToDelete.id}`);
+      const id = bankToDelete.id;
+      const name = bankToDelete.name;
+      await api.delete(`/api/banks/${id}`);
       await queryClient.invalidateQueries({ queryKey: ["banks"] });
       setShowDeleteDrawer(false);
       setBankToDelete(null);

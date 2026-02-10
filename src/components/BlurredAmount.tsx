@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from "react";
-import { Text, View, StyleSheet, Animated } from "react-native";
+import { Text, View, StyleSheet, Animated, Platform } from "react-native";
 import { BlurView } from "expo-blur";
 import { useAmountVisibility } from "@/contexts/AmountVisibilityContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -65,6 +65,8 @@ export function BlurredAmount({
 }: BlurredAmountProps) {
   const { isAmountVisible } = useAmountVisibility();
   const { isDark } = useTheme();
+  
+  // Initialiser avec la valeur actuelle, mais mettre à jour si elle change
   const blurOpacity = useRef(
     new Animated.Value(isAmountVisible ? 0 : 1)
   ).current;
@@ -95,12 +97,17 @@ export function BlurredAmount({
   }, [finalClassName, style, isDark]);
 
   useEffect(() => {
+    // Mettre à jour immédiatement la valeur si elle change
+    const targetValue = isAmountVisible ? 0 : 1;
+    blurOpacity.setValue(targetValue);
+    
+    // Animer vers la nouvelle valeur
     Animated.timing(blurOpacity, {
-      toValue: isAmountVisible ? 0 : 1,
+      toValue: targetValue,
       duration: 300, // transition-all duration-300
       useNativeDriver: true,
     }).start();
-  }, [isAmountVisible]);
+  }, [isAmountVisible, blurOpacity]);
 
   // Design simple comme dans amount-display.tsx : filter: blur(8px) avec transition
   // Un seul BlurView avec intensité ~20-25 pour simuler blur(8px)
@@ -141,21 +148,51 @@ export function BlurredAmount({
         {displayText}
       </Text>
 
-      {/* Blur simple - simule filter: blur(8px) */}
+      {/* Masquage du montant */}
       {!isAmountVisible && (
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            styles.blurOverlay,
-            { opacity: blurOpacity },
-          ]}
-        >
-          <BlurView
-            intensity={22} // Simule approximativement blur(8px)
-            tint={isDark ? "dark" : "light"}
-            style={StyleSheet.absoluteFill}
-          />
-        </Animated.View>
+        <>
+          {Platform.OS === 'android' ? (
+            // Android: Utiliser un overlay opaque (BlurView ne fonctionne pas bien sur Android)
+            <Animated.View
+              style={[
+                StyleSheet.absoluteFill,
+                styles.blurOverlay,
+                { opacity: blurOpacity },
+                {
+                  backgroundColor: isDark ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.9)',
+                  borderRadius: 9999,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                },
+              ]}
+            >
+              {/* Indicateur visuel pour montrer que le montant est masqué */}
+              <View
+                style={{
+                  width: 50,
+                  height: 6,
+                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)',
+                  borderRadius: 3,
+                }}
+              />
+            </Animated.View>
+          ) : (
+            // iOS: Utiliser BlurView
+            <Animated.View
+              style={[
+                StyleSheet.absoluteFill,
+                styles.blurOverlay,
+                { opacity: blurOpacity },
+              ]}
+            >
+              <BlurView
+                intensity={22} // Simule approximativement blur(8px)
+                tint={isDark ? "dark" : "light"}
+                style={StyleSheet.absoluteFill}
+              />
+            </Animated.View>
+          )}
+        </>
       )}
     </View>
   );

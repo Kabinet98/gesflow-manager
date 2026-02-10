@@ -101,7 +101,8 @@ class NotificationsService {
       }
 
       // Obtenir le token Expo
-      // Pour iOS, le Project ID est essentiel pour les notifications push
+      // Pour iOS, le Project ID est essentiel pour les notifications push.
+      // En prod (EAS Build), projectId est fourni par app.config.js → extra.eas.projectId.
       const projectId = 
         Constants.expoConfig?.extra?.eas?.projectId || 
         Constants.easConfig?.projectId ||

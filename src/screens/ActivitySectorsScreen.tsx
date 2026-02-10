@@ -254,7 +254,7 @@ export function ActivitySectorsScreen() {
       if (editingSector) {
         await api.put(`/api/activity-sectors/${editingSector.id}`, formData);
       } else {
-        await api.post("/api/activity-sectors", formData);
+        const res = await api.post("/api/activity-sectors", formData);
       }
 
       await queryClient.invalidateQueries({ queryKey: ["activity-sectors"] });
@@ -286,7 +286,9 @@ export function ActivitySectorsScreen() {
 
     setIsDeleting(true);
     try {
-      await api.delete(`/api/activity-sectors/${sectorToDelete.id}`);
+      const id = sectorToDelete.id;
+      const name = sectorToDelete.name;
+      await api.delete(`/api/activity-sectors/${id}`);
 
       await queryClient.invalidateQueries({ queryKey: ["activity-sectors"] });
       setShowDeleteDrawer(false);

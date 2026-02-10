@@ -10,15 +10,26 @@ interface AmountVisibilityContextType {
 const AmountVisibilityContext = createContext<AmountVisibilityContextType | undefined>(undefined);
 
 export function AmountVisibilityProvider({ children }: { children: React.ReactNode }) {
-  const [isAmountVisible, setIsAmountVisible] = useState(true);
+  // Initialiser à null pour savoir si on a chargé depuis AsyncStorage
+  const [isAmountVisible, setIsAmountVisible] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Charger l'état depuis AsyncStorage
-    AsyncStorage.getItem('amountVisibility').then((saved) => {
-      if (saved !== null) {
-        setIsAmountVisible(saved === 'true');
-      }
-    });
+    // Charger l'état depuis AsyncStorage de manière synchrone si possible
+    const loadVisibility = async () => {
+      try {
+        const saved = await AsyncStorage.getItem('amountVisibility');
+        if (saved !== null) {
+          setIsAmountVisible(saved === 'true');
+        } else {
+          // Par défaut, les montants sont visibles
+          setIsAmountVisible(true);
+        }
+      } catch (error) {
+          // En cas d'erreur, par défaut visible
+          setIsAmountVisible(true);
+        }
+    };
+    loadVisibility();
   }, []);
 
   const setAmountVisible = async (visible: boolean) => {
@@ -33,7 +44,8 @@ export function AmountVisibilityProvider({ children }: { children: React.ReactNo
   return (
     <AmountVisibilityContext.Provider
       value={{
-        isAmountVisible,
+        // Retourner true par défaut si pas encore chargé (pour éviter les problèmes d'affichage)
+        isAmountVisible: isAmountVisible ?? true,
         setAmountVisible,
         toggleAmountVisibility,
       }}

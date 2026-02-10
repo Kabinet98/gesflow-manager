@@ -1,64 +1,22 @@
 import { AppState, AppStateStatus, Platform } from 'react-native';
 import * as ScreenCapture from 'expo-screen-capture';
+import { getSecureItem } from '@/utils/secure-storage';
 import api from '@/config/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authService } from '@/services/auth.service';
 
 let lastLogTime = 0;
+const SCREENSHOT_COOLDOWN_MS = 5000; // 5s entre deux logs screenshot pour éviter doublons
 let appStateSubscription: any = null;
 let screenshotListener: any = null;
 let isProtectionActive = false;
-
-let lastAppStateChangeTime = 0;
-let appStateChangeCount = 0;
 
 // Callback pour notifier quand un enregistrement vidéo est détecté
 let videoRecordingCallback: ((isRecording: boolean) => void) | null = null;
 
 const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-  const now = Date.now();
-  
   if (nextAppState === 'active') {
     // Réactiver la protection quand l'app revient au premier plan
-    // Cela garantit que la protection est toujours active même après un changement d'état
     await enableScreenshotPrevention();
-    
-    // Détecter les patterns suspects qui pourraient indiquer un enregistrement vidéo
-    // Les enregistrements vidéo peuvent causer des changements d'état rapides
-    if (now - lastAppStateChangeTime < 500 && appStateChangeCount > 0) {
-      // Changements d'état très rapides - possible enregistrement vidéo
-      await screenshotDetector.logCapture('app_state_rapid_change', {
-        type: 'suspected_recording',
-        changeCount: appStateChangeCount,
-        timeSinceLastChange: now - lastAppStateChangeTime,
-      });
-      
-      // Notifier le callback pour noircir l'écran
-      if (videoRecordingCallback) {
-        videoRecordingCallback(true);
-        // Garder l'écran noir pendant au moins 2 secondes
-        setTimeout(() => {
-          if (videoRecordingCallback) {
-            videoRecordingCallback(false);
-          }
-        }, 2000);
-      }
-      
-      appStateChangeCount = 0;
-    }
-  } else if (nextAppState === 'background' || nextAppState === 'inactive') {
-    // L'application passe en arrière-plan - possible capture d'écran ou enregistrement vidéo
-    appStateChangeCount++;
-    lastAppStateChangeTime = now;
-    
-    setTimeout(async () => {
-      const currentState = AppState.currentState;
-      if (currentState === 'active') {
-        // L'application revient rapidement - possible capture d'écran ou enregistrement vidéo
-        await screenshotDetector.logCapture('app_state_change', {
-          type: 'suspected_capture',
-        });
-      }
-    }, 100);
   }
 };
 
@@ -96,29 +54,34 @@ export const screenshotDetector = {
   async logCapture(method: string, details?: any) {
     try {
       const now = Date.now();
-      // Éviter les doublons (2 secondes de cooldown)
-      if (now - lastLogTime < 2000) {
+      if (now - lastLogTime < SCREENSHOT_COOLDOWN_MS) {
         return;
       }
       lastLogTime = now;
 
-      const token = await AsyncStorage.getItem('auth_token');
+      const token = await getSecureItem('auth_token');
       if (!token) return;
 
-      const userStr = await AsyncStorage.getItem('user');
-      const user = userStr ? JSON.parse(userStr) : null;
+      const user = await authService.getCurrentUser();
       if (!user) return;
 
       const captureType = details?.type || 'unknown';
-      const isVideoRecording = 
-        captureType === 'video_recording' || 
+      const isVideoRecording =
+        captureType === 'video_recording' ||
         captureType === 'suspected_recording' ||
         method.includes('recording') ||
         method.includes('video');
 
-      // Déterminer l'action et la description appropriées
+      // Ne logger comme screenshot que les vrais événements (listener iOS), pas les simples retours d'app
+      const isRealScreenshot =
+        (method === 'screenshot_listener' && captureType === 'screenshot') ||
+        (captureType === 'screenshot' && method !== 'app_state_change_to_active');
+      if (!isVideoRecording && !isRealScreenshot) {
+        return;
+      }
+
       const action = isVideoRecording ? 'video_recording_detected' : 'screenshot_detected';
-      const description = isVideoRecording 
+      const description = isVideoRecording
         ? `Tentative d'enregistrement vidéo d'écran détectée via: ${method}`
         : `Capture d'écran détectée via: ${method}`;
 

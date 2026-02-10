@@ -98,7 +98,7 @@ export function InputOTP({
           onFocus={() => handleFocus(index)}
           onBlur={handleBlur}
           keyboardType="number-pad"
-          maxLength={1}
+          maxLength={maxLength}
           editable={!disabled}
           selectTextOnFocus
           style={[

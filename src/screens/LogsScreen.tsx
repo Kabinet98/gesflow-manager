@@ -617,6 +617,7 @@ export function LogsScreen() {
     if (action.includes("update")) return isDark ? "rgba(59, 130, 246, 0.2)" : "#dbeafe";
     if (action.includes("delete")) return isDark ? "rgba(239, 68, 68, 0.2)" : "#fee2e2";
     if (action.includes("login")) return isDark ? "rgba(168, 85, 247, 0.2)" : "#f3e8ff";
+    if (action.includes("logout")) return isDark ? "rgba(100, 116, 139, 0.2)" : "#f1f5f9";
     if (action.includes("screenshot")) return isDark ? "rgba(249, 115, 22, 0.2)" : "#ffedd5";
     return isDark ? "rgba(107, 114, 128, 0.2)" : "#f3f4f6";
   };
@@ -626,6 +627,7 @@ export function LogsScreen() {
     if (action.includes("update")) return isDark ? "#60a5fa" : "#2563eb";
     if (action.includes("delete")) return isDark ? "#f87171" : "#dc2626";
     if (action.includes("login")) return isDark ? "#a78bfa" : "#9333ea";
+    if (action.includes("logout")) return isDark ? "#94a3b8" : "#64748b";
     if (action.includes("screenshot")) return isDark ? "#fb923c" : "#ea580c";
     return isDark ? "#9ca3af" : "#6b7280";
   };

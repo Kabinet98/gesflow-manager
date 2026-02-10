@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Exécution des vérifications de sécurité..."
+
+# Exécuter l'audit npm (non-bloquant)
+npm run security:audit || echo "⚠️  Audit npm a échoué, mais le commit continue..."
+
+# Exécuter les vérifications de sécurité
+npm run security:check || {
+  echo "❌ Les vérifications de sécurité ont échoué. Veuillez corriger les problèmes avant de commiter."
+  exit 1
+}
+
+echo "✅ Vérifications de sécurité réussies"

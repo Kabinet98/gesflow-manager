@@ -63,6 +63,7 @@ yarn-error.log
 
 # Environment
 .env
+.env.prod
 .env.local
 .env.*.local
 
@@ -220,4 +221,12 @@ web-build/
 *.pem
 *.key
 *.cert
+
+# Security reports
+security-report.md
+security-audit.json
+
+# Google Service Account (never commit!)
+google-service-account.json
+*-service-account*.json
 

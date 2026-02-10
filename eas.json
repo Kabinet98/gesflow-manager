@@ -25,27 +25,22 @@
     },
     "production": {
       "distribution": "store",
-      "ios": {
-        "simulator": false
-      }
-    },
-    "testflight": {
-      "distribution": "store",
-      "ios": {
-        "simulator": false,
-        "buildConfiguration": "Release"
-      },
       "autoIncrement": true,
       "env": {
-        "API_BASE_URL": "https://your-production-domain.com",
-        "NODE_ENV": "production"
+        "API_BASE_URL": "https://godisone.fr",
+        "APP_ENV": "production"
       }
     }
   },
   "submit": {
-    "testflight": {
+    "production": {
       "ios": {
-        "appleId": "kabinettoure93@gmail.com"
+        "appleId": "kabinettoure93@gmail.com",
+        "ascAppId": "6758951897"
+      },
+      "android": {
+        "track": "internal",
+        "serviceAccountKeyPath": "./google-service-account.json"
       }
     }
   }

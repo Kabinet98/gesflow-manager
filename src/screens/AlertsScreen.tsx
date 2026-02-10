@@ -32,6 +32,7 @@ import { REFRESH_CONTROL_COLOR, TAB_BAR_PADDING_BOTTOM } from "@/constants/layou
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/Switch";
+import { formatDecimalInput, formatIntegerInput } from "@/utils/numeric-input";
 
 const CHART_COLOR = "#0ea5e9";
 
@@ -548,13 +549,14 @@ export function AlertsScreen() {
                       value={
                         currentConfig.expenseThreshold?.toString() || ""
                       }
-                      onChangeText={(text) =>
+                      onChangeText={(text) => {
+                        const filtered = formatDecimalInput(text);
                         updateConfig(selectedCompanyId, {
-                          expenseThreshold: text
-                            ? parseFloat(text)
+                          expenseThreshold: filtered
+                            ? parseFloat(filtered)
                             : null,
-                        })
-                      }
+                        });
+                      }}
                       placeholder="Ex: 1000000"
                       keyboardType="numeric"
                       className={`h-12 px-4 rounded-lg border text-base ${
@@ -590,13 +592,14 @@ export function AlertsScreen() {
                       value={
                         currentConfig.lowBalanceThreshold?.toString() || ""
                       }
-                      onChangeText={(text) =>
+                      onChangeText={(text) => {
+                        const filtered = formatDecimalInput(text);
                         updateConfig(selectedCompanyId, {
-                          lowBalanceThreshold: text
-                            ? parseFloat(text)
+                          lowBalanceThreshold: filtered
+                            ? parseFloat(filtered)
                             : null,
-                        })
-                      }
+                        });
+                      }}
                       placeholder="Ex: 500000"
                       keyboardType="numeric"
                       className={`h-12 px-4 rounded-lg border text-base ${
@@ -857,7 +860,7 @@ export function AlertsScreen() {
                       value={currentConfig.alertBeforeDays.toString()}
                       onChangeText={(text) =>
                         updateConfig(selectedCompanyId, {
-                          alertBeforeDays: parseInt(text) || 7,
+                          alertBeforeDays: parseInt(formatIntegerInput(text), 10) || 7,
                         })
                       }
                       placeholder="7"

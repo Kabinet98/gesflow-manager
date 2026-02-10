@@ -50,6 +50,8 @@ import { TAB_BAR_PADDING_BOTTOM, REFRESH_CONTROL_COLOR } from "@/constants/layou
 import { Drawer } from "@/components/ui/Drawer";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { formatIntegerInput, formatDecimalInput } from "@/utils/numeric-input";
+import { writeExcelFromJson } from "@/utils/excel-secure";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
@@ -1835,7 +1837,8 @@ export function DatScreen() {
     }
     try {
       setIsDeleting(true);
-      await api.delete(`/api/dat/${datToDelete.id}`);
+      const id = datToDelete.id;
+      await api.delete(`/api/dat/${id}`);
       setShowDeleteDrawer(false);
       setDatToDelete(null);
       setDeleteConfirmation("");
@@ -1863,7 +1866,8 @@ export function DatScreen() {
     if (!datToStop) return;
     try {
       setIsStopping(true);
-      await api.put(`/api/dat/${datToStop.id}`, {
+      const id = datToStop.id;
+      await api.put(`/api/dat/${id}`, {
         ...datToStop,
         maturityInstructions: "STOP",
         isActive: false,
@@ -2112,29 +2116,16 @@ export function DatScreen() {
             : "0",
         };
       });
-      let XLSX: any;
-      let useXLSX = false;
-      try {
-        XLSX = require("xlsx");
-        if (XLSX && XLSX.utils) {
-          useXLSX = true;
-        }
-      } catch (e) {
-      }
       let fileContent: string;
       let filename: string;
       let mimeType: string;
-      if (useXLSX) {
-        const worksheet = XLSX.utils.json_to_sheet(exportData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "DAT");
-        fileContent = XLSX.write(workbook, {
-          type: "base64",
-          bookType: "xlsx",
-        });
+      let useExcel = false;
+      try {
+        fileContent = await writeExcelFromJson(exportData, "DAT");
         filename = `dat_${new Date().toISOString().split("T")[0]}.xlsx`;
         mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-      } else {
+        useExcel = true;
+      } catch (e) {
         const headers = Object.keys(exportData[0]);
         const csvRows = [
           headers.join(","),
@@ -2163,7 +2154,7 @@ export function DatScreen() {
         throw new Error("writeAsStringAsync not found in expo-file-system");
       }
       const fileUri = directory ? `${directory}${filename}` : filename;
-      if (useXLSX) {
+      if (useExcel) {
         await writeFn(fileUri, fileContent, { encoding: "base64" });
       } else {
         await writeFn(fileUri, fileContent, { encoding: "utf8" });
@@ -2172,10 +2163,10 @@ export function DatScreen() {
       if (isAvailable) {
         await Sharing.shareAsync(fileUri, {
           mimeType: mimeType,
-          dialogTitle: useXLSX ? "Partager le fichier Excel" : "Partager le fichier CSV",
+          dialogTitle: useExcel ? "Partager le fichier Excel" : "Partager le fichier CSV",
         });
       } else {
-        Alert.alert("Export réussi", `Le fichier ${useXLSX ? "Excel" : "CSV"} a été sauvegardé : ${filename}`);
+        Alert.alert("Export réussi", `Le fichier ${useExcel ? "Excel" : "CSV"} a été sauvegardé : ${filename}`);
       }
     } catch (error: any) {
       Alert.alert("Erreur", "Impossible d'exporter le fichier");
@@ -2676,7 +2667,7 @@ export function DatScreen() {
             >
               <TextInput
                 value={minAmount}
-                onChangeText={setMinAmount}
+                onChangeText={(text) => setMinAmount(formatDecimalInput(text))}
                 placeholder="0.00"
                 keyboardType="numeric"
                 className={`flex-1 ${
@@ -2705,7 +2696,7 @@ export function DatScreen() {
             >
               <TextInput
                 value={maxAmount}
-                onChangeText={setMaxAmount}
+                onChangeText={(text) => setMaxAmount(formatDecimalInput(text))}
                 placeholder="0.00"
                 keyboardType="numeric"
                 className={`flex-1 ${
@@ -2994,9 +2985,9 @@ export function DatScreen() {
               </Text>
               <TextInput
                 value={formData.amount}
-                onChangeText={(text) => {
-                  setFormData((prev) => ({ ...prev, amount: text }));
-                }}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({ ...prev, amount: formatDecimalInput(text) }))
+                }
                 placeholder="0.00"
                 keyboardType="numeric"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
@@ -3072,9 +3063,9 @@ export function DatScreen() {
               </Text>
               <TextInput
                 value={formData.durationMonths}
-                onChangeText={(text) => {
-                  setFormData((prev) => ({ ...prev, durationMonths: text }));
-                }}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({ ...prev, durationMonths: formatIntegerInput(text) }))
+                }
                 placeholder="3"
                 keyboardType="numeric"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
@@ -3095,9 +3086,9 @@ export function DatScreen() {
               </Text>
               <TextInput
                 value={formData.interestRate}
-                onChangeText={(text) => {
-                  setFormData((prev) => ({ ...prev, interestRate: text }));
-                }}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({ ...prev, interestRate: formatDecimalInput(text) }))
+                }
                 placeholder="0.00"
                 keyboardType="numeric"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
@@ -3458,15 +3449,7 @@ export function DatScreen() {
                 </Text>
                 <TextInput
                   value={transferAmount}
-                  onChangeText={(text) => {
-                    // Permettre la saisie libre, la validation se fera lors de la soumission
-                    // Accepter les nombres, les points et les virgules pour la saisie (format français et anglais)
-                    if (text === "" || /^[0-9]*[,.]?[0-9]*$/.test(text)) {
-                      // Remplacer la virgule par un point pour le traitement
-                      const normalizedText = text.replace(",", ".");
-                      setTransferAmount(normalizedText);
-                    }
-                  }}
+                  onChangeText={(text) => setTransferAmount(formatDecimalInput(text.replace(",", ".")))}
                   placeholder={availableInterest > 0 ? availableInterest.toString() : "0"}
                   keyboardType="decimal-pad"
                   className={`px-3 py-2 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"}`}
@@ -3655,9 +3638,9 @@ export function DatScreen() {
               </Text>
               <TextInput
                 value={simulationData.amount}
-                onChangeText={(text) => {
-                  setSimulationData((prev) => ({ ...prev, amount: text }));
-                }}
+                onChangeText={(text) =>
+                  setSimulationData((prev) => ({ ...prev, amount: formatDecimalInput(text) }))
+                }
                 placeholder="0.00"
                 keyboardType="numeric"
                 className={`px-3 py-2 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"}`}
@@ -3669,9 +3652,9 @@ export function DatScreen() {
               </Text>
               <TextInput
                 value={simulationData.interestRate}
-                onChangeText={(text) => {
-                  setSimulationData((prev) => ({ ...prev, interestRate: text }));
-                }}
+                onChangeText={(text) =>
+                  setSimulationData((prev) => ({ ...prev, interestRate: formatDecimalInput(text) }))
+                }
                 placeholder="0.00"
                 keyboardType="numeric"
                 className={`px-3 py-2 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"}`}
@@ -3683,9 +3666,9 @@ export function DatScreen() {
               </Text>
               <TextInput
                 value={simulationData.durationMonths}
-                onChangeText={(text) => {
-                  setSimulationData((prev) => ({ ...prev, durationMonths: text }));
-                }}
+                onChangeText={(text) =>
+                  setSimulationData((prev) => ({ ...prev, durationMonths: formatIntegerInput(text) }))
+                }
                 placeholder="3"
                 keyboardType="numeric"
                 className={`px-3 py-2 rounded-lg border ${isDark ? "bg-[#1e293b] border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"}`}

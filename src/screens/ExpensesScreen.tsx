@@ -24,6 +24,7 @@ import { Swipeable } from "react-native-gesture-handler";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "@/config/api";
+import { auditService } from "@/services/audit.service";
 // Types axios sont automatiquement inclus via src/types/axios.d.ts
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAmountVisibility } from "@/contexts/AmountVisibilityContext";
@@ -60,6 +61,9 @@ import {
 import { Drawer } from "@/components/ui/Drawer";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { formatDecimalInput } from "@/utils/numeric-input";
+import { formatAmount as formatAmountUtil } from "@/utils/format-amount";
+import { writeExcelFromJson } from "@/utils/excel-secure";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 // Importer l'API legacy pour documentDirectory, cacheDirectory et writeAsStringAsync
@@ -705,6 +709,9 @@ export function ExpensesScreen() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [userCompanyId, setUserCompanyId] = useState<string | null>(null);
   const [isManager, setIsManager] = useState(false);
+  const [isManagerAccountFrozen, setIsManagerAccountFrozen] = useState(false);
+  const [frozenAmount, setFrozenAmount] = useState<number | null>(null);
+  const [frozenCurrency, setFrozenCurrency] = useState<string>("GNF");
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
@@ -808,8 +815,17 @@ export function ExpensesScreen() {
             setIsAdmin(true);
           }
 
+          // Compte gelé : comme GesFlow, on utilise GET /api/users/:id/company-manager
+          // (manager.frozenBalance ?? null et affichage avec ?? 0)
+          const companyManagerFromMe = (fullUser as any)?.companyManager;
+          if (companyManagerFromMe?.isFrozen === true) {
+            setIsManagerAccountFrozen(true);
+            setFrozenAmount(companyManagerFromMe.frozenBalance ?? 0);
+            setFrozenCurrency(companyManagerFromMe?.company?.currency ?? "GNF");
+          }
+
           if (isManagerRole) {
-            // Récupérer le companyId depuis l'API spécifique du gestionnaire
+            // Récupérer le companyId et infos gel depuis company-manager (comme GesFlow dashboard/expenses)
             try {
               const managerResponse = await api.get(
                 `/api/users/${user.id}/company-manager`,
@@ -819,6 +835,11 @@ export function ExpensesScreen() {
               if (manager?.companyId) {
                 setUserCompanyId(manager.companyId);
                 setIsManager(true);
+                if (manager.isFrozen === true) {
+                  setIsManagerAccountFrozen(true);
+                  setFrozenAmount(manager.frozenBalance ?? 0);
+                  setFrozenCurrency(manager?.company?.currency ?? "GNF");
+                }
               }
             } catch (managerErr: any) {
               if (managerErr.response?.status !== 404) {
@@ -845,12 +866,25 @@ export function ExpensesScreen() {
     queryFn: async () => {
       try {
         const response = await api.get("/api/companies");
-        return response.data;
+        const data = response.data;
+        return Array.isArray(data) ? data : data?.data ?? data ?? [];
       } catch (err) {
         return [];
       }
     },
   });
+
+  // Garder la devise du formulaire synchronisée avec l'entreprise sélectionnée (dès que companies est chargé)
+  useEffect(() => {
+    if (!showExpenseForm || !formData.companyId || !companies?.length) return;
+    const company = companies.find(
+      (c: Company) => c.id === formData.companyId,
+    ) as Company | undefined;
+    const companyCurrency = company?.currency;
+    if (companyCurrency && companyCurrency !== formData.currency) {
+      setFormData((prev) => ({ ...prev, currency: companyCurrency }));
+    }
+  }, [showExpenseForm, formData.companyId, companies]);
 
   // Récupérer les gestionnaires pour le filtre
   const { data: managers } = useQuery({
@@ -887,14 +921,21 @@ export function ExpensesScreen() {
 
   // Filtrer les dépenses - DOIT être avant tout return conditionnel (règle des hooks)
   const filteredExpenses = useMemo(() => {
-    if (!expenses) return [];
+    // Normaliser en tableau : l'API peut renvoyer un tableau ou un objet { data: [...] } / { expenses: [...] }
+    const list = Array.isArray(expenses)
+      ? expenses
+      : Array.isArray((expenses as any)?.data)
+        ? (expenses as any).data
+        : Array.isArray((expenses as any)?.expenses)
+          ? (expenses as any).expenses
+          : [];
 
     // Les admins voient TOUTES les dépenses - pas de filtre par créateur
     // Pour les managers, s'assurer qu'ils ne voient que leurs propres dépenses
     // (le backend devrait déjà filtrer, mais on double-vérifie côté client pour sécurité)
-    let expensesToFilter = expenses;
+    let expensesToFilter = list;
     if (!isAdmin && isManager && currentUserId) {
-      expensesToFilter = expenses.filter(
+      expensesToFilter = list.filter(
         (expense: Expense) => (expense as any).createdBy?.id === currentUserId,
       );
     }
@@ -970,9 +1011,15 @@ export function ExpensesScreen() {
 
   // Extraire les pays uniques
   const uniqueCountries = useMemo(() => {
-    if (!expenses) return [];
+    const list = Array.isArray(expenses)
+      ? expenses
+      : Array.isArray((expenses as any)?.data)
+        ? (expenses as any).data
+        : Array.isArray((expenses as any)?.expenses)
+          ? (expenses as any).expenses
+          : [];
     const countries = new Set<string>();
-    expenses.forEach((expense: Expense) => {
+    list.forEach((expense: Expense) => {
       if (expense.company?.country) {
         const countryValue =
           typeof expense.company.country === "string"
@@ -1216,86 +1263,80 @@ export function ExpensesScreen() {
     return isGainDat || isLoan || Boolean(isManagerTransaction);
   };
 
-  // Vérifier si une dépense peut être modifiée (conditions selon gesflow)
+  // Même règle que GesFlow : annulation possible si < 25h et pas dans le futur (marge -10 min)
+  const canCancelTransaction = (createdAt: string | undefined | null): boolean => {
+    if (!createdAt) return false;
+    try {
+      const now = new Date();
+      const created = new Date(createdAt);
+      if (isNaN(created.getTime())) return false;
+      const diffInMs = now.getTime() - created.getTime();
+      const diffInHours = diffInMs / (1000 * 60 * 60);
+      return diffInHours < 25 && diffInMs > -600000;
+    } catch {
+      return false;
+    }
+  };
+
+  // Vérifier si une dépense peut être modifiée (conditions selon GesFlow)
   const canEditExpense = (expense: Expense): boolean => {
-    // Pas d'action après validation ou rejet
+    if (isManagerAccountFrozen) return false;
     if (
       expense.validationStatus === "APPROVED" ||
       expense.validationStatus === "REJECTED"
-    ) {
+    )
       return false;
-    }
-
-    // Pas d'action si annulée
-    if (expense.status === "CANCELLED") {
-      return false;
-    }
-
-    // Règle des 24h : l'édition n'est possible que dans les 24h après création
-    const createdAt = new Date(expense.createdAt);
-    const now = new Date();
-    const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-
-    return hoursDiff <= 24;
+    if (expense.status === "CANCELLED") return false;
+    return canCancelTransaction(expense.createdAt);
   };
 
-  // Vérifier si une dépense peut être supprimée (conditions selon gesflow - pour admins)
+  // Vérifier si une dépense peut être supprimée (conditions selon GesFlow - pour admins)
   const canDeleteExpense = (expense: Expense): boolean => {
-    // Pas d'action après validation ou rejet
+    if (isManagerAccountFrozen) return false;
     if (
       expense.validationStatus === "APPROVED" ||
       expense.validationStatus === "REJECTED"
-    ) {
+    )
       return false;
-    }
-
-    // Pas d'action si annulée
-    if (expense.status === "CANCELLED") {
-      return false;
-    }
-
-    // Règle des 24h : la suppression n'est possible que dans les 24h après création
-    const createdAt = new Date(expense.createdAt);
-    const now = new Date();
-    const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-
-    return hoursDiff <= 24;
+    if (expense.status === "CANCELLED") return false;
+    return canCancelTransaction(expense.createdAt);
   };
 
-  // Vérifier si une dépense peut être annulée (conditions selon gesflow - pour gestionnaires)
+  // Vérifier si une dépense peut être annulée (conditions selon GesFlow)
   const canCancelExpense = (expense: Expense): boolean => {
-    // Pas d'action après validation ou rejet
+    if (isManagerAccountFrozen) return false;
     if (
       expense.validationStatus === "APPROVED" ||
       expense.validationStatus === "REJECTED"
-    ) {
+    )
       return false;
-    }
-
-    // Pas d'action si déjà annulée
-    if (expense.status === "CANCELLED") {
-      return false;
-    }
-
-    // Un utilisateur ne peut annuler que ses propres transactions
+    if (expense.status === "CANCELLED") return false;
+    // L'admin ne peut pas annuler les transactions des gestionnaires (comme GesFlow)
+    const isManagerTransaction = (expense as any).createdBy?.role?.name &&
+      ((expense as any).createdBy.role.name.toLowerCase() === "gestionnaire" ||
+        (expense as any).createdBy.role.name.toLowerCase() === "manager" ||
+        (expense as any).createdBy.role.name?.toLowerCase()?.includes("gestionnaire") ||
+        (expense as any).createdBy.role.name?.toLowerCase()?.includes("manager"));
+    if (!isManager && isManagerTransaction) return false;
+    // Un gestionnaire ne peut annuler que ses propres transactions
     const expenseCreatorId = (expense as any).createdBy?.id;
     if (
       currentUserId &&
       expenseCreatorId &&
       expenseCreatorId !== currentUserId
-    ) {
+    )
       return false;
-    }
-
-    // Règle des 24h : l'annulation n'est possible que dans les 24h après création
-    const createdAt = new Date(expense.createdAt);
-    const now = new Date();
-    const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-
-    return hoursDiff <= 24;
+    return canCancelTransaction(expense.createdAt);
   };
 
   const handleCreate = () => {
+    if (isManagerAccountFrozen) {
+      Alert.alert(
+        "Compte gelé",
+        "Votre compte a été gelé. Vous ne pouvez plus effectuer de dépenses. Contactez l'administrateur.",
+      );
+      return;
+    }
     if (!canCreate) {
       return;
     }
@@ -1378,6 +1419,11 @@ export function ExpensesScreen() {
               // Appeler l'API DELETE pour annuler la dépense
               await api.delete(`/api/expenses/${expense.id}`, {
                 skipAuthError: true,
+              });
+              await auditService.logAction("expenses.delete", {
+                resource: "expense",
+                resourceId: expense.id,
+                description: `Dépense annulée: ${expense.description || expense.id}`,
               });
 
               // Recharger les données
@@ -2087,6 +2133,7 @@ export function ExpensesScreen() {
           companyId: formData.companyId,
           countryId: finalCountryId,
           date: formData.date,
+          exchangeRate: null,
         };
 
         // Pour l'admin, category est obligatoire (Business par défaut)
@@ -2103,6 +2150,11 @@ export function ExpensesScreen() {
           updatePayload,
         );
         expenseId = editingExpense.id;
+        await auditService.logAction("expenses.update", {
+          resource: "expense",
+          resourceId: expenseId,
+          description: `Dépense modifiée: ${updatePayload.description || expenseId}`,
+        });
       } else {
         // Création - envoyer tous les champs requis
         const createPayload: any = {
@@ -2113,6 +2165,7 @@ export function ExpensesScreen() {
           companyId: formData.companyId,
           countryId: finalCountryId,
           date: formData.date,
+          exchangeRate: null,
         };
 
         // Pour l'admin, category est obligatoire (Business par défaut)
@@ -2282,43 +2335,20 @@ export function ExpensesScreen() {
         };
       });
 
-      // Créer un fichier Excel avec xlsx (comme dans GesFlow)
-      // Si xlsx n'est pas disponible, utiliser CSV en fallback
+      // Créer un fichier Excel avec exceljs (sécurisé)
       try {
-        // Importer xlsx dynamiquement pour éviter les erreurs si non installé
-        let XLSX: any;
-        let useXLSX = false;
-        try {
-          XLSX = require("xlsx");
-          if (XLSX && XLSX.utils) {
-            useXLSX = true;
-          }
-        } catch (e) {
-          // xlsx non disponible, utilisation de CSV
-        }
-
         let fileContent: string;
         let filename: string;
         let mimeType: string;
+        let useExcel = false;
 
-        if (useXLSX) {
-          // Créer un worksheet à partir des données
-          const worksheet = XLSX.utils.json_to_sheet(exportData);
-
-          // Créer un workbook et ajouter le worksheet
-          const workbook = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(workbook, worksheet, "Dépenses");
-
-          // Générer le fichier Excel en base64
-          fileContent = XLSX.write(workbook, {
-            type: "base64",
-            bookType: "xlsx",
-          });
+        try {
+          fileContent = await writeExcelFromJson(exportData, "Dépenses");
           filename = `depenses_${new Date().toISOString().split("T")[0]}.xlsx`;
-          mimeType =
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        } else {
-          // Fallback vers CSV
+          mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+          useExcel = true;
+        } catch (e) {
+          // Fallback CSV
           const headers = Object.keys(exportData[0]);
           const csvRows = [
             headers.join(","), // En-têtes
@@ -2419,8 +2449,7 @@ export function ExpensesScreen() {
 
         // Écrire le fichier (Excel en base64 ou CSV en utf8)
         try {
-          if (useXLSX) {
-            // Pour Excel, utiliser base64
+          if (useExcel) {
             await writeFn(fileUri, fileContent, {
               encoding: "base64",
             });
@@ -2441,14 +2470,14 @@ export function ExpensesScreen() {
         if (isAvailable) {
           await Sharing.shareAsync(fileUri, {
             mimeType: mimeType,
-            dialogTitle: useXLSX
+            dialogTitle: useExcel
               ? "Partager le fichier Excel"
               : "Partager le fichier CSV",
           });
         } else {
           Alert.alert(
             "Export réussi",
-            `Le fichier ${useXLSX ? "Excel" : "CSV"} a été sauvegardé : ${filename}`,
+            `Le fichier ${useExcel ? "Excel" : "CSV"} a été sauvegardé : ${filename}`,
           );
         }
       } catch (exportError: any) {
@@ -2604,7 +2633,10 @@ export function ExpensesScreen() {
               <TouchableOpacity
                 onPress={handleCreate}
                 className="px-4 py-2.5 rounded-full flex-row items-center gap-2"
-                style={{ backgroundColor: CHART_COLOR }}
+                style={{
+                  backgroundColor: isManagerAccountFrozen ? (isDark ? "#475569" : "#94a3b8") : CHART_COLOR,
+                  opacity: isManagerAccountFrozen ? 0.8 : 1,
+                }}
                 activeOpacity={0.7}
               >
                 <HugeiconsIcon
@@ -2619,6 +2651,34 @@ export function ExpensesScreen() {
             )}
           </View>
         </View>
+
+        {/* Bannière compte gelé : montant = ce que le gestionnaire récupérera au dégel */}
+        {isManagerAccountFrozen && (
+          <View
+            className="mx-4 mt-4 mb-4 px-4 py-3 rounded-xl flex-row items-center gap-3"
+            style={{
+              backgroundColor: isDark ? "rgba(245, 158, 11, 0.15)" : "#fffbeb",
+              borderWidth: 1,
+              borderColor: isDark ? "#d97706" : "#fcd34d",
+            }}
+          >
+            <HugeiconsIcon
+              icon={AlertDiamondIcon}
+              size={22}
+              color={isDark ? "#fbbf24" : "#d97706"}
+            />
+            <Text
+              className="flex-1 text-sm"
+              style={{ color: isDark ? "#fcd34d" : "#92400e" }}
+            >
+              Votre compte est gelé. Montant que vous récupérerez au dégel :{" "}
+              <Text className="font-semibold">
+                {formatAmountUtil(frozenAmount ?? 0, frozenCurrency, isAmountVisible)}
+              </Text>
+              . Vous ne pouvez pas effectuer de nouvelles dépenses.
+            </Text>
+          </View>
+        )}
 
         {/* Table avec scroll horizontal synchronisé */}
         {isLoading || !expenses ? (
@@ -2817,12 +2877,27 @@ export function ExpensesScreen() {
                     (Boolean(expense.loanId) &&
                       !isInstallmentPayment &&
                       !isInstallmentPaymentByDescription);
+                  // Dépenses système gel/dégel de compte gestionnaire (comme GesFlow : pas d'actions)
+                  const isFreezeExpense =
+                    expense.type === "INCOME" &&
+                    expense.description?.includes("Retour solde gestionnaire (gel du compte)");
+                  const isUnfreezeExpense =
+                    expense.type === "OUTCOME" &&
+                    expense.description?.includes("Dégel - retour au gestionnaire");
+                  const isFreezeUnfreezeExpense = isFreezeExpense || isUnfreezeExpense;
+                  // Paiement d'emprunt (description) : pas de bouton Valider comme GesFlow
+                  const isLoanPayment =
+                    Boolean((expense as any).loanId) ||
+                    Boolean((expense as any).isLoanInvestment) ||
+                    expense.description?.toLowerCase().includes("paiement échéance") ||
+                    expense.description?.toLowerCase().includes("échéance");
                   const shouldHideAllActions =
                     isGainDat ||
                     isDatTransfer ||
                     isLoan ||
                     isInstallmentPayment ||
-                    isInstallmentPaymentByDescription;
+                    isInstallmentPaymentByDescription ||
+                    isFreezeUnfreezeExpense;
 
                   // Calculer les actions disponibles
                   const shouldHideActions = shouldHideActionsForAdmin(expense);
@@ -2837,14 +2912,15 @@ export function ExpensesScreen() {
                     !shouldHideAllActions &&
                     canManagerActOnExpense(expense) &&
                     canCancelExpense(expense);
-                  // Bouton View pour les admins - afficher pour les dépenses en attente de validation
+                  // Bouton View pour les admins - afficher pour les dépenses en attente (comme GesFlow, pas pour paiement emprunt)
                   const hasViewAction =
                     !shouldHideAllActions &&
                     !isManager &&
                     canUpdate &&
                     expense.validationStatus === "PENDING" &&
                     expense.type === "OUTCOME" &&
-                    expense.status !== "CANCELLED";
+                    expense.status !== "CANCELLED" &&
+                    !isLoanPayment;
                   const hasAnyAction =
                     hasEditAction || hasCancelAction || hasViewAction;
 
@@ -3106,6 +3182,62 @@ export function ExpensesScreen() {
                                     </Text>
                                   </View>
                                 )}
+
+                                {/* Gel de compte gestionnaire */}
+                                {expense.type === "INCOME" &&
+                                  expense.description?.includes(
+                                    "Retour solde gestionnaire (gel du compte)",
+                                  ) && (
+                                    <View
+                                      className="px-2 py-1 rounded-full self-start"
+                                      style={{
+                                        backgroundColor: isDark
+                                          ? "rgba(100, 116, 139, 0.2)"
+                                          : "#f1f5f9",
+                                        borderWidth: 1,
+                                        borderColor: isDark
+                                          ? "#64748b"
+                                          : "#94a3b8",
+                                      }}
+                                    >
+                                      <Text
+                                        className="text-xs font-medium"
+                                        style={{
+                                          color: isDark ? "#94a3b8" : "#64748b",
+                                        }}
+                                      >
+                                        Gel
+                                      </Text>
+                                    </View>
+                                  )}
+
+                                {/* Dégel de compte gestionnaire */}
+                                {expense.type === "OUTCOME" &&
+                                  expense.description?.includes(
+                                    "Dégel - retour au gestionnaire",
+                                  ) && (
+                                    <View
+                                      className="px-2 py-1 rounded-full self-start"
+                                      style={{
+                                        backgroundColor: isDark
+                                          ? "rgba(20, 184, 166, 0.2)"
+                                          : "#ccfbf1",
+                                        borderWidth: 1,
+                                        borderColor: isDark
+                                          ? "#14b8a6"
+                                          : "#5eead4",
+                                      }}
+                                    >
+                                      <Text
+                                        className="text-xs font-medium"
+                                        style={{
+                                          color: isDark ? "#5eead4" : "#0d9488",
+                                        }}
+                                      >
+                                        Dégel
+                                      </Text>
+                                    </View>
+                                  )}
 
                                 {/* Statut de validation (PENDING, APPROVED, REJECTED) */}
                                 {expense.validationStatus && (
@@ -3845,17 +3977,7 @@ export function ExpensesScreen() {
                 </Text>
                 <TextInput
                   value={minAmount}
-                  onChangeText={(text) => {
-                    // Permettre uniquement les nombres et un point décimal
-                    const numericValue = text.replace(/[^0-9.]/g, "");
-                    // Permettre un seul point décimal
-                    const parts = numericValue.split(".");
-                    const filteredValue =
-                      parts.length > 2
-                        ? parts[0] + "." + parts.slice(1).join("")
-                        : numericValue;
-                    setMinAmount(filteredValue);
-                  }}
+                  onChangeText={(text) => setMinAmount(formatDecimalInput(text))}
                   placeholder="0.00"
                   placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                   keyboardType="numeric"
@@ -3899,17 +4021,7 @@ export function ExpensesScreen() {
                 </Text>
                 <TextInput
                   value={maxAmount}
-                  onChangeText={(text) => {
-                    // Permettre uniquement les nombres et un point décimal
-                    const numericValue = text.replace(/[^0-9.]/g, "");
-                    // Permettre un seul point décimal
-                    const parts = numericValue.split(".");
-                    const filteredValue =
-                      parts.length > 2
-                        ? parts[0] + "." + parts.slice(1).join("")
-                        : numericValue;
-                    setMaxAmount(filteredValue);
-                  }}
+                  onChangeText={(text) => setMaxAmount(formatDecimalInput(text))}
                   placeholder="0.00"
                   placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                   keyboardType="numeric"
@@ -4067,14 +4179,19 @@ export function ExpensesScreen() {
               <Select
                 value={formData.companyId}
                 onValueChange={(value: string) => {
-                  setFormData({ ...formData, companyId: value });
-                  // Charger le solde mobilisé si c'est une sortie
+                  const company = companies?.find(
+                    (c: Company) => c.id === value,
+                  );
+                  const companyCurrency =
+                    (company as any)?.currency || "GNF";
+                  setFormData({
+                    ...formData,
+                    companyId: value,
+                    currency: companyCurrency,
+                  });
                   if (formData.type === "OUTCOME" && value) {
-                    const company = companies?.find(
-                      (c: Company) => c.id === value,
-                    );
                     if (company) {
-                      loadMobilizedBalance(value, formData.currency);
+                      loadMobilizedBalance(value, companyCurrency);
                     }
                   }
                 }}
@@ -4187,7 +4304,7 @@ export function ExpensesScreen() {
             </View>
           </View>
 
-          {/* Montant */}
+          {/* Montant — la devise est celle de l'entreprise (pas de taux d'échange) */}
           <View className="mb-4">
             <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               Montant <Text className="text-red-500">*</Text>
@@ -4200,28 +4317,18 @@ export function ExpensesScreen() {
               }`}
             >
               <Text
-                className={`text-sm ${
+                className={`text-sm font-medium ${
                   isDark ? "text-gray-300" : "text-gray-700"
                 }`}
-                style={{
-                  includeFontPadding: false,
-                }}
+                style={{ includeFontPadding: false }}
               >
                 {formData.currency}
               </Text>
               <TextInput
                 value={formData.amount}
-                onChangeText={(text) => {
-                  // Permettre uniquement les nombres et un point décimal
-                  const numericValue = text.replace(/[^0-9.]/g, "");
-                  // Permettre un seul point décimal
-                  const parts = numericValue.split(".");
-                  const filteredValue =
-                    parts.length > 2
-                      ? parts[0] + "." + parts.slice(1).join("")
-                      : numericValue;
-                  setFormData({ ...formData, amount: filteredValue });
-                }}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, amount: formatDecimalInput(text) })
+                }
                 placeholder="0.00"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="numeric"

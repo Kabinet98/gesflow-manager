@@ -50,6 +50,8 @@ import {
 import { Drawer } from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
+import { CountrySelect } from "@/components/CountrySelect";
+import { formatDecimalInput } from "@/utils/numeric-input";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -534,23 +536,40 @@ export function CompaniesScreen() {
     enabled: canView,
   });
 
-  // Récupérer les pays
-  const { data: countries } = useQuery({
+  // Récupérer les pays : toujours activé dès le montage (écran visible = utilisateur connecté)
+  const {
+    data: countriesData,
+    isLoading: countriesLoading,
+    isError: countriesError,
+    refetch: refetchCountries,
+  } = useQuery({
     queryKey: ["countries"],
     queryFn: async () => {
       const response = await api.get("/api/countries");
-      return response.data;
+      const data = response.data;
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.data)) return data.data;
+      return [];
     },
+    enabled: true,
+    retry: 2,
   });
+  const countries = Array.isArray(countriesData) ? countriesData : [];
 
-  // Récupérer les secteurs d'activité
-  const { data: activitySectors } = useQuery({
+  // Récupérer les secteurs d'activité (toujours activé pour afficher le champ)
+  const {
+    data: activitySectorsData,
+    isLoading: activitySectorsLoading,
+  } = useQuery({
     queryKey: ["activity-sectors"],
     queryFn: async () => {
       const response = await api.get("/api/activity-sectors?isActive=true");
-      return response.data;
+      const data = response.data;
+      return Array.isArray(data) ? data : data?.data ?? [];
     },
+    enabled: true,
   });
+  const activitySectors = Array.isArray(activitySectorsData) ? activitySectorsData : [];
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -715,6 +734,7 @@ export function CompaniesScreen() {
     setDocuments([]);
     setCompanyDocuments([]);
     setShowCompanyForm(true);
+    refetchCountries();
   };
 
   const handleEdit = async (company: Company) => {
@@ -741,8 +761,10 @@ export function CompaniesScreen() {
         currency: fullCompany.currency || "GNF",
         countryId:
           typeof fullCompany.country === "object"
-            ? fullCompany.country.id
-            : fullCompany.country || "",
+            ? String(fullCompany.country.id)
+            : fullCompany.country
+              ? String(fullCompany.country)
+              : "",
         activitySectorId: fullCompany.activitySector?.id || "",
         address: fullCompany.address || "",
         phone: fullCompany.phone || "",
@@ -753,6 +775,7 @@ export function CompaniesScreen() {
       setDocuments([]);
       await loadCompanyDocuments(company.id);
       setShowCompanyForm(true);
+      refetchCountries();
     } catch (error: any) {
       Alert.alert(
         "Erreur",
@@ -945,21 +968,21 @@ export function CompaniesScreen() {
         activitySectorId: formData.activitySectorId, // Obligatoire
       };
 
+      // Champs optionnels : envoyer une chaîne vide au lieu de null si l'API attend des string
+      const emptyStr = (v: string) => (v && v.trim()) ? v.trim() : "";
       if (editingCompany) {
-        // Mode édition : envoyer tous les champs optionnels (même vides) pour permettre de les vider
-        payload.address = formData.address.trim() || null;
-        payload.phone = formData.phone.trim() || null;
-        payload.email = formData.email.trim() || null;
-        payload.website = formData.website.trim() || null;
+        payload.address = emptyStr(formData.address);
+        payload.phone = emptyStr(formData.phone);
+        payload.email = emptyStr(formData.email);
+        payload.website = emptyStr(formData.website);
         payload.expenseThreshold = formData.expenseThreshold
           ? parseFloat(formData.expenseThreshold)
           : null;
       } else {
-        // Mode création : envoyer tous les champs optionnels (même vides) car l'API peut les exiger
-        payload.address = formData.address.trim() || null;
-        payload.phone = formData.phone.trim() || null;
-        payload.email = formData.email.trim() || null;
-        payload.website = formData.website.trim() || null;
+        payload.address = emptyStr(formData.address);
+        payload.phone = emptyStr(formData.phone);
+        payload.email = emptyStr(formData.email);
+        payload.website = emptyStr(formData.website);
         payload.expenseThreshold = formData.expenseThreshold
           ? parseFloat(formData.expenseThreshold)
           : null;
@@ -1042,7 +1065,9 @@ export function CompaniesScreen() {
 
     try {
       setIsDeleting(true);
-      await api.delete(`/api/companies/${companyToDelete.id}`);
+      const id = companyToDelete.id;
+      const name = companyToDelete.name;
+      await api.delete(`/api/companies/${id}`);
       setShowDeleteDrawer(false);
       setCompanyToDelete(null);
       setDeleteConfirmation("");
@@ -1782,23 +1807,17 @@ export function CompaniesScreen() {
               />
             </View>
 
-            {/* Pays */}
+            {/* Pays (même source que GesFlow : world-countries) */}
             <View>
-              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Pays <Text className="text-red-500">*</Text>
-              </Text>
-              <Select
-                value={formData.countryId}
+              <CountrySelect
+                value={formData.countryId ? String(formData.countryId) : ""}
                 onValueChange={(value) =>
                   setFormData({ ...formData, countryId: value })
                 }
+                label="Pays"
                 placeholder="Sélectionner un pays"
-                options={
-                  countries?.map((country: Country) => ({
-                    label: country.name,
-                    value: country.id,
-                  })) || []
-                }
+                required
+                dbCountries={countries}
               />
             </View>
 
@@ -1820,25 +1839,29 @@ export function CompaniesScreen() {
               />
             </View>
 
-            {/* Secteur d'activité */}
-            {activitySectors && activitySectors.length > 0 && (
-              <View>
-                <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Secteur d'activité <Text className="text-red-500">*</Text>
-                </Text>
-                <Select
-                  value={formData.activitySectorId}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, activitySectorId: value })
-                  }
-                  placeholder="Sélectionner un secteur d'activité"
-                  options={activitySectors.map((sector: ActivitySector) => ({
-                    label: sector.name,
-                    value: sector.id,
-                  }))}
-                />
-              </View>
-            )}
+            {/* Secteur d'activité (toujours affiché) */}
+            <View>
+              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Secteur d'activité <Text className="text-red-500">*</Text>
+              </Text>
+              <Select
+                value={formData.activitySectorId ? String(formData.activitySectorId) : ""}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, activitySectorId: value })
+                }
+                placeholder={
+                  activitySectorsLoading
+                    ? "Chargement des secteurs..."
+                    : activitySectors.length === 0
+                      ? "Aucun secteur (contactez l'admin)"
+                      : "Sélectionner un secteur d'activité"
+                }
+                options={activitySectors.map((sector: ActivitySector) => ({
+                  label: sector.name,
+                  value: String(sector.id),
+                }))}
+              />
+            </View>
 
             {/* Email */}
             <View>
@@ -1953,17 +1976,9 @@ export function CompaniesScreen() {
               </Text>
               <TextInput
                 value={formData.expenseThreshold}
-                onChangeText={(text) => {
-                  // Permettre uniquement les nombres et un point décimal
-                  const numericValue = text.replace(/[^0-9.]/g, "");
-                  // Permettre un seul point décimal
-                  const parts = numericValue.split(".");
-                  const filteredValue =
-                    parts.length > 2
-                      ? parts[0] + "." + parts.slice(1).join("")
-                      : numericValue;
-                  setFormData({ ...formData, expenseThreshold: filteredValue });
-                }}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, expenseThreshold: formatDecimalInput(text) })
+                }
                 placeholder="0.00"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="numeric"
@@ -2032,6 +2047,11 @@ export function CompaniesScreen() {
                         color={isDark ? "#9ca3af" : "#6b7280"}
                       />
                       <View className="flex-1">
+                        <Text
+                          className={`text-xs font-medium mb-1 ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                        >
+                          Intitulé <Text className="text-red-500">*</Text>
+                        </Text>
                         <TextInput
                           value={doc.title}
                           onChangeText={(text) => {

@@ -2,15 +2,29 @@ import React from 'react';
 import { TextInput, TextInputProps, View, Text } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/utils/cn';
+import { formatIntegerInput, formatDecimalInput } from '@/utils/numeric-input';
 
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
   className?: string;
+  /** Champ entier : uniquement des chiffres (clavier numérique + filtre au collage) */
+  numericOnly?: boolean;
+  /** Champ décimal : chiffres et un point (clavier décimal + filtre) */
+  decimalOnly?: boolean;
 }
 
-export function Input({ label, error, className, ...props }: InputProps) {
+export function Input({ label, error, className, numericOnly, decimalOnly, onChangeText, ...props }: InputProps) {
   const { isDark } = useTheme();
+
+  const handleChangeText = (text: string) => {
+    let value = text;
+    if (numericOnly) value = formatIntegerInput(text);
+    else if (decimalOnly) value = formatDecimalInput(text);
+    onChangeText?.(value);
+  };
+
+  const keyboardType = numericOnly ? 'numeric' : decimalOnly ? 'decimal-pad' : props.keyboardType;
 
   return (
     <View className="mb-4">
@@ -25,6 +39,8 @@ export function Input({ label, error, className, ...props }: InputProps) {
       )}
       <TextInput
         {...props}
+        keyboardType={keyboardType}
+        onChangeText={numericOnly || decimalOnly ? handleChangeText : onChangeText}
         className={cn(
           'px-4 py-3 rounded-lg border',
           error

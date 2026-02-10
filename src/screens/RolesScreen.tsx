@@ -394,7 +394,9 @@ export function RolesScreen() {
 
     setIsDeleting(true);
     try {
-      const response = await api.delete(`/api/roles/${roleToDelete.id}`);
+      const id = roleToDelete.id;
+      const name = roleToDelete.name;
+      const response = await api.delete(`/api/roles/${id}`);
 
       if (response.status === 200) {
         Alert.alert("Succès", "Rôle supprimé avec succès");

@@ -1,14 +1,17 @@
 import React, { useEffect } from "react";
 import { StatusBar, AppState, AppStateStatus, View } from "react-native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AmountVisibilityProvider } from "@/contexts/AmountVisibilityContext";
 import { AppNavigator } from "@/navigation/AppNavigator";
+import { setAuditLogsInvalidator } from "@/services/audit.service";
 import { screenshotDetector } from "@/utils/screenshot-detector";
 import { notificationsService } from "@/services/notifications.service";
 import { authService } from "@/services/auth.service";
+import { authEventEmitter } from "@/config/api";
+import api from "@/config/api";
 import "@/styles/global.css";
 
 // Désactiver le mode strict de Reanimated pour éviter les avertissements
@@ -32,6 +35,56 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function AuditLogsInvalidatorSetup() {
+  const client = useQueryClient();
+  useEffect(() => {
+    setAuditLogsInvalidator(() =>
+      client.invalidateQueries({ queryKey: ["logs"] })
+    );
+    return () => setAuditLogsInvalidator(() => {});
+  }, [client]);
+  return null;
+}
+
+/** Précharge le compteur de dépenses en attente à la connexion et le rafraîchit au retour au premier plan. */
+function PendingCountRefetchOnActive() {
+  const queryClient = useQueryClient();
+  const pendingCountQueryFn = async () => {
+    try {
+      const response = await api.get("/api/expenses/pending-count");
+      return response.data;
+    } catch {
+      return { count: 0 };
+    }
+  };
+
+  useEffect(() => {
+    const onAuthChanged = (authenticated: boolean) => {
+      if (authenticated) {
+        queryClient.prefetchQuery({
+          queryKey: ["expenses-pending-count"],
+          queryFn: pendingCountQueryFn,
+        });
+      }
+    };
+    authEventEmitter.on("auth-changed", onAuthChanged);
+    if (AppState.currentState === "active") {
+      queryClient.invalidateQueries({ queryKey: ["expenses-pending-count"] });
+    }
+    const sub = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
+        queryClient.invalidateQueries({ queryKey: ["expenses-pending-count"] });
+      }
+    });
+    return () => {
+      authEventEmitter.off("auth-changed", onAuthChanged);
+      sub.remove();
+    };
+  }, [queryClient]);
+
+  return null;
+}
 
 export default function App() {
   const [appState, setAppState] = React.useState<AppStateStatus>(
@@ -71,21 +124,14 @@ export default function App() {
     };
 
     // Écouter les événements d'authentification
-    const { authEventEmitter } = require('@/config/api');
     authEventEmitter.on('auth-changed', handleAuthChange);
 
     // Écouter les changements d'état de l'application
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       if (appState.match(/inactive|background/) && nextAppState === "active") {
-        // L'application revient au premier plan
-        // Réactiver la protection contre les captures et enregistrements vidéo
+        // L'application revient au premier plan : réactiver la protection uniquement
+        // Ne pas logger de "suspected_capture" ici : cela créait des faux positifs (chaque retour = fausse alerte screenshot)
         screenshotDetector.init();
-        // Vérifier si une capture d'écran ou un enregistrement vidéo a été effectué
-        // On log les deux types de tentatives pour être exhaustif
-        screenshotDetector.logCapture("app_state_change_to_active", {
-          type: 'suspected_capture',
-        });
-        // Réinitialiser les notifications au cas où elles auraient été perdues
         initNotifications();
       }
       setAppState(nextAppState);
@@ -105,6 +151,8 @@ export default function App() {
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <QueryClientProvider client={queryClient}>
+          <AuditLogsInvalidatorSetup />
+          <PendingCountRefetchOnActive />
           <ThemeProvider>
             <AmountVisibilityProvider>
               <StatusBar barStyle="default" />

@@ -26,12 +26,7 @@ export default {
         backgroundColor: "#0f172a"
       },
       package: "com.gesflow.manager",
-      edgeToEdgeEnabled: true,
-      notification: {
-        icon: "./assets/logo.png",
-        color: "#0ea5e9",
-        sound: true
-      }
+      edgeToEdgeEnabled: true
     },
     plugins: [
       [
@@ -41,8 +36,11 @@ export default {
           color: "#0ea5e9",
           mode: "production"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
+    // Hermes explicite pour React Native DevTools (debugging)
+    jsEngine: "hermes",
     web: {
       favicon: "./assets/favicon.png"
     },

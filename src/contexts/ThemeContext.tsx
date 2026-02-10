@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { Theme } from '@/config/theme';
+import { authService } from '@/services/auth.service';
 
 interface ThemeContextType {
   theme: Theme;
@@ -19,15 +21,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Charger le thème sauvegardé
     const loadTheme = async () => {
       try {
-        // D'abord, essayer de charger depuis l'utilisateur stocké
-        const userStr = await AsyncStorage.getItem('user');
-        if (userStr) {
-          const user = JSON.parse(userStr);
-          if (user.theme === 'light' || user.theme === 'dark') {
-            setThemeState(user.theme);
-            await AsyncStorage.setItem('user_theme', user.theme);
-            return;
-          }
+        // D'abord, essayer de charger depuis l'utilisateur connecté
+        const user = await authService.getCurrentUser();
+        if (user && (user.theme === 'light' || user.theme === 'dark')) {
+          setThemeState(user.theme);
+          await AsyncStorage.setItem('user_theme', user.theme);
+          return;
         }
         
         // Sinon, charger depuis AsyncStorage
@@ -51,21 +50,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setThemeState(newTheme);
     await AsyncStorage.setItem('user_theme', newTheme);
     
-    // Mettre à jour l'utilisateur stocké
-    try {
-      const userStr = await AsyncStorage.getItem('user');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        user.theme = newTheme;
-        await AsyncStorage.setItem('user', JSON.stringify(user));
-      }
-    } catch (error) {
-      // Erreur silencieuse
-    }
-    
     // Sauvegarder sur le serveur si l'utilisateur est connecté
     try {
-      const token = await AsyncStorage.getItem('auth_token');
+      const token = await getSecureItem('auth_token');
       if (token) {
         const { getApiBaseUrl } = await import('@/config/env');
         await fetch(`${getApiBaseUrl()}/api/users/theme`, {
@@ -76,6 +63,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           },
           body: JSON.stringify({ theme: newTheme }),
         });
+        // Rafraîchir l'utilisateur pour mettre à jour le cache
+        await authService.refreshUser();
       }
     } catch (error) {
       // Ignore error - le thème est déjà sauvegardé localement

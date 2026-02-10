@@ -59,5 +59,18 @@ target 'GesFlowManager' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
+    
+    # Fix script phases that have paths with spaces
+    installer.pods_project.targets.each do |target|
+      target.build_phases.each do |phase|
+        if phase.is_a?(Xcodeproj::Project::Object::PBXShellScriptBuildPhase)
+          if phase.name == "[CP-User] Generate app.config for prebuilt Constants.manifest"
+            # Fix the script to properly quote the path variable to handle spaces
+            # Use eval to properly expand and quote the path
+            phase.shell_script = "eval \"bash -l -c '\\\"\\${PODS_TARGET_SRCROOT}/../scripts/get-app-config-ios.sh\\\"'\""
+          end
+        end
+      end
+    end
   end
 end

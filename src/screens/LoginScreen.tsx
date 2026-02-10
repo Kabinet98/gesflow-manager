@@ -754,6 +754,9 @@ export function LoginScreen() {
           name="email"
           render={({ field: { onChange, onBlur, value } }) => (
             <View>
+              <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 14, fontWeight: "500", marginBottom: 8 }}>
+                Email <Text style={{ color: "#f87171" }}>*</Text>
+              </Text>
               <TextInput
                 value={value}
                 onChangeText={(text) => {
@@ -808,6 +811,9 @@ export function LoginScreen() {
           name="password"
           render={({ field: { onChange, onBlur, value } }) => (
             <View>
+              <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 14, fontWeight: "500", marginBottom: 8 }}>
+                Mot de passe <Text style={{ color: "#f87171" }}>*</Text>
+              </Text>
               <View style={{ position: "relative" }}>
                 <TextInput
                   value={value}
@@ -903,6 +909,9 @@ export function LoginScreen() {
         <Text className="text-base font-semibold text-gray-300 mb-2 text-center">
           Code d'authentification à deux facteurs
         </Text>
+        <Text className="text-sm text-gray-400 mb-2 text-center">
+          Code <Text style={{ color: "#f87171" }}>*</Text>
+        </Text>
         <Text className="text-sm text-gray-400 mb-6 text-center">
           Entrez le code à 6 chiffres généré par votre application
           d'authentification
@@ -973,7 +982,7 @@ export function LoginScreen() {
           {securityQuestions.map((question, index) => (
             <View key={question.id} style={{ marginBottom: 20 }}>
               <Text className="text-sm font-medium text-gray-300 mb-2">
-                {index + 1}. {question.question}
+                {index + 1}. {question.question} <Text className="text-red-500">*</Text>
               </Text>
               <View style={{ position: "relative" }}>
                 <TextInput
@@ -1145,6 +1154,9 @@ export function LoginScreen() {
         entering={FadeInDown.delay(300).duration(600)}
         style={{ marginBottom: 20 }}
       >
+        <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 14, fontWeight: "500", marginBottom: 8 }}>
+          Email <Text style={{ color: "#f87171" }}>*</Text>
+        </Text>
         <TextInput
           value={forgotPasswordEmail}
           onChangeText={(text) => {
@@ -1182,6 +1194,9 @@ export function LoginScreen() {
       >
         <Text className="text-base font-semibold text-gray-300 mb-2 text-center">
           Code d'authentification à deux facteurs
+        </Text>
+        <Text className="text-sm text-gray-400 mb-2 text-center">
+          Code <Text style={{ color: "#f87171" }}>*</Text>
         </Text>
         <Text className="text-sm text-gray-400 mb-6 text-center">
           Entrez le code à 6 chiffres généré par votre application
@@ -1248,7 +1263,7 @@ export function LoginScreen() {
             {forgotPasswordSecurityQuestions.length}
           </Text>
           <Text className="text-sm font-medium text-gray-300 mb-4">
-            {currentQuestion.question}
+            {currentQuestion.question} <Text className="text-red-500">*</Text>
           </Text>
           <View style={{ position: "relative" }}>
             <TextInput
@@ -1306,6 +1321,9 @@ export function LoginScreen() {
         entering={FadeInDown.delay(300).duration(600)}
         style={{ marginBottom: 20 }}
       >
+        <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 14, fontWeight: "500", marginBottom: 8 }}>
+          Nouveau mot de passe <Text style={{ color: "#f87171" }}>*</Text>
+        </Text>
         <View style={{ position: "relative" }}>
           <TextInput
             value={newPassword}
@@ -1356,6 +1374,9 @@ export function LoginScreen() {
         entering={FadeInDown.delay(400).duration(600)}
         style={{ marginBottom: 20 }}
       >
+        <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 14, fontWeight: "500", marginBottom: 8 }}>
+          Confirmer le mot de passe <Text style={{ color: "#f87171" }}>*</Text>
+        </Text>
         <View style={{ position: "relative" }}>
           <TextInput
             value={confirmPassword}

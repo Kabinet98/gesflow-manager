@@ -1,5 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getSecureItem, deleteSecureItem } from '@/utils/secure-storage';
+import { authService } from '@/services/auth.service';
 import { getApiBaseUrl } from './env';
 // Types axios sont automatiquement inclus via src/types/axios.d.ts
 
@@ -61,9 +63,13 @@ export const api = axios.create({
 // Intercepteur pour ajouter le token d'authentification
 api.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const token = await getSecureItem('auth_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (e) {
+      // Erreur silencieuse
     }
     return config;
   },
@@ -80,11 +86,25 @@ api.interceptors.response.use(
     const skipAuthError = error.config?.skipAuthError;
     
     if (error.response?.status === 401 && !skipAuthError) {
-      // Token expiré ou invalide - seulement si skipAuthError n'est pas défini
-      await AsyncStorage.removeItem('auth_token');
-      await AsyncStorage.removeItem('user');
-      // Émettre un événement pour notifier la déconnexion
-      authEventEmitter.emit('auth-logout');
+      // Vérifier si le token est vraiment expiré avant de déconnecter
+      // Cela évite de déconnecter lors d'erreurs réseau temporaires
+      try {
+        const token = await getSecureItem('auth_token');
+        
+        // Seulement déconnecter si le token est vraiment expiré
+        if (token && authService.isTokenExpired(token)) {
+          await deleteSecureItem('auth_token');
+          await AsyncStorage.removeItem('user_id');
+          await AsyncStorage.removeItem('user'); // Nettoyer l'ancien format si présent
+          // Émettre un événement pour notifier la déconnexion
+          authEventEmitter.emit('auth-logout');
+        }
+        // Si le token n'est pas expiré, c'est probablement une erreur réseau temporaire
+        // Ne pas déconnecter l'utilisateur
+      } catch (e) {
+        // En cas d'erreur lors de la vérification, ne pas déconnecter
+        // C'est probablement une erreur réseau temporaire
+      }
     }
     return Promise.reject(error);
   }

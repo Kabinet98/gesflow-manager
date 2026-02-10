@@ -1,5 +1,6 @@
 import api from '@/config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { setSecureItem, getSecureItem, deleteSecureItem } from '@/utils/secure-storage';
 import { User } from '@/types';
 import { authEventEmitter } from '@/config/api';
 
@@ -23,27 +24,44 @@ class AuthService {
   private isInitialized = false;
 
   /**
-   * Initialise le service en chargeant le token et l'utilisateur depuis AsyncStorage
+   * Initialise le service en chargeant le token depuis SecureStore et l'ID utilisateur depuis AsyncStorage
    */
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
     try {
-      const [storedToken, storedUser] = await Promise.all([
-        AsyncStorage.getItem('auth_token'),
-        AsyncStorage.getItem('user'),
-      ]);
-
-      if (storedToken) {
-        this.token = storedToken;
+      // Migrer depuis AsyncStorage si nécessaire (pour les utilisateurs existants)
+      try {
+        const oldToken = await AsyncStorage.getItem('auth_token');
+        if (oldToken) {
+          // Migrer vers SecureStore (ou AsyncStorage si SecureStore n'est pas disponible)
+          await setSecureItem('auth_token', oldToken);
+          await AsyncStorage.removeItem('auth_token');
+          this.token = oldToken;
+        }
+      } catch (e) {
+        // Erreur silencieuse lors de la migration
       }
 
-      if (storedUser) {
-        try {
-          this.user = JSON.parse(storedUser);
-        } catch (e) {
-          // Erreur silencieuse
+      // Récupérer le token depuis SecureStore (ou AsyncStorage)
+      try {
+        const storedToken = await getSecureItem('auth_token');
+        if (storedToken) {
+          this.token = storedToken;
         }
+      } catch (e) {
+        // Erreur silencieuse
+      }
+
+      // Récupérer uniquement l'ID utilisateur depuis AsyncStorage
+      try {
+        const storedUserId = await AsyncStorage.getItem('user_id');
+        if (storedUserId) {
+          // L'utilisateur complet sera récupéré via l'API si nécessaire
+          // On ne stocke que l'ID pour la sécurité
+        }
+      } catch (e) {
+        // Erreur silencieuse
       }
 
       this.isInitialized = true;
@@ -192,10 +210,11 @@ class AuthService {
         throw new Error('Token invalide');
       }
 
-      // Stocker le token et l'utilisateur
+      // Stocker le token de manière sécurisée (SecureStore avec fallback AsyncStorage)
+      // Stocker uniquement l'ID utilisateur dans AsyncStorage (pas l'objet complet)
       await Promise.all([
-        AsyncStorage.setItem('auth_token', cleanToken),
-        AsyncStorage.setItem('user', JSON.stringify(user)),
+        setSecureItem('auth_token', cleanToken),
+        AsyncStorage.setItem('user_id', user.id),
       ]);
 
       // Mettre à jour l'état interne
@@ -268,12 +287,27 @@ class AuthService {
    * Déconnexion de l'utilisateur
    */
   async logout(): Promise<void> {
-    // Nettoyer le stockage
-    await Promise.all([
-      AsyncStorage.removeItem('auth_token'),
-      AsyncStorage.removeItem('user'),
-      AsyncStorage.removeItem('last_login_time'),
-    ]);
+    // Notifier le serveur de la déconnexion (le backend enregistre le log d'audit)
+    try {
+      const token = await getSecureItem('auth_token');
+      if (token && !this.isTokenExpired(token)) {
+        await api.post('/api/auth/logout', {}, { skipAuthError: true });
+      }
+    } catch (e) {
+      // Erreur silencieuse - on continue la déconnexion locale même si l'API échoue
+    }
+
+    // Nettoyer le stockage sécurisé et AsyncStorage
+    try {
+      await Promise.all([
+        deleteSecureItem('auth_token'),
+        AsyncStorage.removeItem('user_id'),
+        AsyncStorage.removeItem('user'), // Nettoyer l'ancien format si présent
+        AsyncStorage.removeItem('last_login_time'),
+      ]);
+    } catch (e) {
+      // Erreur silencieuse
+    }
 
     // Réinitialiser l'état interne
     this.resetInternalState();
@@ -296,18 +330,8 @@ class AuthService {
       return this.user;
     }
 
-    // Sinon, essayer de le récupérer depuis AsyncStorage
-    try {
-      const storedUser = await AsyncStorage.getItem('user');
-      if (storedUser) {
-        this.user = JSON.parse(storedUser);
-        return this.user;
-      }
-    } catch (e) {
-      // Erreur silencieuse
-    }
-
-    // Si pas d'utilisateur en cache, essayer de le récupérer depuis l'API
+    // Si pas d'utilisateur en cache, récupérer depuis l'API
+    // On ne stocke plus l'objet utilisateur complet pour des raisons de sécurité
     try {
       // Vérifier d'abord si le token est expiré
       const currentToken = await this.getToken();
@@ -319,8 +343,8 @@ class AuthService {
       const response = await api.get('/api/users/me');
       const user = response.data;
       
-      // Mettre à jour le cache
-      await AsyncStorage.setItem('user', JSON.stringify(user));
+      // Stocker uniquement l'ID utilisateur (pas l'objet complet)
+      await AsyncStorage.setItem('user_id', user.id);
       this.user = user;
       
       return user;
@@ -342,40 +366,41 @@ class AuthService {
 
   /**
    * Récupère l'utilisateur stocké (sans appel API)
+   * Note: On ne stocke plus l'objet utilisateur complet, donc on retourne null
+   * et l'utilisateur devra être récupéré via getCurrentUser() qui fait un appel API
    */
   async getStoredUser(): Promise<User | null> {
     if (!this.isInitialized) {
       await this.initialize();
     }
 
+    // Si on a l'utilisateur en cache, le retourner
     if (this.user) {
       return this.user;
     }
 
-    try {
-      const storedUser = await AsyncStorage.getItem('user');
-      if (storedUser) {
-        this.user = JSON.parse(storedUser);
-        return this.user;
-      }
-    } catch (e) {
-      // Erreur silencieuse
-    }
-
+    // On ne stocke plus l'objet utilisateur complet pour des raisons de sécurité
+    // Il faut utiliser getCurrentUser() qui fait un appel API
     return null;
   }
 
   /**
    * Vérifie si l'utilisateur est authentifié ET est un manager
-   * Vérifie aussi l'expiration du token (24h)
+   * Vérifie aussi l'expiration du token (définie côté backend, actuellement 30 jours)
    */
   async isAuthenticated(): Promise<boolean> {
     if (!this.isInitialized) {
       await this.initialize();
     }
 
-    // Toujours vérifier directement dans AsyncStorage pour être sûr
-    const storedToken = await AsyncStorage.getItem('auth_token');
+    // Toujours vérifier directement dans SecureStore (ou AsyncStorage) pour être sûr
+    let storedToken: string | null = null;
+    try {
+      storedToken = await getSecureItem('auth_token');
+    } catch (e) {
+      // Erreur silencieuse
+    }
+
     if (!storedToken) {
       // Si pas de token, réinitialiser l'état interne
       this.token = null;
@@ -383,7 +408,7 @@ class AuthService {
       return false;
     }
 
-    // Vérifier l'expiration du token (24h)
+    // Vérifier l'expiration du token (ex: 30 jours, défini côté backend)
     if (this.isTokenExpired(storedToken)) {
       await this.logout();
       return false;
@@ -394,16 +419,21 @@ class AuthService {
       this.token = storedToken;
     }
 
-    // Vérifier qu'on a un utilisateur
-    let user = this.user;
-    if (!user) {
-      user = await this.getStoredUser();
-      if (!user) {
-        return false;
+    // Si on n'a pas d'utilisateur en mémoire, tenter de le récupérer via l'API
+    // Cela arrive après un redémarrage de l'app (this.user est null car en mémoire uniquement)
+    if (!this.user) {
+      try {
+        const response = await api.get('/api/users/me', { skipAuthError: true });
+        if (response.data) {
+          this.user = response.data;
+          await AsyncStorage.setItem('user_id', response.data.id);
+        }
+      } catch (e) {
+        // Si l'API échoue mais que le token est valide, on considère quand même
+        // l'utilisateur comme authentifié - les données user seront chargées plus tard
       }
     }
 
-    // La restriction "manager only" a été retirée - tous les utilisateurs peuvent se connecter
     return true;
   }
 
@@ -419,10 +449,14 @@ class AuthService {
       return this.token;
     }
 
-    const storedToken = await AsyncStorage.getItem('auth_token');
-    if (storedToken) {
-      this.token = storedToken;
-      return storedToken;
+    try {
+      const storedToken = await getSecureItem('auth_token');
+      if (storedToken) {
+        this.token = storedToken;
+        return storedToken;
+      }
+    } catch (e) {
+      // Erreur silencieuse
     }
 
     return null;
@@ -495,8 +529,8 @@ class AuthService {
             ? newToken.replace(/^Bearer\s+/, '') 
             : newToken;
           
-          // Stocker le nouveau token
-          await AsyncStorage.setItem('auth_token', cleanToken);
+          // Stocker le nouveau token de manière sécurisée
+          await setSecureItem('auth_token', cleanToken);
           this.token = cleanToken;
           
           return cleanToken;
@@ -525,8 +559,8 @@ class AuthService {
             ? newToken.replace(/^Bearer\s+/, '') 
             : newToken;
           
-          // Stocker le nouveau token
-          await AsyncStorage.setItem('auth_token', cleanToken);
+          // Stocker le nouveau token de manière sécurisée
+          await setSecureItem('auth_token', cleanToken);
           this.token = cleanToken;
           
           return cleanToken;
@@ -561,8 +595,8 @@ class AuthService {
       const response = await api.get('/api/users/me');
       const user = response.data;
       
-      // Mettre à jour le cache
-      await AsyncStorage.setItem('user', JSON.stringify(user));
+      // Stocker uniquement l'ID utilisateur (pas l'objet complet)
+      await AsyncStorage.setItem('user_id', user.id);
       this.user = user;
       
       return user;

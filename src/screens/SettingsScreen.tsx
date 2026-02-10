@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -492,11 +492,17 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   logoutButton: {
-    shadowColor: '#ef4444',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    // iOS shadows
+    ...(Platform.OS === 'ios' ? {
+      shadowColor: '#ef4444',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+    } : {}),
+    // Android elevation (réduite pour éviter l'ombre bizarre)
+    ...(Platform.OS === 'android' ? {
+      elevation: 1,
+    } : {}),
   },
 });
 

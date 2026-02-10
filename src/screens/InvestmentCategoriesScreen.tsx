@@ -254,7 +254,7 @@ export function InvestmentCategoriesScreen() {
       if (editingCategory) {
         await api.put(`/api/investment-categories/${editingCategory.id}`, formData);
       } else {
-        await api.post("/api/investment-categories", formData);
+        const res = await api.post("/api/investment-categories", formData);
       }
 
       await queryClient.invalidateQueries({ queryKey: ["investment-categories"] });
@@ -286,7 +286,9 @@ export function InvestmentCategoriesScreen() {
 
     setIsDeleting(true);
     try {
-      await api.delete(`/api/investment-categories/${categoryToDelete.id}`);
+      const id = categoryToDelete.id;
+      const name = categoryToDelete.name;
+      await api.delete(`/api/investment-categories/${id}`);
 
       await queryClient.invalidateQueries({ queryKey: ["investment-categories"] });
       setShowDeleteDrawer(false);

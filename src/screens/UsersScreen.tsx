@@ -47,6 +47,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { BlurredAmount } from "@/components/BlurredAmount";
+import { formatDecimalInput } from "@/utils/numeric-input";
 import { LinearGradient } from "expo-linear-gradient";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -1168,7 +1169,8 @@ export function UsersScreen() {
       if (editingUser) {
         await api.put(`/api/users/${editingUser.id}`, payload);
       } else {
-        await api.post("/api/users", payload);
+        const res = await api.post("/api/users", payload);
+        const id = res.data?.id;
       }
       await queryClient.invalidateQueries({ queryKey: ["users"] });
       setShowUserForm(false);
@@ -1213,41 +1215,64 @@ export function UsersScreen() {
     setShowFreezeDrawer(true);
   }, []);
 
-  // Dégeler le compte
+  // Dégeler le compte — compatible avec les deux routes backend possibles
   const handleUnfreeze = useCallback(async (user: User) => {
     if (!user.companyManager) return;
-
-    try {
-      await api.delete(`/api/users/${user.id}/company-manager/freeze`);
+    const cmId = user.companyManager.id;
+    const onSuccess = async () => {
       await queryClient.invalidateQueries({ queryKey: ["users"] });
       Alert.alert("Succès", "Compte dégelé avec succès");
-    } catch (err: any) {
-      Alert.alert(
-        "Erreur",
-        err.response?.data?.error || "Erreur lors du dégel du compte"
-      );
+    };
+    const getErrMsg = (e: any) =>
+      e.response?.data?.error ?? e.response?.data?.message ?? "Erreur lors du dégel du compte";
+
+    try {
+      await api.delete(`/api/company-managers/${cmId}/freeze`);
+      await onSuccess();
+    } catch (e1: any) {
+      if (e1.response?.status === 404 || e1.response?.status === 401) {
+        try {
+          await api.delete(`/api/users/${user.id}/company-manager/freeze`);
+          await onSuccess();
+        } catch (e2: any) {
+          Alert.alert("Erreur", String(getErrMsg(e2)));
+        }
+      } else {
+        Alert.alert("Erreur", String(getErrMsg(e1)));
+      }
     }
   }, [queryClient]);
 
-  // Confirmer le gel du compte
+  // Gel du compte — compatible avec les deux routes backend possibles, body minimal
   const handleConfirmFreeze = useCallback(async () => {
-    if (!userToFreeze || !userToFreeze.companyManager) return;
-
-    setIsFreezing(true);
-    try {
-      await api.post(`/api/users/${userToFreeze.id}/company-manager/freeze`, {
-        returnAmount,
-      });
+    if (!userToFreeze?.companyManager) return;
+    const cmId = userToFreeze.companyManager.id;
+    const body = { returnAmount: !!returnAmount };
+    const onSuccess = async () => {
       await queryClient.invalidateQueries({ queryKey: ["users"] });
       setShowFreezeDrawer(false);
       setUserToFreeze(null);
       setReturnAmount(false);
       Alert.alert("Succès", "Compte gelé avec succès");
-    } catch (err: any) {
-      Alert.alert(
-        "Erreur",
-        err.response?.data?.error || "Erreur lors du gel du compte"
-      );
+    };
+    const getErrMsg = (e: any) =>
+      e.response?.data?.error ?? e.response?.data?.message ?? "Erreur lors du gel du compte";
+
+    setIsFreezing(true);
+    try {
+      await api.post(`/api/company-managers/${cmId}/freeze`, body);
+      await onSuccess();
+    } catch (e1: any) {
+      if (e1.response?.status === 404 || e1.response?.status === 401) {
+        try {
+          await api.post(`/api/users/${userToFreeze.id}/company-manager/freeze`, body);
+          await onSuccess();
+        } catch (e2: any) {
+          Alert.alert("Erreur", String(getErrMsg(e2)));
+        }
+      } else {
+        Alert.alert("Erreur", String(getErrMsg(e1)));
+      }
     } finally {
       setIsFreezing(false);
     }
@@ -1263,7 +1288,9 @@ export function UsersScreen() {
 
     setIsDeleting(true);
     try {
-      await api.delete(`/api/users/${userToDelete.id}`);
+      const id = userToDelete.id;
+      const name = userToDelete.name;
+      await api.delete(`/api/users/${id}`);
       await queryClient.invalidateQueries({ queryKey: ["users"] });
       setShowDeleteDrawer(false);
       setUserToDelete(null);
@@ -2096,23 +2123,15 @@ export function UsersScreen() {
                             </Text>
                             <TextInput
                               value={formData.companyManager.allocatedAmount}
-                              onChangeText={(text) => {
-                                // Permettre uniquement les nombres et un point décimal
-                                const numericValue = text.replace(/[^0-9.]/g, "");
-                                // Permettre un seul point décimal
-                                const parts = numericValue.split(".");
-                                const filteredValue =
-                                  parts.length > 2
-                                    ? parts[0] + "." + parts.slice(1).join("")
-                                    : numericValue;
+                              onChangeText={(text) =>
                                 setFormData({
                                   ...formData,
                                   companyManager: {
                                     ...formData.companyManager,
-                                    allocatedAmount: filteredValue,
+                                    allocatedAmount: formatDecimalInput(text),
                                   },
-                                });
-                              }}
+                                })
+                              }
                               placeholder="0.00"
                               placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                               keyboardType="numeric"

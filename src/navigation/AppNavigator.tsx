@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { NavigationContainer, useNavigationState } from "@react-navigation/native";
+import type { NavigationState } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { View, TouchableOpacity, Text } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { authService } from "@/services/auth.service";
 import { authEventEmitter } from "@/config/api";
+import { auditService } from "@/services/audit.service";
 import { LoginScreen } from "@/screens/LoginScreen";
 import { DashboardScreen } from "@/screens/DashboardScreen";
 import { CompaniesScreen } from "@/screens/CompaniesScreen";
@@ -39,6 +41,16 @@ import api from "@/config/api";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+/** Récupère le nom de l'écran actuellement focalisé (récursif pour tabs/stack). */
+function getActiveRouteName(state: NavigationState | undefined): string | null {
+  if (!state) return null;
+  const route = state.routes[state.index];
+  if (route.state) {
+    return getActiveRouteName(route.state as NavigationState) ?? route.name;
+  }
+  return route.name;
+}
 
 // Composant vide pour le bouton "Plus" (pas un vrai écran)
 const EmptyScreen = () => null;
@@ -92,7 +104,9 @@ function MainTabs() {
         return { count: 0 };
       }
     },
+    staleTime: 0, // Toujours considérer les données périmées pour refetch au focus / après invalidation
     refetchInterval: 30000, // Rafraîchir toutes les 30 secondes
+    refetchOnMount: "always",
     enabled: !isManager, // Ne pas récupérer le count si c'est un manager
   });
 
@@ -215,11 +229,17 @@ export function AppNavigator() {
       }
     };
 
-    authEventEmitter.on('auth-changed', handleAuthChange);
+    const handleAuthLogout = () => {
+      setIsAuthenticated(false);
+    };
 
-    // Nettoyer le listener au démontage
+    authEventEmitter.on('auth-changed', handleAuthChange);
+    authEventEmitter.on('auth-logout', handleAuthLogout);
+
+    // Nettoyer les listeners au démontage
     return () => {
       authEventEmitter.off('auth-changed', handleAuthChange);
+      authEventEmitter.off('auth-logout', handleAuthLogout);
     };
   }, []);
 
@@ -233,8 +253,15 @@ export function AppNavigator() {
     return null;
   }
 
+  const onNavStateChange = (state: NavigationState | undefined) => {
+    const screenName = getActiveRouteName(state);
+    if (screenName && isAuthenticated) {
+      auditService.logScreenView(screenName);
+    }
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer onStateChange={onNavStateChange}>
       <MoreDrawer />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (

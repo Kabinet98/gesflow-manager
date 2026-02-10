@@ -49,6 +49,8 @@ import {
 import { Drawer } from "@/components/ui/Drawer";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { formatDecimalInput } from "@/utils/numeric-input";
+import { writeExcelFromJson } from "@/utils/excel-secure";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CHART_COLOR = "#0ea5e9";
@@ -531,7 +533,8 @@ export function InvestmentsScreen() {
       if (editingInvestment) {
         await api.put(`/api/investments/${editingInvestment.id}`, payload);
       } else {
-        await api.post("/api/investments", payload);
+        const res = await api.post("/api/investments", payload);
+        const id = res.data?.id;
       }
 
       setShowInvestmentForm(false);
@@ -593,7 +596,8 @@ export function InvestmentsScreen() {
     try {
       setIsCancelling(true);
 
-      await api.delete(`/api/investments/${investmentToCancel.id}`, {
+      const id = investmentToCancel.id;
+      await api.delete(`/api/investments/${id}`, {
         skipAuthError: true,
       });
 
@@ -655,42 +659,19 @@ export function InvestmentsScreen() {
         };
       });
 
-      // Créer un fichier Excel avec xlsx (comme dans ExpensesScreen)
-      // Si xlsx n'est pas disponible, utiliser CSV en fallback
+      // Créer un fichier Excel avec exceljs (sécurisé)
       try {
-        // Importer xlsx dynamiquement pour éviter les erreurs si non installé
-        let XLSX: any;
-        let useXLSX = false;
-        try {
-          XLSX = require("xlsx");
-          if (XLSX && XLSX.utils) {
-            useXLSX = true;
-          }
-        } catch (e) {
-          // Erreur silencieuse
-        }
-
         let fileContent: string;
         let filename: string;
         let mimeType: string;
-
-        if (useXLSX) {
-          // Créer un worksheet à partir des données
-          const worksheet = XLSX.utils.json_to_sheet(exportData);
-
-          // Créer un workbook et ajouter le worksheet
-          const workbook = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(workbook, worksheet, "Investissements");
-
-          // Générer le fichier Excel en base64
-          fileContent = XLSX.write(workbook, {
-            type: "base64",
-            bookType: "xlsx",
-          });
+        let useExcel = false;
+        try {
+          fileContent = await writeExcelFromJson(exportData, "Investissements");
           filename = `investissements_${new Date().toISOString().split("T")[0]}.xlsx`;
-          mimeType =
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        } else {
+          mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+          useExcel = true;
+        } catch (e) {
+          // Fallback CSV
           // Fallback vers CSV
           const headers = Object.keys(exportData[0]);
           const csvRows = [
@@ -784,8 +765,7 @@ export function InvestmentsScreen() {
 
         // Écrire le fichier (Excel en base64 ou CSV en utf8)
         try {
-          if (useXLSX) {
-            // Pour Excel, utiliser base64
+          if (useExcel) {
             await writeFn(fileUri, fileContent, {
               encoding: "base64",
             });
@@ -806,14 +786,14 @@ export function InvestmentsScreen() {
         if (isAvailable) {
           await Sharing.shareAsync(fileUri, {
             mimeType: mimeType,
-            dialogTitle: useXLSX
+            dialogTitle: useExcel
               ? "Partager le fichier Excel"
               : "Partager le fichier CSV",
           });
         } else {
           Alert.alert(
             "Export réussi",
-            `Le fichier ${useXLSX ? "Excel" : "CSV"} a été sauvegardé : ${filename}`,
+            `Le fichier ${useExcel ? "Excel" : "CSV"} a été sauvegardé : ${filename}`,
           );
         }
       } catch (exportError: any) {
@@ -1493,17 +1473,7 @@ export function InvestmentsScreen() {
                 </Text>
                 <TextInput
                   value={minAmount}
-                  onChangeText={(text) => {
-                    // Permettre uniquement les nombres et un point décimal
-                    const numericValue = text.replace(/[^0-9.]/g, "");
-                    // Permettre un seul point décimal
-                    const parts = numericValue.split(".");
-                    const filteredValue =
-                      parts.length > 2
-                        ? parts[0] + "." + parts.slice(1).join("")
-                        : numericValue;
-                    setMinAmount(filteredValue);
-                  }}
+                  onChangeText={(text) => setMinAmount(formatDecimalInput(text))}
                   placeholder="0.00"
                   placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                   keyboardType="numeric"
@@ -1545,17 +1515,7 @@ export function InvestmentsScreen() {
                 </Text>
                 <TextInput
                   value={maxAmount}
-                  onChangeText={(text) => {
-                    // Permettre uniquement les nombres et un point décimal
-                    const numericValue = text.replace(/[^0-9.]/g, "");
-                    // Permettre un seul point décimal
-                    const parts = numericValue.split(".");
-                    const filteredValue =
-                      parts.length > 2
-                        ? parts[0] + "." + parts.slice(1).join("")
-                        : numericValue;
-                    setMaxAmount(filteredValue);
-                  }}
+                  onChangeText={(text) => setMaxAmount(formatDecimalInput(text))}
                   placeholder="0.00"
                   placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                   keyboardType="numeric"
@@ -1774,17 +1734,9 @@ export function InvestmentsScreen() {
               </Text>
               <TextInput
                 value={formData.amount}
-                onChangeText={(text) => {
-                  // Permettre uniquement les nombres et un point décimal
-                  const numericValue = text.replace(/[^0-9.]/g, "");
-                  // Permettre un seul point décimal
-                  const parts = numericValue.split(".");
-                  const filteredValue =
-                    parts.length > 2
-                      ? parts[0] + "." + parts.slice(1).join("")
-                      : numericValue;
-                  setFormData({ ...formData, amount: filteredValue });
-                }}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, amount: formatDecimalInput(text) })
+                }
                 placeholder="0.00"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 keyboardType="numeric"

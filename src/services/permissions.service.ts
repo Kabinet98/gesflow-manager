@@ -1,7 +1,6 @@
 import api from '@/config/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Permission } from '@/types';
 import { authService } from '@/services/auth.service';
+import { Permission } from '@/types';
 
 class PermissionsService {
   private cachedPermissions: string[] = [];
@@ -39,16 +38,15 @@ class PermissionsService {
   }
 
   /**
-   * Récupère les permissions depuis le stockage local
+   * Récupère les permissions depuis l'utilisateur connecté
    */
   private async getPermissionsFromStorage(): Promise<string[]> {
     try {
-      const userStr = await AsyncStorage.getItem('user');
-      if (!userStr) {
+      const user = await authService.getCurrentUser();
+      if (!user) {
         return [];
       }
 
-      const user = JSON.parse(userStr);
       const userPermissions = user?.role?.permissions;
 
       if (!userPermissions || !Array.isArray(userPermissions)) {

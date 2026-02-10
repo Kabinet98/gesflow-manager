@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { BlurredAmount } from "./BlurredAmount";
 
 interface StatsCardProps {
@@ -40,11 +40,17 @@ export function StatsCard({
         {
           width,
           height,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 4,
+          // iOS shadows
+          ...(Platform.OS === 'ios' ? {
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+          } : {}),
+          // Android elevation (réduite pour éviter l'ombre bizarre)
+          ...(Platform.OS === 'android' ? {
+            elevation: 2,
+          } : {}),
         },
       ]}
       className={`relative overflow-hidden p-4 rounded-lg border-0 ${

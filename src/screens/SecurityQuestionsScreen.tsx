@@ -356,7 +356,6 @@ export function SecurityQuestionsScreen() {
       await api.put("/api/users/security", {
         enabled: enabled,
       });
-      
       await refreshUser();
       
       // Synchroniser showForms avec la nouvelle valeur
@@ -735,7 +734,7 @@ export function SecurityQuestionsScreen() {
                               isDark ? "text-gray-300" : "text-gray-700"
                             }`}
                           >
-                            Question
+                            Question <Text className="text-red-500">*</Text>
                           </Text>
                           <TextInput
                             value={editingQuestion.question}
@@ -975,7 +974,7 @@ export function SecurityQuestionsScreen() {
                           isDark ? "text-gray-300" : "text-gray-700"
                         }`}
                       >
-                        Question
+                        Question <Text className="text-red-500">*</Text>
                       </Text>
                       <TextInput
                         value={newQuestion}
@@ -1005,7 +1004,7 @@ export function SecurityQuestionsScreen() {
                           isDark ? "text-gray-300" : "text-gray-700"
                         }`}
                       >
-                        Réponse
+                        Réponse <Text className="text-red-500">*</Text>
                       </Text>
                       <View style={{ position: "relative" }}>
                         <TextInput
@@ -1141,7 +1140,7 @@ export function SecurityQuestionsScreen() {
                             isDark ? "text-gray-300" : "text-gray-700"
                           }`}
                         >
-                          Question
+                          Question <Text className="text-red-500">*</Text>
                         </Text>
                         <TextInput
                           value={newQuestion}
@@ -1171,7 +1170,7 @@ export function SecurityQuestionsScreen() {
                             isDark ? "text-gray-300" : "text-gray-700"
                           }`}
                         >
-                          Réponse
+                          Réponse <Text className="text-red-500">*</Text>
                         </Text>
                         <View style={{ position: "relative" }}>
                           <TextInput
