@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { authService } from '@/services/auth.service';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -43,26 +43,30 @@ export function SettingsScreen() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const loadUser = async () => {
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
-    };
-    loadUser();
-  }, []);
-
-  // Rafraîchir l'utilisateur après modification
-  const refreshUser = async () => {
-    const currentUser = await authService.getCurrentUser();
-    setUser(currentUser);
-  };
+  // Rafraîchir l'utilisateur à chaque focus (retour depuis 2FA, Questions de sécurité, etc.)
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadUser = async () => {
+        try {
+          const currentUser = await authService.refreshUser();
+          setUser(currentUser);
+        } catch {
+          // Fallback sur le cache
+          const cachedUser = await authService.getCurrentUser();
+          setUser(cachedUser);
+        }
+      };
+      loadUser();
+    }, [])
+  );
 
   // Fonction pour le refresh control
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await refreshUser();
-    } catch (error) {
+      const currentUser = await authService.refreshUser();
+      setUser(currentUser);
+    } catch {
       // Erreur silencieuse
     } finally {
       setRefreshing(false);
@@ -465,11 +469,12 @@ export function SettingsScreen() {
 
 const styles = StyleSheet.create({
   profileCard: {
-    shadowColor: '#0ea5e9',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...(Platform.OS === 'ios' ? {
+      shadowColor: '#0ea5e9',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+    } : {}),
   },
   profileGradient: {
     borderRadius: 16,
@@ -478,30 +483,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderWidth: 3,
     borderColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    ...(Platform.OS === 'ios' ? {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+    } : {}),
   },
   card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...(Platform.OS === 'ios' ? {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    } : {}),
   },
   logoutButton: {
-    // iOS shadows
     ...(Platform.OS === 'ios' ? {
       shadowColor: '#ef4444',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.2,
       shadowRadius: 4,
-    } : {}),
-    // Android elevation (réduite pour éviter l'ombre bizarre)
-    ...(Platform.OS === 'android' ? {
-      elevation: 1,
     } : {}),
   },
 });

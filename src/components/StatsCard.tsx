@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Platform } from "react-native";
+import { View, Text, Platform } from "react-native";
 import { BlurredAmount } from "./BlurredAmount";
 
 interface StatsCardProps {
@@ -34,29 +34,8 @@ export function StatsCard({
   width,
   height,
 }: StatsCardProps) {
-  return (
-    <View
-      style={[
-        {
-          width,
-          height,
-          // iOS shadows
-          ...(Platform.OS === 'ios' ? {
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
-          } : {}),
-          // Android elevation (réduite pour éviter l'ombre bizarre)
-          ...(Platform.OS === 'android' ? {
-            elevation: 2,
-          } : {}),
-        },
-      ]}
-      className={`relative overflow-hidden p-4 rounded-lg border-0 ${
-        isDark ? gradientColors.dark : gradientColors.light
-      }`}
-    >
+  const cardContent = (
+    <>
       {/* Cercle décoratif */}
       <View
         className={`absolute top-0 right-0 w-20 h-20 rounded-full ${gradientColors.circle}`}
@@ -100,9 +79,46 @@ export function StatsCard({
           </Text>
         )}
       </View>
+    </>
+  );
+
+  if (Platform.OS === "android") {
+    // Android : pas d'elevation ni shadow pour éviter les artefacts
+    // Utiliser une bordure subtile pour donner de la profondeur
+    return (
+      <View
+        style={{
+          width,
+          height,
+          borderRadius: 8,
+          borderWidth: isDark ? 1 : 0.5,
+          borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+        }}
+        className={`relative overflow-hidden p-4 ${
+          isDark ? gradientColors.dark : gradientColors.light
+        }`}
+      >
+        {cardContent}
+      </View>
+    );
+  }
+
+  // iOS : shadow native
+  return (
+    <View
+      style={{
+        width,
+        height,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      }}
+      className={`relative overflow-hidden p-4 rounded-lg ${
+        isDark ? gradientColors.dark : gradientColors.light
+      }`}
+    >
+      {cardContent}
     </View>
   );
 }
-
-
-

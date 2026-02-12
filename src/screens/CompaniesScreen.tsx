@@ -55,6 +55,7 @@ import { formatDecimalInput } from "@/utils/numeric-input";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import { getErrorMessage } from "@/utils/get-error-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CHART_COLOR = "#0ea5e9";
@@ -670,7 +671,7 @@ export function CompaniesScreen() {
         Alert.alert("Erreur", "Impossible d'ouvrir le document");
       }
     } catch (error: any) {
-      Alert.alert("Erreur", error.message || "Impossible d'ouvrir le document");
+      Alert.alert("Erreur", getErrorMessage(error, "Impossible d'ouvrir le document"));
     }
   };
 
@@ -941,7 +942,15 @@ export function CompaniesScreen() {
       return;
     }
     if (!formData.registrationNumber.trim()) {
-      Alert.alert("Erreur", "Le numéro d'enregistrement est requis");
+      Alert.alert("Erreur", "Le RCCM est requis");
+      return;
+    }
+    const rccmRegex = /^RCCM-[A-Z]{2}-[A-Z]{2,5}-\d{4}-[A-Z]-\d{1,10}$/;
+    if (!rccmRegex.test(formData.registrationNumber.trim().toUpperCase())) {
+      Alert.alert(
+        "Format RCCM invalide",
+        "Le format attendu est : RCCM-CC-VVV-YYYY-X-NNNNN\n\nExemple : RCCM-GN-KAL-2024-B-12345"
+      );
       return;
     }
     if (!formData.countryId) {
@@ -962,7 +971,7 @@ export function CompaniesScreen() {
       // En mode création, on n'envoie que les champs avec des valeurs
       const payload: any = {
         name: formData.name.trim(),
-        registrationNumber: formData.registrationNumber.trim(),
+        registrationNumber: formData.registrationNumber.trim().toUpperCase(),
         currency: formData.currency,
         countryId: formData.countryId,
         activitySectorId: formData.activitySectorId, // Obligatoire
@@ -1032,10 +1041,7 @@ export function CompaniesScreen() {
     } catch (error: any) {
       // Afficher les détails de validation si disponibles
       const validationDetails = error.response?.data?.details;
-      let errorMessage =
-        error.response?.data?.error ||
-        error.message ||
-        "Une erreur est survenue";
+      let errorMessage = getErrorMessage(error);
 
       if (
         validationDetails &&
@@ -1086,12 +1092,7 @@ export function CompaniesScreen() {
         queryKey: ["dashboard"],
       });
     } catch (error: any) {
-      Alert.alert(
-        "Erreur",
-        error.response?.data?.error ||
-          error.message ||
-          "Une erreur est survenue",
-      );
+      Alert.alert("Erreur", getErrorMessage(error));
     } finally {
       setIsDeleting(false);
     }
@@ -1237,7 +1238,7 @@ export function CompaniesScreen() {
                     </Text>
                   </View>
 
-                  {/* Numéro d'enregistrement */}
+                  {/* RCCM */}
                   <View
                     style={{ width: columnWidths.registrationNumber }}
                     className="px-3 py-3"
@@ -1247,7 +1248,7 @@ export function CompaniesScreen() {
                         isDark ? "text-gray-400" : "text-gray-500"
                       }`}
                     >
-                      Numéro
+                      RCCM
                     </Text>
                   </View>
 
@@ -1475,7 +1476,7 @@ export function CompaniesScreen() {
                             </Text>
                           </View>
 
-                          {/* Numéro d'enregistrement */}
+                          {/* RCCM */}
                           <View
                             style={{ width: columnWidths.registrationNumber }}
                             className="px-3 py-4 justify-center"
@@ -1781,18 +1782,19 @@ export function CompaniesScreen() {
               />
             </View>
 
-            {/* Numéro d'enregistrement */}
+            {/* Numéro d'enregistrement (RCCM) */}
             <View>
               <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Numéro d'enregistrement <Text className="text-red-500">*</Text>
+                RCCM <Text className="text-red-500">*</Text>
               </Text>
               <TextInput
                 value={formData.registrationNumber}
                 onChangeText={(text) =>
-                  setFormData({ ...formData, registrationNumber: text })
+                  setFormData({ ...formData, registrationNumber: text.toUpperCase() })
                 }
-                placeholder="Numéro d'enregistrement"
+                placeholder="RCCM-GN-KAL-2024-B-12345"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
+                autoCapitalize="characters"
                 className={`px-4 py-3 rounded-lg border ${
                   isDark
                     ? "bg-[#1e293b] border-gray-700 text-gray-100"
@@ -1805,6 +1807,9 @@ export function CompaniesScreen() {
                   minHeight: 48,
                 }}
               />
+              <Text className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                Format : RCCM-CC-VVV-YYYY-X-NNNNN
+              </Text>
             </View>
 
             {/* Pays (même source que GesFlow : world-countries) */}
@@ -2256,7 +2261,7 @@ export function CompaniesScreen() {
                             isDark ? "text-gray-400" : "text-gray-600"
                           }`}
                         >
-                          Numéro d'enregistrement
+                          RCCM
                         </Text>
                         <Text
                           className={`text-sm font-medium ${

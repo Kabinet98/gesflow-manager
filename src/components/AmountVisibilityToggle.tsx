@@ -9,6 +9,7 @@ import {
 import { useAmountVisibility } from "@/contexts/AmountVisibilityContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { authService } from "@/services/auth.service";
+import { authEventEmitter } from "@/config/api";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { EyeIcon, ViewOffIcon, LockKeyIcon } from "@hugeicons/core-free-icons";
 import { Button } from "./ui/Button";
@@ -36,6 +37,14 @@ export function AmountVisibilityToggle() {
     };
 
     fetchMFAStatus();
+
+    const onMfaStatusChanged = (enabled: boolean) => {
+      setHasMFA(enabled);
+    };
+    authEventEmitter.on('mfa-status-changed', onMfaStatusChanged);
+    return () => {
+      authEventEmitter.off('mfa-status-changed', onMfaStatusChanged);
+    };
   }, []);
 
   const handleToggle = () => {

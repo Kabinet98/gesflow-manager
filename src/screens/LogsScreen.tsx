@@ -15,6 +15,7 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -208,7 +209,6 @@ const LogRow = React.memo(({
                 className="text-xs font-medium"
                 style={{
                   color: getActionTextColor(log.action),
-                  whiteSpace: "nowrap",
                 }}
                 numberOfLines={1}
               >
@@ -722,11 +722,12 @@ export function LogsScreen() {
               <View
                 style={{
                   width: (SCREEN_WIDTH - 48 - 12) / 2,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 8,
-                  elevation: 4,
+                  ...(Platform.OS === 'ios' ? {
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 8,
+                  } : {}),
                 }}
                 className={`relative overflow-hidden p-4 rounded-lg border ${
                   isDark
@@ -762,11 +763,12 @@ export function LogsScreen() {
               <View
                 style={{
                   width: (SCREEN_WIDTH - 48 - 12) / 2,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 8,
-                  elevation: 4,
+                  ...(Platform.OS === 'ios' ? {
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 8,
+                  } : {}),
                 }}
                 className={`relative overflow-hidden p-4 rounded-lg border ${
                   isDark
@@ -802,11 +804,12 @@ export function LogsScreen() {
               <View
                 style={{
                   width: (SCREEN_WIDTH - 48 - 12) / 2,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 8,
-                  elevation: 4,
+                  ...(Platform.OS === 'ios' ? {
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 8,
+                  } : {}),
                 }}
                 className={`relative overflow-hidden p-4 rounded-lg border ${
                   isDark

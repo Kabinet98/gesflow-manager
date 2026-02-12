@@ -57,6 +57,7 @@ import { readExcelFromBase64, parseCSVToJson } from "@/utils/excel-secure";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import * as DocumentPicker from "expo-document-picker";
+import { getErrorMessage } from "@/utils/get-error-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CHART_COLOR = "#0ea5e9";
@@ -173,6 +174,11 @@ interface Company {
   name: string;
   currency?: string;
   country: {
+    id: string;
+    name: string;
+  };
+  activitySectorId?: string;
+  activitySector?: {
     id: string;
     name: string;
   };
@@ -938,7 +944,7 @@ export function LoansScreen() {
       await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
-      Alert.alert("Erreur", error.response?.data?.error || "Impossible d'annuler l'emprunt");
+      Alert.alert("Erreur", getErrorMessage(error, "Impossible d'annuler l'emprunt"));
     } finally {
       setIsCancelling(false);
     }
@@ -1025,7 +1031,7 @@ export function LoansScreen() {
       initialBankFeesAddedToCapital: (loan as any).initialBankFeesAddedToCapital || false,
       roundingRule: (loan as any).roundingRule || "ADJUST_LAST",
       dateRule: (loan as any).dateRule || "EXCLUDE_START",
-      status: loan.status || "DRAFT",
+      status: (loan.status || "DRAFT") as "DRAFT" | "ACTIVE" | "PAID" | "CANCELLED",
       description: loan.description || "",
     });
     setEditingLoan(loan);
@@ -1059,7 +1065,7 @@ export function LoansScreen() {
         data = parseCSVToJson(csvContent);
       } else {
         const fileContent = await FileSystem.readAsStringAsync(file.uri, {
-          encoding: FileSystem.EncodingType.Base64,
+          encoding: 'base64',
         });
         data = await readExcelFromBase64(fileContent);
       }
@@ -1241,7 +1247,7 @@ export function LoansScreen() {
       );
 
     } catch (error: any) {
-      Alert.alert("Erreur", error.message || "Une erreur est survenue lors de l'import du fichier.");
+      Alert.alert("Erreur", getErrorMessage(error, "Une erreur est survenue lors de l'import du fichier."));
     } finally {
       setIsImportingSchedule(false);
     }
@@ -1358,7 +1364,7 @@ export function LoansScreen() {
         } catch (installmentError: any) {
           Alert.alert(
             "Attention",
-            `L'emprunt a été créé mais les échéances n'ont pas pu être importées : ${installmentError.response?.data?.error || installmentError.message}. Vous pouvez les ajouter manuellement depuis la page de détails de l'emprunt.`
+            `L'emprunt a été créé mais les échéances n'ont pas pu être importées : ${getErrorMessage(installmentError, "erreur inconnue")}. Vous pouvez les ajouter manuellement depuis la page de détails de l'emprunt.`
           );
         }
       }
@@ -1369,7 +1375,7 @@ export function LoansScreen() {
       await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
-      Alert.alert("Erreur", error.response?.data?.error || "Une erreur est survenue");
+      Alert.alert("Erreur", getErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -1405,7 +1411,7 @@ export function LoansScreen() {
       await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
-      Alert.alert("Erreur", error.response?.data?.error || "Impossible de supprimer l'emprunt");
+      Alert.alert("Erreur", getErrorMessage(error, "Impossible de supprimer l'emprunt"));
     } finally {
       setIsDeleting(false);
     }
@@ -1559,7 +1565,7 @@ export function LoansScreen() {
       }
       
       // Pour les autres erreurs, afficher un message
-      Alert.alert("Erreur", error.response?.data?.error || "Impossible de charger les échéanciers");
+      Alert.alert("Erreur", getErrorMessage(error, "Impossible de charger les échéanciers"));
       setInstallments([]);
     } finally {
       setLoadingInstallments(false);
@@ -1611,12 +1617,12 @@ export function LoansScreen() {
         }
         
         // Pour les autres erreurs, afficher le message d'erreur
-        Alert.alert("Erreur", endpointError.response?.data?.error || endpointError.message || "Impossible de générer l'échéancier");
+        Alert.alert("Erreur", getErrorMessage(endpointError, "Impossible de générer l'échéancier"));
       }
     } catch (error: any) {
       // Ne pas afficher d'erreur pour 401/404, déjà géré ci-dessus
       if (error.response?.status !== 401 && error.response?.status !== 404) {
-        Alert.alert("Erreur", error.response?.data?.error || "Impossible de générer l'échéancier");
+        Alert.alert("Erreur", getErrorMessage(error, "Impossible de générer l'échéancier"));
       }
     } finally {
       setGeneratingSchedule(false);
@@ -1675,7 +1681,7 @@ export function LoansScreen() {
         },
       ]);
     } catch (error: any) {
-      Alert.alert("Erreur", error.response?.data?.error || "Impossible de payer l'échéance");
+      Alert.alert("Erreur", getErrorMessage(error, "Impossible de payer l'échéance"));
     } finally {
       setIsPaying(false);
     }
@@ -1734,7 +1740,7 @@ export function LoansScreen() {
         },
       ]);
     } catch (error: any) {
-      Alert.alert("Erreur", error.response?.data?.error || "Impossible d'annuler le paiement");
+      Alert.alert("Erreur", getErrorMessage(error, "Impossible d'annuler le paiement"));
     } finally {
       setIsReversing(false);
     }
@@ -1791,7 +1797,7 @@ export function LoansScreen() {
         },
       ]);
     } catch (error: any) {
-      Alert.alert("Erreur", error.response?.data?.error || "Impossible d'investir l'emprunt");
+      Alert.alert("Erreur", getErrorMessage(error, "Impossible d'investir l'emprunt"));
     } finally {
       setIsInvestingLoan(false);
     }
@@ -2800,7 +2806,7 @@ export function LoansScreen() {
                   { label: "🧮 Calculé par la plateforme (simulation)", value: "CALCULATED" },
                   { label: "🏦 Fourni par la banque (référence réelle)", value: "PROVIDED_BY_BANK" },
                 ]}
-                disabled={editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID")}
+                disabled={!!(editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID"))}
               />
               {formData.scheduleSource === "CALCULATED" && (
                 <Text className={`text-xs mt-2 p-2 rounded-lg ${
@@ -2975,7 +2981,7 @@ export function LoansScreen() {
                   { label: "Mensuelle", value: "MONTHLY" },
                   { label: "Trimestrielle", value: "QUARTERLY" },
                 ]}
-                disabled={formData.scheduleSource === "PROVIDED_BY_BANK" || (editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID"))}
+                disabled={formData.scheduleSource === "PROVIDED_BY_BANK" || !!(editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID"))}
               />
         </View>
 
@@ -2994,7 +3000,7 @@ export function LoansScreen() {
                   { label: "Fixe", value: "FIXED" },
                   { label: "Variable", value: "VARIABLE" },
                 ]}
-                disabled={formData.scheduleSource === "PROVIDED_BY_BANK" || (editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID"))}
+                disabled={formData.scheduleSource === "PROVIDED_BY_BANK" || !!(editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID"))}
               />
             </View>
 
@@ -3013,7 +3019,7 @@ export function LoansScreen() {
                   { label: "ACT/360", value: "ACT_360" },
                   { label: "ACT/365", value: "ACT_365" },
                 ]}
-                disabled={formData.scheduleSource === "PROVIDED_BY_BANK" || (editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID"))}
+                disabled={formData.scheduleSource === "PROVIDED_BY_BANK" || !!(editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID"))}
               />
               <Text className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
                 {formData.dayCountBasis === "ACT_360"
@@ -3037,7 +3043,7 @@ export function LoansScreen() {
                   { label: "Amortissable", value: "AMORTIZABLE" },
                   { label: "In fine", value: "IN_FINE" },
                 ]}
-                disabled={formData.scheduleSource === "PROVIDED_BY_BANK" || (editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID"))}
+                disabled={formData.scheduleSource === "PROVIDED_BY_BANK" || !!(editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID"))}
               />
             </View>
 
@@ -3054,7 +3060,7 @@ export function LoansScreen() {
                     { label: "Mensualité constante", value: "CONSTANT_PAYMENT" },
                     { label: "Capital constant", value: "CONSTANT_CAPITAL" },
                   ]}
-                  disabled={editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID")}
+                  disabled={!!(editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID"))}
                 />
               </View>
             )}
@@ -3131,7 +3137,7 @@ export function LoansScreen() {
                   { label: "Montant fixe", value: "AMOUNT" },
                   { label: "Pourcentage", value: "PERCENTAGE" },
                 ]}
-                disabled={editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID")}
+                disabled={!!(editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID"))}
               />
             </View>
 
@@ -3174,7 +3180,7 @@ export function LoansScreen() {
                 <TouchableOpacity
                   onPress={() => setFormData({ ...formData, initialBankFeesAddedToCapital: !formData.initialBankFeesAddedToCapital })}
                   className="flex-row items-center gap-2"
-                  disabled={editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID")}
+                  disabled={!!(editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID"))}
                 >
                   <View
                     className={`w-5 h-5 rounded border-2 items-center justify-center ${
@@ -3213,7 +3219,7 @@ export function LoansScreen() {
                     { label: "Arrondi à chaque échéance", value: "ROUND_EACH" },
                     { label: "Arrondi en fin de période", value: "ROUND_END" },
                   ]}
-                  disabled={editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID")}
+                  disabled={!!(editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID"))}
                 />
               </View>
             )}
@@ -3231,7 +3237,7 @@ export function LoansScreen() {
                     { label: "Exclure le jour de départ (par défaut)", value: "EXCLUDE_START" },
                     { label: "Inclure le jour de départ", value: "INCLUDE_START" },
                   ]}
-                  disabled={editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID")}
+                  disabled={!!(editingLoan && (editingLoan.status === "ACTIVE" || editingLoan.status === "PAID"))}
                 />
               </View>
             )}
@@ -3621,7 +3627,7 @@ export function LoansScreen() {
                         <View style={{ width: installmentColumnWidths.principal }} className="px-3 py-4 justify-center">
                           <BlurredAmount
                             amount={installment.principalAmount}
-                            currency={loanForInstallments?.currency}
+                            currency={loanForInstallments?.currency ?? ""}
                             className="text-xs"
                           />
                         </View>
@@ -3629,7 +3635,7 @@ export function LoansScreen() {
                         <View style={{ width: installmentColumnWidths.interest }} className="px-3 py-4 justify-center">
                           <BlurredAmount
                             amount={installment.interestAmount}
-                            currency={loanForInstallments?.currency}
+                            currency={loanForInstallments?.currency ?? ""}
                             className="text-xs"
                           />
                         </View>
@@ -3637,7 +3643,7 @@ export function LoansScreen() {
                         <View style={{ width: installmentColumnWidths.total }} className="px-3 py-4 justify-center">
                           <BlurredAmount
                             amount={installment.totalPayment}
-                            currency={loanForInstallments?.currency}
+                            currency={loanForInstallments?.currency ?? ""}
                             className={`text-xs font-semibold ${
                               installment.status === "PAID"
                                 ? isDark ? "text-green-400" : "text-green-600"
@@ -4040,8 +4046,8 @@ export function LoansScreen() {
               </Text>
               <Select
                 value={simulationData.repaymentFrequency}
-                onValueChange={(value: "MONTHLY" | "QUARTERLY") =>
-                  setSimulationData({ ...simulationData, repaymentFrequency: value })
+                onValueChange={(value) =>
+                  setSimulationData({ ...simulationData, repaymentFrequency: value as "MONTHLY" | "QUARTERLY" })
                 }
                 items={[
                   { label: "Mensuelle", value: "MONTHLY" },
@@ -4061,8 +4067,8 @@ export function LoansScreen() {
               </Text>
               <Select
                 value={simulationData.repaymentType}
-                onValueChange={(value: "AMORTIZABLE" | "IN_FINE") =>
-                  setSimulationData({ ...simulationData, repaymentType: value })
+                onValueChange={(value) =>
+                  setSimulationData({ ...simulationData, repaymentType: value as "AMORTIZABLE" | "IN_FINE" })
                 }
                 items={[
                   { label: "Amortissable", value: "AMORTIZABLE" },
@@ -4083,8 +4089,8 @@ export function LoansScreen() {
                 </Text>
                 <Select
                   value={simulationData.amortizationMethod}
-                  onValueChange={(value: "CONSTANT_PAYMENT" | "CONSTANT_CAPITAL") =>
-                    setSimulationData({ ...simulationData, amortizationMethod: value })
+                  onValueChange={(value) =>
+                    setSimulationData({ ...simulationData, amortizationMethod: value as "CONSTANT_PAYMENT" | "CONSTANT_CAPITAL" })
                   }
                   items={[
                     { label: "Mensualité constante", value: "CONSTANT_PAYMENT" },
@@ -4105,8 +4111,8 @@ export function LoansScreen() {
               </Text>
               <Select
                 value={simulationData.dayCountBasis}
-                onValueChange={(value: "ACT_360" | "ACT_365") =>
-                  setSimulationData({ ...simulationData, dayCountBasis: value })
+                onValueChange={(value) =>
+                  setSimulationData({ ...simulationData, dayCountBasis: value as "ACT_360" | "ACT_365" })
                 }
                 items={[
                   { label: "ACT/360", value: "ACT_360" },
@@ -4159,10 +4165,10 @@ export function LoansScreen() {
               </Text>
               <Select
                 value={simulationData.initialBankFeesType}
-                onValueChange={(value: "AMOUNT" | "PERCENTAGE") =>
+                onValueChange={(value) =>
                   setSimulationData({
                     ...simulationData,
-                    initialBankFeesType: value,
+                    initialBankFeesType: value as "AMOUNT" | "PERCENTAGE",
                     initialBankFees: "",
                   })
                 }
@@ -4566,7 +4572,7 @@ export function LoansScreen() {
                 }}
                 items={[
                   { label: "Toutes les entreprises", value: "all" },
-                  ...((selectedSectorId ? filteredCompanies : companies || []).map((company) => ({
+                  ...((selectedSectorId ? filteredCompanies : companies || []).map((company: Company) => ({
                     label: company.name,
                     value: company.id,
                   }))),

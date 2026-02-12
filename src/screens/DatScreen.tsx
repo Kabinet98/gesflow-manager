@@ -40,7 +40,7 @@ import {
   Copy01Icon,
   CheckmarkCircle02Icon,
   Cancel01Icon,
-  Coins01Icon,
+  PiggyBankIcon,
   MoneyRemove02Icon,
 } from "@hugeicons/core-free-icons";
 import { DatSkeleton } from "@/components/skeletons/DatSkeleton";
@@ -54,6 +54,7 @@ import { formatIntegerInput, formatDecimalInput } from "@/utils/numeric-input";
 import { writeExcelFromJson } from "@/utils/excel-secure";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import { getErrorMessage } from "@/utils/get-error-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CHART_COLOR = "#0ea5e9";
@@ -191,7 +192,7 @@ interface Bank {
   } | null;
 }
 
-// Fonction pour vérifier si une transaction DAT peut être annulée (moins de 24h)
+// Fonction pour vérifier si une transaction placement peut être annulée (moins de 24h)
 const canCancelTransaction = (createdAt: string | undefined | null): boolean => {
   if (!createdAt) return false;
   try {
@@ -224,7 +225,7 @@ const formatDate = (dateString: string): string => {
   return `${day}/${month}/${year}`;
 };
 
-// Composant pour une ligne de table DAT
+// Composant pour une ligne de table Placements
 const DatTableRow = React.memo(({
   transaction,
   columnWidths,
@@ -275,13 +276,13 @@ const DatTableRow = React.memo(({
     };
   }, [scrollRef]);
 
-  // Vérifier si le DAT a produit des gains (intérêt disponible)
+  // Vérifier si le placement a produit des gains (intérêt disponible)
   const availableInterest = transaction.datAccount 
     ? (transaction.datAccount.totalInterest || 0) - (transaction.datAccount.totalTransferred || 0)
     : 0;
   const hasGains = availableInterest > 0;
 
-  // Animation pulse pour les DAT avec gains
+  // Animation pulse pour les placements avec gains
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -754,7 +755,7 @@ const DatTableRow = React.memo(({
             </View>
           )}
         
-        {/* Bouton de transfert pour les DAT échus avec gains disponibles */}
+        {/* Bouton de transfert pour les placements échus avec gains disponibles */}
         {isMatured &&
           (transaction.status as string) !== "CANCELLED" &&
           transaction.status !== "RENEWED" &&
@@ -783,7 +784,7 @@ const DatTableRow = React.memo(({
 
 DatTableRow.displayName = "DatTableRow";
 
-// Composant pour une ligne de DAT dans le drawer
+// Composant pour une ligne de placement dans le drawer
 const DatDrawerRow = React.memo(({
   dat,
   isMatured,
@@ -797,7 +798,7 @@ const DatDrawerRow = React.memo(({
   isDark: boolean;
   SCREEN_WIDTH: number;
 }) => {
-  // Animation pulse pour les DAT avec gains
+  // Animation pulse pour les placements avec gains
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -1070,7 +1071,7 @@ export function DatScreen() {
     currency: string;
   } | null>(null);
   const [loadingMobilizedBalance, setLoadingMobilizedBalance] = useState(false);
-  // Refs pour synchroniser le scroll dans le drawer Détails DAT par entreprise
+  // Refs pour synchroniser le scroll dans le drawer Détails placements par entreprise
   const drawerHeaderScrollRef = useRef<ScrollView>(null);
   const drawerContentScrollRef = useRef<ScrollView>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -1288,7 +1289,7 @@ export function DatScreen() {
     enabled: canView,
   });
 
-  // Filtrer et trier les transactions DAT
+  // Filtrer et trier les transactions Placements
   const filteredTransactions = useMemo(() => {
     if (!datList) return [];
     const filtered = datList.filter((transaction: DatTransaction) => {
@@ -1318,9 +1319,9 @@ export function DatScreen() {
       );
     });
     
-    // Trier : DAT avec gains disponibles en premier, puis par date de début décroissante
+    // Trier : placements avec gains disponibles en premier, puis par date de début décroissante
     return filtered.sort((a: DatTransaction, b: DatTransaction) => {
-      // Calculer l'intérêt disponible pour chaque DAT
+      // Calculer l'intérêt disponible pour chaque placement
       const availableInterestA = a.datAccount 
         ? (a.datAccount.totalInterest || 0) - (a.datAccount.totalTransferred || 0)
         : 0;
@@ -1656,7 +1657,7 @@ export function DatScreen() {
     setShowDatForm(true);
   };
 
-  // Fonction pour éditer un DAT
+  // Fonction pour éditer un placement
   const handleEdit = (dat: DatTransaction) => {
     if (!canUpdate) {
       return;
@@ -1700,7 +1701,7 @@ export function DatScreen() {
     setShowDatForm(true);
   };
 
-  // Fonction pour renouveler un DAT
+  // Fonction pour renouveler un placement
   const handleRenew = (dat: DatTransaction) => {
     if (!canCreate) {
       return;
@@ -1809,13 +1810,13 @@ export function DatScreen() {
       await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
-      Alert.alert("Erreur", error.response?.data?.error || "Une erreur est survenue");
+      Alert.alert("Erreur", getErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Fonction pour supprimer un DAT
+  // Fonction pour supprimer un placement
   const handleDelete = (dat: DatTransaction) => {
     if (!canDelete) {
       return;
@@ -1847,13 +1848,13 @@ export function DatScreen() {
       await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
-      Alert.alert("Erreur", error.response?.data?.error || "Impossible de supprimer le DAT");
+      Alert.alert("Erreur", getErrorMessage(error, "Impossible de supprimer le placement"));
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Fonction pour arrêter un DAT
+  // Fonction pour arrêter un placement
   const handleStop = (dat: DatTransaction) => {
     if (!canUpdate) {
       return;
@@ -1879,7 +1880,7 @@ export function DatScreen() {
       await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
-      Alert.alert("Erreur", error.response?.data?.error || "Impossible d'arrêter le DAT");
+      Alert.alert("Erreur", getErrorMessage(error, "Impossible d'arrêter le placement"));
     } finally {
       setIsStopping(false);
     }
@@ -1919,7 +1920,7 @@ export function DatScreen() {
       datToTransfer = selectedDat;
     }
     if (!datToTransfer || !datToTransfer.datAccount) {
-      Alert.alert("Erreur", "DAT non trouvé");
+      Alert.alert("Erreur", "Placement non trouvé");
       return;
     }
     // Calculer l'intérêt disponible (totalInterest - totalTransferred)
@@ -1990,13 +1991,13 @@ export function DatScreen() {
         }
       }
     } catch (err: any) {
-      Alert.alert("Erreur", err.response?.data?.error || err.message || "Erreur lors du transfert");
+      Alert.alert("Erreur", getErrorMessage(err, "Erreur lors du transfert"));
     } finally {
       setIsTransferring(false);
     }
   };
 
-  // Fonction pour charger les détails DAT par entreprise
+  // Fonction pour charger les détails placements par entreprise
   const fetchCompanyDatDetails = async (companyId: string, forceRefresh = false) => {
     if (!companyId) {
       setCompanyDatDetails(null);
@@ -2044,7 +2045,7 @@ export function DatScreen() {
         currency: data[0]?.currency || "GNF",
       });
     } catch (err: any) {
-      Alert.alert("Erreur", "Impossible de charger les détails DAT");
+      Alert.alert("Erreur", "Impossible de charger les détails des placements");
     } finally {
       setLoadingCompanyDatDetails(false);
     }
@@ -2077,7 +2078,7 @@ export function DatScreen() {
       if (!filteredTransactions || filteredTransactions.length === 0) {
         Alert.alert(
           "Aucune donnée",
-          "Il n'y a aucun DAT à exporter avec les filtres actuels."
+          "Il n'y a aucun placement à exporter avec les filtres actuels."
         );
         return;
       }
@@ -2121,7 +2122,7 @@ export function DatScreen() {
       let mimeType: string;
       let useExcel = false;
       try {
-        fileContent = await writeExcelFromJson(exportData, "DAT");
+        fileContent = await writeExcelFromJson(exportData, "Placements");
         filename = `dat_${new Date().toISOString().split("T")[0]}.xlsx`;
         mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
         useExcel = true;
@@ -2175,7 +2176,7 @@ export function DatScreen() {
     }
   };
 
-  // Vérifier si un DAT est proche de l'échéance (1 semaine)
+  // Vérifier si un placement est proche de l'échéance (1 semaine)
   const isNearMaturity = (maturityDate: string): boolean => {
     const maturity = new Date(maturityDate);
     const today = new Date();
@@ -2311,7 +2312,7 @@ export function DatScreen() {
 
           {/* Boutons secondaires */}
           <View className="flex-row items-center gap-2 mb-4 flex-wrap">
-            {/* Bouton Détails DAT par entreprise */}
+            {/* Bouton Détails Placements par entreprise */}
             <TouchableOpacity
               onPress={() => {
                 setShowGlobalDetailsDrawer(true);
@@ -2327,7 +2328,7 @@ export function DatScreen() {
               }`}
             >
               <HugeiconsIcon
-                icon={Coins01Icon}
+                icon={PiggyBankIcon}
                 size={18}
                 color={isDark ? "#9ca3af" : "#6b7280"}
               />
@@ -2339,7 +2340,7 @@ export function DatScreen() {
                 Détails par entreprise
               </Text>
             </TouchableOpacity>
-            {/* Bouton Simuler un DAT */}
+            {/* Bouton Simuler un placement */}
             <TouchableOpacity
               onPress={() => {
                 setSimulationData({
@@ -2370,7 +2371,7 @@ export function DatScreen() {
                   isDark ? "text-blue-300" : "text-blue-700"
                 }`}
               >
-                Simuler un DAT
+                Simuler un placement
               </Text>
             </TouchableOpacity>
           </View>
@@ -2384,8 +2385,8 @@ export function DatScreen() {
         <View className="flex-1 items-center justify-center py-12">
           <Text className={`${isDark ? "text-gray-400" : "text-gray-600"}`}>
             {searchTerm || minAmount || maxAmount || startDate || endDate
-              ? "Aucun DAT trouvé avec les filtres actuels"
-              : "Aucun DAT disponible"}
+              ? "Aucun placement trouvé avec les filtres actuels"
+              : "Aucun placement disponible"}
           </Text>
         </View>
       ) : (
@@ -2594,7 +2595,7 @@ export function DatScreen() {
                 onTransfer={async () => {
                   setSelectedDat(transaction);
                   setTransferAmount("");
-                  // Rafraîchir les données du compte DAT pour avoir les valeurs à jour
+                  // Rafraîchir les données du compte placement pour avoir les valeurs à jour
                   try {
                     const accountResponse = await api.get(`/api/dat/${transaction.id}/account`);
                     if (accountResponse.data) {
@@ -2758,7 +2759,7 @@ export function DatScreen() {
         </View>
       </Drawer>
 
-      {/* Drawer Détails DAT par entreprise */}
+      {/* Drawer Détails Placements par entreprise */}
       <Drawer
         open={showGlobalDetailsDrawer}
         onOpenChange={(open) => {
@@ -2770,7 +2771,7 @@ export function DatScreen() {
             setCompanyDatDetails(null);
           }
         }}
-        title="Détails DAT par entreprise"
+        title="Détails des placements par entreprise"
       >
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <View className="gap-4 pb-4">
@@ -2813,7 +2814,7 @@ export function DatScreen() {
               </View>
             )}
 
-            {/* Détails des DAT de l'entreprise */}
+            {/* Détails des placements de l'entreprise */}
             {loadingCompanyDatDetails ? (
               <View className="items-center justify-center py-8">
                 <ActivityIndicator size="large" color={isDark ? "#60a5fa" : "#0ea5e9"} />
@@ -2887,7 +2888,7 @@ export function DatScreen() {
                       </View>
                     </View>
 
-                    {/* Troisième ligne - DAT actifs et DAT arrivés à échéance */}
+                    {/* Troisième ligne - Placements actifs et Placements arrivés à échéance */}
                     <View className="flex-row gap-3">
                       <View
                         className={`flex-1 p-4 rounded-xl border ${
@@ -2897,7 +2898,7 @@ export function DatScreen() {
                         }`}
                       >
                         <Text className={`text-xs font-medium mb-2 ${isDark ? "text-purple-300" : "text-purple-700"}`}>
-                          DAT actifs
+                          Placements actifs
                         </Text>
                         <Text className={`text-2xl font-bold ${isDark ? "text-purple-200" : "text-purple-900"}`}>
                           {companyDatDetails.activeCount || 0}
@@ -2912,7 +2913,7 @@ export function DatScreen() {
                         }`}
                       >
                         <Text className={`text-xs font-medium mb-2 ${isDark ? "text-cyan-300" : "text-cyan-700"}`}>
-                          DAT arrivés à échéance
+                          Placements arrivés à échéance
                         </Text>
                         <Text className={`text-2xl font-bold ${isDark ? "text-cyan-200" : "text-cyan-900"}`}>
                           {companyDatDetails.maturedCount || 0}
@@ -2927,7 +2928,7 @@ export function DatScreen() {
         </ScrollView>
       </Drawer>
 
-      {/* Drawer de formulaire DAT (Créer/Éditer) */}
+      {/* Drawer de formulaire placement (Créer/Éditer) */}
       <Drawer
         open={showDatForm}
         onOpenChange={(open) => {
@@ -2939,7 +2940,7 @@ export function DatScreen() {
             setMobilizedBalance(null);
           }
         }}
-        title={isRenewing ? "Renouveler le DAT" : editingDat ? "Modifier le DAT" : "Créer un DAT"}
+        title={isRenewing ? "Renouveler le placement" : editingDat ? "Modifier le placement" : "Créer un placement"}
       >
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <View className="gap-4 pb-4">
@@ -3262,7 +3263,7 @@ export function DatScreen() {
         </ScrollView>
       </Drawer>
 
-      {/* Drawer de détails DAT */}
+      {/* Drawer de détails placement */}
       <Drawer
         open={showDetailsDrawer}
         onOpenChange={(open) => {
@@ -3271,7 +3272,7 @@ export function DatScreen() {
             setSelectedDat(null);
           }
         }}
-        title="Détails du DAT"
+        title="Détails du placement"
       >
         {selectedDat && (
           <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -3379,7 +3380,7 @@ export function DatScreen() {
                   {selectedDat.datAccount.totalInterest > 0 && canUpdate && (
                     <Button
                       onPress={async () => {
-                        // Rafraîchir les données du compte DAT pour avoir les valeurs à jour
+                        // Rafraîchir les données du compte placement pour avoir les valeurs à jour
                         try {
                           const accountResponse = await api.get(`/api/dat/${selectedDat.id}/account`);
                           if (accountResponse.data) {
@@ -3501,12 +3502,12 @@ export function DatScreen() {
             setDeleteConfirmation("");
           }
         }}
-        title="Supprimer le DAT"
+        title="Supprimer le placement"
       >
         {datToDelete && (
           <View className="gap-4">
             <Text className={`text-base ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-              Êtes-vous sûr de vouloir supprimer ce DAT ? Cette action est irréversible.
+              Êtes-vous sûr de vouloir supprimer ce placement ? Cette action est irréversible.
             </Text>
             <View className="gap-2">
               <Text className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>
@@ -3573,12 +3574,12 @@ export function DatScreen() {
             setDatToStop(null);
           }
         }}
-        title="Arrêter le DAT"
+        title="Arrêter le placement"
       >
         {datToStop && (
           <View className="gap-4">
             <Text className={`text-base ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-              Êtes-vous sûr de vouloir arrêter ce DAT à l'échéance ? Il ne sera pas renouvelé automatiquement.
+              Êtes-vous sûr de vouloir arrêter ce placement à l'échéance ? Il ne sera pas renouvelé automatiquement.
             </Text>
             <View className="gap-2">
               <Text className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>
@@ -3629,7 +3630,7 @@ export function DatScreen() {
             setSimulationResults(null);
           }
         }}
-        title="Simulation DAT"
+        title="Simulation de placement"
       >
         <View className="gap-4 pb-4">
             <View>

@@ -14,10 +14,10 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.gesflow.manager",
+      googleServicesFile: "./ios/GoogleService-Info.plist",
       infoPlist: {
         UIBackgroundModes: ["remote-notification"]
       },
-      // Configuration pour les notifications push iOS
       usesAppleSignIn: false,
     },
     android: {
@@ -26,7 +26,10 @@ export default {
         backgroundColor: "#0f172a"
       },
       package: "com.gesflow.manager",
-      edgeToEdgeEnabled: true
+      edgeToEdgeEnabled: true,
+      // Garde le champ de saisie visible quand le clavier s'ouvre
+      softwareKeyboardLayoutMode: "resize",
+      googleServicesFile: "./android/app/google-services.json"
     },
     plugins: [
       [

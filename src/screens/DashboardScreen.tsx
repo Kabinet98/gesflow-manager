@@ -36,6 +36,7 @@ import { PieChartComponent } from "@/components/charts/PieChart";
 import { BudgetPredictionChart } from "@/components/charts/BudgetPredictionChart";
 import { BlurredAmount } from "@/components/BlurredAmount";
 import { Drawer } from "@/components/ui/Drawer";
+import { Select } from "@/components/ui/Select";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -402,175 +403,68 @@ export function DashboardScreen() {
           {/* Filtre Secteur d'activité */}
           {activitySectors && activitySectors.length > 0 && (
             <View className="mb-6">
-              <Text
-                className={`text-sm font-semibold mb-3 ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
-                Secteur d'activité
-              </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingRight: 24 }}
-              >
-                <View className="flex-row gap-2">
-                  <TouchableOpacity
-                    onPress={() => setSelectedActivitySector(null)}
-                    className={`px-4 py-2 rounded-full ${
-                      selectedActivitySector === null
-                        ? "bg-blue-600"
-                        : isDark
-                          ? "bg-[#0f172a]"
-                          : "bg-gray-100"
-                    }`}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      className={`text-xs font-medium ${
-                        selectedActivitySector === null
-                          ? "text-white"
-                          : isDark
-                            ? "text-gray-300"
-                            : "text-gray-700"
-                      }`}
-                    >
-                      Tous
-                    </Text>
-                  </TouchableOpacity>
-                  {activitySectors.map((sector: any) => (
-                    <TouchableOpacity
-                      key={sector.id}
-                      onPress={() => setSelectedActivitySector(sector.id)}
-                      className={`px-4 py-2 rounded-full ${
-                        selectedActivitySector === sector.id
-                          ? "bg-blue-600"
-                          : isDark
-                            ? "bg-[#0f172a]"
-                            : "bg-gray-100"
-                      }`}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        className={`text-xs font-medium ${
-                          selectedActivitySector === sector.id
-                            ? "text-white"
-                            : isDark
-                              ? "text-gray-300"
-                              : "text-gray-700"
-                        }`}
-                      >
-                        {sector.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
+              <Select
+                label="Secteur d'activité"
+                placeholder="Tous les secteurs"
+                value={selectedActivitySector || "all"}
+                onValueChange={(val) => {
+                  setSelectedActivitySector(val === "all" ? null : val);
+                  setSelectedCompany(null);
+                }}
+                options={[
+                  { label: "Tous", value: "all" },
+                  ...activitySectors.map((s: any) => ({
+                    label: s.name,
+                    value: s.id,
+                  })),
+                ]}
+              />
             </View>
           )}
 
-          {/* Filtre Entreprise - Afficher uniquement les entreprises du secteur sélectionné */}
+          {/* Filtre Entreprise */}
           {companies && Array.isArray(companies) && companies.length > 0 && (
             <View className="mb-6">
-              <Text
-                className={`text-sm font-semibold mb-3 ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
-                Entreprise
-              </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingRight: 24 }}
-              >
-                <View className="flex-row gap-2">
-                  {companies
-                    .filter((company: any) => {
-                      // Si un secteur est sélectionné, filtrer les entreprises de ce secteur
-                      if (selectedActivitySector) {
-                        return (
-                          company.activitySectorId === selectedActivitySector
-                        );
-                      }
-                      // Sinon, afficher toutes les entreprises
-                      return true;
-                    })
-                    .map((company: any) => (
-                      <TouchableOpacity
-                        key={company.id}
-                        onPress={() => setSelectedCompany(company.id)}
-                        className={`px-4 py-2 rounded-full ${
-                          selectedCompany === company.id
-                            ? "bg-blue-600"
-                            : isDark
-                              ? "bg-[#0f172a]"
-                              : "bg-gray-100"
-                        }`}
-                        activeOpacity={0.7}
-                      >
-                        <Text
-                          className={`text-xs font-medium ${
-                            selectedCompany === company.id
-                              ? "text-white"
-                              : isDark
-                                ? "text-gray-300"
-                                : "text-gray-700"
-                          }`}
-                        >
-                          {company.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                </View>
-              </ScrollView>
+              <Select
+                label="Entreprise"
+                placeholder="Toutes les entreprises"
+                value={selectedCompany || "all"}
+                onValueChange={(val) =>
+                  setSelectedCompany(val === "all" ? null : val)
+                }
+                options={[
+                  { label: "Toutes", value: "all" },
+                  ...companies
+                    .filter((c: any) =>
+                      selectedActivitySector
+                        ? c.activitySectorId === selectedActivitySector
+                        : true
+                    )
+                    .map((c: any) => ({
+                      label: c.name,
+                      value: c.id,
+                    })),
+                ]}
+              />
             </View>
           )}
 
           {/* Filtre Année */}
           {safeAvailableYears && safeAvailableYears.length > 0 && (
             <View className="mb-6">
-              <Text
-                className={`text-sm font-semibold mb-3 ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
-                Année
-              </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingRight: 24 }}
-              >
-                <View className="flex-row gap-2">
-                  {safeAvailableYears.map((year: string) => (
-                    <TouchableOpacity
-                      key={year}
-                      onPress={() => setSelectedYear(year)}
-                      className={`px-4 py-2 rounded-full ${
-                        selectedYear === year
-                          ? "bg-blue-600"
-                          : isDark
-                            ? "bg-[#0f172a]"
-                            : "bg-gray-100"
-                      }`}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        className={`text-xs font-medium ${
-                          selectedYear === year
-                            ? "text-white"
-                            : isDark
-                              ? "text-gray-300"
-                              : "text-gray-700"
-                        }`}
-                      >
-                        {year}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
+              <Select
+                label="Année"
+                placeholder="Toutes les années"
+                value={selectedYear || "all"}
+                onValueChange={(val) => setSelectedYear(val)}
+                options={[
+                  { label: "Toutes les années", value: "all" },
+                  ...safeAvailableYears.map((y: string) => ({
+                    label: y,
+                    value: y,
+                  })),
+                ]}
+              />
             </View>
           )}
         </Drawer>
@@ -673,11 +567,12 @@ export function DashboardScreen() {
                                   backgroundColor: isDark
                                     ? "#1e293b"
                                     : "#f9fafb",
-                                  shadowColor: "#000",
-                                  shadowOffset: { width: 0, height: 4 },
-                                  shadowOpacity: 0.1,
-                                  shadowRadius: 8,
-                                  elevation: 4,
+                                  ...(Platform.OS === 'ios' ? {
+                                    shadowColor: "#000",
+                                    shadowOffset: { width: 0, height: 4 },
+                                    shadowOpacity: 0.1,
+                                    shadowRadius: 8,
+                                  } : {}),
                                 }}
                               >
                                 <View
@@ -758,11 +653,12 @@ export function DashboardScreen() {
                                   backgroundColor: isDark
                                     ? "#1e293b"
                                     : "#f9fafb",
-                                  shadowColor: "#000",
-                                  shadowOffset: { width: 0, height: 4 },
-                                  shadowOpacity: 0.1,
-                                  shadowRadius: 8,
-                                  elevation: 4,
+                                  ...(Platform.OS === 'ios' ? {
+                                    shadowColor: "#000",
+                                    shadowOffset: { width: 0, height: 4 },
+                                    shadowOpacity: 0.1,
+                                    shadowRadius: 8,
+                                  } : {}),
                                 }}
                               >
                                 <View
@@ -1016,11 +912,12 @@ export function DashboardScreen() {
                       {
                         width: cardWidth,
                         height: cardHeight,
-                        shadowColor: "#000",
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 8,
-                        elevation: 4,
+                        ...(Platform.OS === 'ios' ? {
+                          shadowColor: "#000",
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.1,
+                          shadowRadius: 8,
+                        } : {}),
                       },
                     ]}
                     className={`relative overflow-hidden p-4 rounded-lg border ${
@@ -1367,7 +1264,7 @@ export function DashboardScreen() {
                         "Montant Immobilisé",
                         kpis.totalImmobilized || 0,
                         true,
-                        "Total DAT actifs",
+                        "Total Placements actifs",
                         "bg-gradient-to-br from-cyan-900/20 to-cyan-800/20",
                         "bg-gradient-to-br from-cyan-50 to-cyan-100",
                         "bg-cyan-500/10",
@@ -1442,7 +1339,7 @@ export function DashboardScreen() {
                       ),
                     );
                   }
-                  // 8. DAT échéance 7 jours (si > 0)
+                  // 8. Placements échéance 7 jours (si > 0)
                   if (
                     kpis.datMaturities7Days !== undefined &&
                     kpis.datMaturities7Days > 0
@@ -1450,7 +1347,7 @@ export function DashboardScreen() {
                     allCards.push(
                       createCard(
                         "datMaturities7Days",
-                        "DAT (7 jours)",
+                        "Placements (7 jours)",
                         kpis.datMaturities7Days || 0,
                         true,
                         "Échéances dans 7 jours",
@@ -1717,11 +1614,12 @@ export function DashboardScreen() {
                               : "rgba(255, 255, 255, 0.9)",
                             borderRadius: 20,
                             padding: 8,
-                            shadowColor: "#000",
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.2,
-                            shadowRadius: 4,
-                            elevation: 5,
+                            ...(Platform.OS === 'ios' ? {
+                              shadowColor: "#000",
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: 0.2,
+                              shadowRadius: 4,
+                            } : {}),
                             borderWidth: 1,
                             borderColor: isDark
                               ? "rgba(148, 163, 184, 0.2)"
@@ -1770,11 +1668,12 @@ export function DashboardScreen() {
                               : "rgba(255, 255, 255, 0.9)",
                             borderRadius: 20,
                             padding: 8,
-                            shadowColor: "#000",
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.2,
-                            shadowRadius: 4,
-                            elevation: 5,
+                            ...(Platform.OS === 'ios' ? {
+                              shadowColor: "#000",
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: 0.2,
+                              shadowRadius: 4,
+                            } : {}),
                             borderWidth: 1,
                             borderColor: isDark
                               ? "rgba(148, 163, 184, 0.2)"

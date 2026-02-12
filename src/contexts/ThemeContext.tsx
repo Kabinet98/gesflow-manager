@@ -52,7 +52,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     
     // Sauvegarder sur le serveur si l'utilisateur est connecté
     try {
-      const token = await getSecureItem('auth_token');
+      const token = await SecureStore.getItemAsync('auth_token');
       if (token) {
         const { getApiBaseUrl } = await import('@/config/env');
         await fetch(`${getApiBaseUrl()}/api/users/theme`, {

@@ -38,6 +38,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Switch } from "@/components/ui/Switch";
+import { getErrorMessage } from "@/utils/get-error-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CHART_COLOR = "#0ea5e9";
@@ -267,7 +268,7 @@ export function InvestmentCategoriesScreen() {
       setEditingCategory(null);
       Alert.alert("Succès", editingCategory ? "Catégorie d'investissement modifiée avec succès" : "Catégorie d'investissement créée avec succès");
     } catch (err: any) {
-      Alert.alert("Erreur", err.response?.data?.message || "Une erreur est survenue");
+      Alert.alert("Erreur", getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -296,7 +297,7 @@ export function InvestmentCategoriesScreen() {
       setDeleteConfirmation("");
       Alert.alert("Succès", "Catégorie d'investissement supprimée avec succès");
     } catch (err: any) {
-      Alert.alert("Erreur", err.response?.data?.message || "Une erreur est survenue");
+      Alert.alert("Erreur", getErrorMessage(err));
     } finally {
       setIsDeleting(false);
     }

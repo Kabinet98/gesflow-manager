@@ -40,7 +40,7 @@ export function ScreenHeader({ showBack = true, title }: ScreenHeaderProps) {
       SecurityQuestions: "Sécurité",
       Investments: "Investissements",
       Loans: "Emprunts",
-      Dat: "DAT",
+      Dat: "Placements",
       Banks: "Banques",
       Users: "Utilisateurs",
       Logs: "Logs",

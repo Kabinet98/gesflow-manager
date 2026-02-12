@@ -32,7 +32,10 @@ import api from "@/config/api";
 // Types axios sont automatiquement inclus via src/types/axios.d.ts
 
 const emailPasswordSchema = z.object({
-  email: z.string().email("Email invalide"),
+  email: z
+    .string()
+    .transform((v) => v.replace(/\s/g, ""))
+    .pipe(z.string().email("Email invalide")),
   password: z.string().min(1, "Le mot de passe est requis"),
 });
 
@@ -109,12 +112,15 @@ export function LoginScreen() {
     handleSubmit,
     formState: { errors },
     getValues,
+    clearErrors,
   } = useForm<EmailPasswordFormData>({
     resolver: zodResolver(emailPasswordSchema),
     defaultValues: {
       email: "",
       password: "",
     },
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
   });
 
   // Étape 1 : Validation Email + Password
@@ -762,6 +768,7 @@ export function LoginScreen() {
                 onChangeText={(text) => {
                   onChange(text);
                   if (authError) setAuthError(null);
+                  if (errors.email) clearErrors("email");
                   // Réinitialiser l'état de compte désactivé si l'utilisateur modifie le champ
                   if (isAccountDisabled) {
                     setIsAccountDisabled(false);
@@ -774,6 +781,7 @@ export function LoginScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="email"
+                textContentType="emailAddress"
                 style={{
                   height: 56,
                   paddingHorizontal: 20,
@@ -1436,6 +1444,7 @@ export function LoginScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
       >
         <ScrollView
           className="flex-1"
@@ -1444,9 +1453,11 @@ export function LoginScreen() {
             justifyContent: "center",
             paddingHorizontal: 24,
             paddingVertical: 48,
+            paddingBottom: 120,
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {/* Header with Logo */}
           <Animated.View

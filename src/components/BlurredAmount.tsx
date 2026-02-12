@@ -148,51 +148,22 @@ export function BlurredAmount({
         {displayText}
       </Text>
 
-      {/* Masquage du montant */}
+      {/* Masquage du montant — même rendu iOS et Android via expo-blur */}
       {!isAmountVisible && (
-        <>
-          {Platform.OS === 'android' ? (
-            // Android: Utiliser un overlay opaque (BlurView ne fonctionne pas bien sur Android)
-            <Animated.View
-              style={[
-                StyleSheet.absoluteFill,
-                styles.blurOverlay,
-                { opacity: blurOpacity },
-                {
-                  backgroundColor: isDark ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.9)',
-                  borderRadius: 9999,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                },
-              ]}
-            >
-              {/* Indicateur visuel pour montrer que le montant est masqué */}
-              <View
-                style={{
-                  width: 50,
-                  height: 6,
-                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)',
-                  borderRadius: 3,
-                }}
-              />
-            </Animated.View>
-          ) : (
-            // iOS: Utiliser BlurView
-            <Animated.View
-              style={[
-                StyleSheet.absoluteFill,
-                styles.blurOverlay,
-                { opacity: blurOpacity },
-              ]}
-            >
-              <BlurView
-                intensity={22} // Simule approximativement blur(8px)
-                tint={isDark ? "dark" : "light"}
-                style={StyleSheet.absoluteFill}
-              />
-            </Animated.View>
-          )}
-        </>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            styles.blurOverlay,
+            { opacity: blurOpacity },
+          ]}
+        >
+          <BlurView
+            intensity={Platform.OS === 'android' ? 30 : 22}
+            tint={isDark ? "dark" : "light"}
+            experimentalBlurMethod={Platform.OS === 'android' ? "dimezisBlurView" : undefined}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
       )}
     </View>
   );

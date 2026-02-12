@@ -41,6 +41,7 @@ import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import { getErrorMessage } from "@/utils/get-error-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CHART_COLOR = "#0ea5e9";
@@ -562,10 +563,7 @@ export function BanksScreen() {
     } catch (err: any) {
       // Afficher les détails de validation si disponibles
       const validationDetails = err.response?.data?.details;
-      let errorMessage =
-        err.response?.data?.error ||
-        err.message ||
-        "Une erreur est survenue";
+      let errorMessage = getErrorMessage(err);
 
       if (
         validationDetails &&
@@ -607,10 +605,7 @@ export function BanksScreen() {
       setDeleteConfirmation("");
       Alert.alert("Succès", "Banque supprimée");
     } catch (err: any) {
-      Alert.alert(
-        "Erreur",
-        err.response?.data?.error || "Impossible de supprimer la banque"
-      );
+      Alert.alert("Erreur", getErrorMessage(err, "Impossible de supprimer la banque"));
     } finally {
       setIsDeleting(false);
     }

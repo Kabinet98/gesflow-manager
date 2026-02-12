@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { authService } from '@/services/auth.service';
@@ -40,8 +40,8 @@ export function AvatarTab({ onPress, isFocused }: AvatarTabProps) {
 
   // Couleurs pour le gradient 3D bleu - utiliser la couleur des tabs (#0ea5e9)
   const gradientColors = isFocused
-    ? ['#0ea5e9', '#0284c7', '#0369a1'] // Bleu plus intense quand focus
-    : ['#0ea5e9', '#0284c7', '#0369a1']; // Même couleur bleue que les tabs
+    ? ['#0ea5e9', '#0284c7', '#0369a1'] as const // Bleu plus intense quand focus
+    : ['#0ea5e9', '#0284c7', '#0369a1'] as const; // Même couleur bleue que les tabs
 
   return (
     <TouchableOpacity
@@ -78,14 +78,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#0ea5e9',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
+    ...(Platform.OS === 'ios' ? {
+      shadowColor: '#0ea5e9',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+    } : {}),
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.2)',
@@ -94,9 +92,10 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 6,
+    ...(Platform.OS === 'ios' ? {
+      shadowOpacity: 0.35,
+      shadowRadius: 6,
+    } : {}),
   },
   innerShadow: {
     position: 'absolute',

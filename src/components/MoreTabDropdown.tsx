@@ -24,7 +24,7 @@ export function MoreTabDropdown({ visible, onClose, items }: MoreTabDropdownProp
   };
 
   // S'assurer que items est toujours un tableau
-  let safeItems;
+  let safeItems: any[];
   try {
     if (!items) {
       safeItems = [];

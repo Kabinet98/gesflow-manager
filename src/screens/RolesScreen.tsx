@@ -41,6 +41,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { getErrorMessage } from "@/utils/get-error-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CHART_COLOR = "#0ea5e9";
@@ -162,8 +163,8 @@ export function RolesScreen() {
     },
   });
 
-  const permissions = permissionsData?.permissions || [];
-  const groupedPermissions = permissionsData?.groupedPermissions || {};
+  const permissions: Permission[] = permissionsData?.permissions || [];
+  const groupedPermissions: Record<string, Permission[]> = permissionsData?.groupedPermissions || {};
 
   // Filtrer les rôles
   const filteredRoles = useMemo(() => {
@@ -370,10 +371,7 @@ export function RolesScreen() {
         }
       }
     } catch (err: any) {
-      Alert.alert(
-        "Erreur",
-        err.response?.data?.error || err.message || "Erreur lors de l'opération"
-      );
+      Alert.alert("Erreur", getErrorMessage(err, "Erreur lors de l'opération"));
     } finally {
       setIsSubmitting(false);
     }
@@ -406,10 +404,7 @@ export function RolesScreen() {
         await queryClient.invalidateQueries({ queryKey: ["roles"] });
       }
     } catch (err: any) {
-      Alert.alert(
-        "Erreur",
-        err.response?.data?.error || err.message || "Erreur lors de la suppression"
-      );
+      Alert.alert("Erreur", getErrorMessage(err, "Erreur lors de la suppression"));
     } finally {
       setIsDeleting(false);
     }
@@ -518,7 +513,7 @@ export function RolesScreen() {
     "investment-categories": "Catégories d'investissements",
     investments: "Investissements",
     loans: "Emprunts",
-    dat: "DAT",
+    dat: "Placements",
     banks: "Banques",
     alerts: "Alertes",
     users: "Utilisateurs",

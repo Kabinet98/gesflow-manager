@@ -62,6 +62,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { formatDecimalInput } from "@/utils/numeric-input";
+import { getErrorMessage } from "@/utils/get-error-message";
 import { formatAmount as formatAmountUtil } from "@/utils/format-amount";
 import { writeExcelFromJson } from "@/utils/excel-secure";
 import * as DocumentPicker from "expo-document-picker";
@@ -364,7 +365,7 @@ const SwipeableDocument: React.FC<SwipeableDocumentProps> = ({
             } catch (error: any) {
               Alert.alert(
                 "Erreur",
-                error.message || "Impossible d'ouvrir le document",
+                getErrorMessage(error, "Impossible d'ouvrir le document"),
               );
             }
           }}
@@ -1244,7 +1245,7 @@ export function ExpensesScreen() {
     }
 
     // Pour l'admin, cacher les boutons modifier/annuler si :
-    // 1. Gain DAT (isDatTransfer && type === "INCOME")
+    // 1. Gain Placement (isDatTransfer && type === "INCOME")
     // 2. Emprunt (isLoanInvestment ou loanId)
     // 3. Transaction créée par un gestionnaire (même si en attente de validation)
     const isGainDat =
@@ -1434,11 +1435,7 @@ export function ExpensesScreen() {
               await refetch();
             } catch (error: any) {
               // Afficher un message d'erreur approprié
-              const errorMessage =
-                error.response?.data?.error ||
-                error.message ||
-                "Impossible d'annuler la transaction";
-              Alert.alert("Erreur", errorMessage);
+              Alert.alert("Erreur", getErrorMessage(error, "Impossible d'annuler la transaction"));
             } finally {
               setIsCancellingExpense(false);
             }
@@ -1585,11 +1582,7 @@ export function ExpensesScreen() {
         queryKey: ["expenses-pending-count"],
       });
     } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.error ||
-        error.message ||
-        "Une erreur est survenue";
-      Alert.alert("Erreur", errorMessage);
+      Alert.alert("Erreur", getErrorMessage(error));
     } finally {
       setIsValidating(false);
     }
@@ -1686,7 +1679,7 @@ export function ExpensesScreen() {
         Alert.alert("Erreur", "Impossible d'ouvrir le document");
       }
     } catch (error: any) {
-      Alert.alert("Erreur", error.message || "Impossible d'ouvrir le document");
+      Alert.alert("Erreur", getErrorMessage(error, "Impossible d'ouvrir le document"));
     }
   };
 
@@ -2195,7 +2188,7 @@ export function ExpensesScreen() {
         } catch (error: any) {
           Alert.alert(
             "Attention",
-            `La dépense a été créée mais certains documents n'ont pas pu être uploadés. ${error.message || ""}`,
+            `La dépense a été créée mais certains documents n'ont pas pu être uploadés. ${getErrorMessage(error, "")}`,
           );
         }
       }
@@ -2262,8 +2255,8 @@ export function ExpensesScreen() {
         errorMessage = "La ressource demandée n'a pas été trouvée.";
       } else if (error.response?.status >= 500) {
         errorMessage = "Une erreur serveur est survenue. Veuillez réessayer plus tard.";
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else {
+        errorMessage = getErrorMessage(error, errorMessage);
       }
       
       Alert.alert("Erreur", errorMessage);
@@ -2855,7 +2848,7 @@ export function ExpensesScreen() {
                 </View>
               ) : (
                 filteredExpenses.map((expense: Expense) => {
-                  // Vérifier si c'est une dépense de type DAT, investissement ou emprunt
+                  // Vérifier si c'est une dépense de type placement, investissement ou emprunt
                   const isGainDat =
                     expense.isDatTransfer && expense.type === "INCOME";
                   const isDatTransfer =
@@ -3081,7 +3074,7 @@ export function ExpensesScreen() {
                                   </Text>
                                 </View>
 
-                                {/* Gain DAT */}
+                                {/* Gain Placement */}
                                 {expense.isDatTransfer &&
                                   expense.type === "INCOME" && (
                                     <View
@@ -3102,12 +3095,12 @@ export function ExpensesScreen() {
                                           color: isDark ? "#c084fc" : "#9333ea",
                                         }}
                                       >
-                                        Gain DAT
+                                        Gain Placement
                                       </Text>
                                     </View>
                                   )}
 
-                                {/* Transfert DAT */}
+                                {/* Transfert Placement */}
                                 {expense.isDatTransfer &&
                                   expense.type !== "INCOME" && (
                                     <View
@@ -3128,7 +3121,7 @@ export function ExpensesScreen() {
                                           color: isDark ? "#93c5fd" : "#2563eb",
                                         }}
                                       >
-                                        Transfert DAT
+                                        Transfert Placement
                                       </Text>
                                     </View>
                                   )}

@@ -1,18 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, TextInput, StyleSheet, ActivityIndicator, Image, Clipboard } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, TextInput, StyleSheet, ActivityIndicator, Clipboard, BackHandler, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { authService } from '@/services/auth.service';
+import { authEventEmitter } from '@/config/api';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { ShieldIcon, CheckmarkCircle02Icon, Cancel01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
+import { ShieldIcon, CheckmarkCircle02Icon, Cancel01Icon, ArrowRight01Icon, LogoutIcon } from '@hugeicons/core-free-icons';
 import { User } from '@/types';
 import api from '@/config/api';
+import { SvgXml } from 'react-native-svg';
+import qrGenerator from 'qrcode-generator';
+import { InputOTP } from '@/components/ui/InputOTP';
+import { getErrorMessage } from '@/utils/get-error-message';
 
 export function TwoFactorAuthScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const { isDark } = useTheme();
+  const mandatory = (route.params as any)?.mandatory === true;
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [enabling, setEnabling] = useState(false);
@@ -26,6 +33,13 @@ export function TwoFactorAuthScreen() {
   const [mfaDisableCode, setMfaDisableCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Bloquer le bouton retour Android en mode obligatoire
+  useEffect(() => {
+    if (!mandatory) return;
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => backHandler.remove();
+  }, [mandatory]);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -113,9 +127,7 @@ export function TwoFactorAuthScreen() {
       });
       setMfaSetupStep('setup');
     } catch (error: any) {
-      // TOUJOURS utiliser le message du backend en priorité
-      const backendError = error.response?.data?.error;
-      const errorMessage = backendError || error.message || 'Impossible d\'activer l\'authentification à deux facteurs';
+      const errorMessage = getErrorMessage(error, 'Impossible d\'activer l\'authentification à deux facteurs');
       if (error.response?.status === 401) {
         Alert.alert(
           'Session expirée',
@@ -152,20 +164,31 @@ export function TwoFactorAuthScreen() {
         skipAuthError: true, // Ne pas déconnecter en cas d'erreur 401
       });
       await refreshUser();
-      Alert.alert('Succès', 'Authentification à deux facteurs activée avec succès', [
-        {
-          text: 'OK',
-          onPress: () => {
-            setMfaSecret(null);
-            setMfaSetupStep('idle');
-            setVerificationCode('');
+      authEventEmitter.emit('mfa-status-changed', true);
+      if (mandatory) {
+        // En mode obligatoire, notifier la navigation et passer au Dashboard
+        Alert.alert('Succès', 'Authentification à deux facteurs activée avec succès', [
+          {
+            text: 'OK',
+            onPress: () => {
+              authEventEmitter.emit('2fa-setup-complete');
+            },
           },
-        },
-      ]);
+        ]);
+      } else {
+        Alert.alert('Succès', 'Authentification à deux facteurs activée avec succès', [
+          {
+            text: 'OK',
+            onPress: () => {
+              setMfaSecret(null);
+              setMfaSetupStep('idle');
+              setVerificationCode('');
+            },
+          },
+        ]);
+      }
     } catch (error: any) {
-      // TOUJOURS utiliser le message du backend en priorité
-      const backendError = error.response?.data?.error;
-      const errorMessage = backendError || error.message || 'Code invalide';
+      const errorMessage = getErrorMessage(error, 'Code invalide');
       if (error.response?.status === 401) {
         Alert.alert(
           'Session expirée',
@@ -202,12 +225,11 @@ export function TwoFactorAuthScreen() {
         skipAuthError: true, // Ne pas déconnecter en cas d'erreur 401
       });
       await refreshUser();
+      authEventEmitter.emit('mfa-status-changed', false);
       setMfaDisableCode('');
       Alert.alert('Succès', 'Authentification à deux facteurs désactivée');
     } catch (error: any) {
-      // TOUJOURS utiliser le message du backend en priorité
-      const backendError = error.response?.data?.error;
-      const errorMessage = backendError || error.message || 'Impossible de désactiver l\'authentification à deux facteurs';
+      const errorMessage = getErrorMessage(error, 'Impossible de désactiver l\'authentification à deux facteurs');
       if (error.response?.status === 401) {
         Alert.alert(
           'Session expirée',
@@ -231,82 +253,133 @@ export function TwoFactorAuthScreen() {
 
   const isEnabled = user?.twoFactorEnabled || false;
 
+  const handleLogout = async () => {
+    Alert.alert(
+      'Déconnexion',
+      'Êtes-vous sûr de vouloir vous déconnecter ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Se déconnecter',
+          style: 'destructive',
+          onPress: async () => {
+            await authService.logout();
+          },
+        },
+      ]
+    );
+  };
+
   // Si erreur de chargement, afficher un message
   if (error && !user) {
     return (
-      <SafeAreaView 
+      <SafeAreaView
         className={`flex-1 ${isDark ? 'bg-[#0f172a]' : 'bg-white'}`}
         edges={['top', 'bottom']}
       >
-        <ScreenHeader title="2FA" />
+        {mandatory ? (
+          <View className="px-6 pt-4 pb-2">
+            <Text className={`text-lg font-bold text-center ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              Configuration obligatoire du 2FA
+            </Text>
+          </View>
+        ) : (
+          <ScreenHeader title="2FA" />
+        )}
         <View className="flex-1 items-center justify-center px-6">
           <Text className={`text-base ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
             {error}
           </Text>
         </View>
+        {mandatory && (
+          <View className="px-6 pb-6">
+            <TouchableOpacity
+              onPress={handleLogout}
+              className={`rounded-xl p-4 flex-row items-center justify-center ${
+                isDark ? 'bg-red-900/30' : 'bg-red-50'
+              }`}
+              activeOpacity={0.7}
+            >
+              <HugeiconsIcon icon={LogoutIcon} size={20} color="#ef4444" />
+              <Text className="text-base font-semibold text-red-500 ml-3">
+                Se déconnecter
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView 
+    <SafeAreaView
       className={`flex-1 ${isDark ? 'bg-[#0f172a]' : 'bg-white'}`}
       edges={['top', 'bottom']}
     >
-      <ScreenHeader title="2FA" />
+      {mandatory ? (
+        <View className="px-6 pt-4 pb-2">
+          <Text className={`text-lg font-bold text-center ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            Configuration obligatoire du 2FA
+          </Text>
+        </View>
+      ) : (
+        <ScreenHeader title="2FA" />
+      )}
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="px-6 pt-20 pb-4">
-          {/* Statut actuel */}
-          <View
-            className={`mb-6 rounded-xl p-4 ${
-              isDark ? 'bg-[#1e293b]' : 'bg-gray-50'
-            }`}
-            style={styles.card}
-          >
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center flex-1">
-                <View
-                  className="w-12 h-12 rounded-full items-center justify-center mr-3"
-                  style={{
-                    backgroundColor: isDark ? 'rgba(14, 165, 233, 0.2)' : 'rgba(14, 165, 233, 0.1)',
-                  }}
-                >
-                  <HugeiconsIcon 
-                    icon={ShieldIcon} 
-                    size={24} 
-                    color="#0ea5e9"
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text
-                    className={`text-base font-semibold mb-1 ${
-                      isDark ? 'text-gray-100' : 'text-gray-900'
-                    }`}
+        <View className={`px-6 pb-4 ${mandatory ? 'pt-6' : 'pt-20'}`}>
+          {/* Statut actuel - masqué en mode obligatoire */}
+          {!mandatory && (
+            <View
+              className={`mb-6 rounded-xl p-4 ${
+                isDark ? 'bg-[#1e293b]' : 'bg-gray-50'
+              }`}
+              style={styles.card}
+            >
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center flex-1">
+                  <View
+                    className="w-12 h-12 rounded-full items-center justify-center mr-3"
+                    style={{
+                      backgroundColor: isDark ? 'rgba(14, 165, 233, 0.2)' : 'rgba(14, 165, 233, 0.1)',
+                    }}
                   >
-                    Statut
-                  </Text>
-                  <View className="flex-row items-center">
-                    <HugeiconsIcon 
-                      icon={isEnabled ? CheckmarkCircle02Icon : Cancel01Icon} 
-                      size={16} 
-                      color={isEnabled ? '#10b981' : '#ef4444'} 
+                    <HugeiconsIcon
+                      icon={ShieldIcon}
+                      size={24}
+                      color="#0ea5e9"
                     />
+                  </View>
+                  <View className="flex-1">
                     <Text
-                      className={`ml-2 text-sm ${
-                        isDark ? 'text-gray-400' : 'text-gray-600'
+                      className={`text-base font-semibold mb-1 ${
+                        isDark ? 'text-gray-100' : 'text-gray-900'
                       }`}
                     >
-                      {isEnabled ? 'Activée' : 'Désactivée'}
+                      Statut
                     </Text>
+                    <View className="flex-row items-center">
+                      <HugeiconsIcon
+                        icon={isEnabled ? CheckmarkCircle02Icon : Cancel01Icon}
+                        size={16}
+                        color={isEnabled ? '#10b981' : '#ef4444'}
+                      />
+                      <Text
+                        className={`ml-2 text-sm ${
+                          isDark ? 'text-gray-400' : 'text-gray-600'
+                        }`}
+                      >
+                        {isEnabled ? 'Activée' : 'Désactivée'}
+                      </Text>
+                    </View>
                   </View>
                 </View>
               </View>
             </View>
-          </View>
+          )}
 
           {/* Description */}
           <View
@@ -356,14 +429,27 @@ export function TwoFactorAuthScreen() {
                       Scannez ce QR code avec Microsoft Authenticator ou entrez la clé manuellement
                     </Text>
                     <View className="items-center mb-4">
-                      <View className={`p-4 rounded-lg ${isDark ? 'bg-white' : 'bg-white'}`} style={styles.qrContainer}>
-                        <Image
-                          source={{
-                            uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(mfaSecret.otpauthUrl)}`,
-                          }}
-                          style={styles.qrCode}
-                          resizeMode="contain"
-                        />
+                      <View className="p-4 rounded-lg bg-white" style={styles.qrContainer}>
+                        {(() => {
+                          const qr = qrGenerator(0, 'M');
+                          qr.addData(mfaSecret.otpauthUrl);
+                          qr.make();
+                          const svgTag = qr.createSvgTag({ scalable: true });
+                          // Extract the inner SVG content and build a proper SVG string
+                          const moduleCount = qr.getModuleCount();
+                          const cellSize = Math.floor(200 / moduleCount);
+                          const size = cellSize * moduleCount;
+                          let rects = '';
+                          for (let row = 0; row < moduleCount; row++) {
+                            for (let col = 0; col < moduleCount; col++) {
+                              if (qr.isDark(row, col)) {
+                                rects += `<rect x="${col * cellSize}" y="${row * cellSize}" width="${cellSize}" height="${cellSize}" fill="black"/>`;
+                              }
+                            }
+                          }
+                          const svgXml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="200" height="200"><rect width="${size}" height="${size}" fill="white"/>${rects}</svg>`;
+                          return <SvgXml xml={svgXml} width={200} height={200} />;
+                        })()}
                       </View>
                       <View className="w-full mt-4">
                         <Text
@@ -429,21 +515,11 @@ export function TwoFactorAuthScreen() {
                     >
                       Entrez le code à 6 chiffres généré par Microsoft Authenticator
                     </Text>
-                    <TextInput
-                      value={verificationCode}
-                      onChangeText={(text) => setVerificationCode(text.replace(/\D/g, '').slice(0, 6))}
-                      placeholder="000000"
-                      placeholderTextColor={isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
-                      keyboardType="number-pad"
+                    <InputOTP
                       maxLength={6}
-                      className={`text-center text-2xl font-bold py-3 rounded-lg ${
-                        isDark ? 'bg-[#0f172a] text-white' : 'bg-white text-gray-900'
-                      }`}
-                      style={{
-                        letterSpacing: 8,
-                        borderWidth: 1,
-                        borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-                      }}
+                      value={verificationCode}
+                      onChange={setVerificationCode}
+                      autoFocus
                     />
                     <View className="flex-row gap-2 mt-4">
                       <TouchableOpacity
@@ -468,18 +544,20 @@ export function TwoFactorAuthScreen() {
                           </>
                         )}
                       </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setMfaSetupStep('idle');
-                          setMfaSecret(null);
-                          setVerificationCode('');
-                        }}
-                        className={`px-4 py-4 rounded-xl ${
-                          isDark ? 'bg-[#1e293b]' : 'bg-gray-100'
-                        }`}
-                      >
-                        <Text className={isDark ? 'text-gray-300' : 'text-gray-700'}>Annuler</Text>
-                      </TouchableOpacity>
+                      {!mandatory && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setMfaSetupStep('idle');
+                            setMfaSecret(null);
+                            setVerificationCode('');
+                          }}
+                          className={`px-4 py-4 rounded-xl ${
+                            isDark ? 'bg-[#1e293b]' : 'bg-gray-100'
+                          }`}
+                        >
+                          <Text className={isDark ? 'text-gray-300' : 'text-gray-700'}>Annuler</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
                 </>
@@ -571,21 +649,10 @@ export function TwoFactorAuthScreen() {
                 >
                   Pour désactiver MFA, vous devez entrer un code de votre Microsoft Authenticator
                 </Text>
-                <TextInput
-                  value={mfaDisableCode}
-                  onChangeText={(text) => setMfaDisableCode(text.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="000000"
-                  placeholderTextColor={isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
-                  keyboardType="number-pad"
+                <InputOTP
                   maxLength={6}
-                  className={`text-center text-2xl font-bold py-3 rounded-lg ${
-                    isDark ? 'bg-[#0f172a] text-white' : 'bg-white text-gray-900'
-                  }`}
-                  style={{
-                    letterSpacing: 8,
-                    borderWidth: 1,
-                    borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-                  }}
+                  value={mfaDisableCode}
+                  onChange={setMfaDisableCode}
                 />
                 <TouchableOpacity
                   onPress={handleDisable2FA}
@@ -612,6 +679,22 @@ export function TwoFactorAuthScreen() {
               </View>
             </>
           )}
+          {mandatory && (
+            <View className="mt-8">
+              <TouchableOpacity
+                onPress={handleLogout}
+                className={`rounded-xl p-4 flex-row items-center justify-center ${
+                  isDark ? 'bg-red-900/30' : 'bg-red-50'
+                }`}
+                activeOpacity={0.7}
+              >
+                <HugeiconsIcon icon={LogoutIcon} size={20} color="#ef4444" />
+                <Text className="text-base font-semibold text-red-500 ml-3">
+                  Se déconnecter
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -620,18 +703,24 @@ export function TwoFactorAuthScreen() {
 
 const styles = StyleSheet.create({
   card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...(Platform.OS === 'ios'
+      ? {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        }
+      : {}),
   },
   button: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...(Platform.OS === 'ios'
+      ? {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        }
+      : {}),
   },
   qrContainer: {
     borderWidth: 1,

@@ -29,6 +29,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { User } from "@/types";
 import api from "@/config/api";
+import { getErrorMessage } from "@/utils/get-error-message";
 
 interface SecurityQuestion {
   id?: string;
@@ -253,10 +254,7 @@ export function SecurityQuestionsScreen() {
         }
       }, 100);
     } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.error ||
-        error.message ||
-        "Impossible d'ajouter la question";
+      const errorMessage = getErrorMessage(error, "Impossible d'ajouter la question");
       if (error.response?.status === 401) {
         Alert.alert(
           "Session expirée",
@@ -319,10 +317,7 @@ export function SecurityQuestionsScreen() {
               await refreshUser();
               Alert.alert("Succès", "Question supprimée avec succès");
             } catch (error: any) {
-              const errorMessage =
-                error.response?.data?.error ||
-                error.message ||
-                "Impossible de supprimer la question";
+              const errorMessage = getErrorMessage(error, "Impossible de supprimer la question");
               if (error.response?.status === 401) {
                 Alert.alert(
                   "Session expirée",
@@ -372,10 +367,7 @@ export function SecurityQuestionsScreen() {
         // Pas d'alerte pour la désactivation
       }
     } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.error ||
-        error.message ||
-        (enabled
+      const errorMessage = getErrorMessage(error, enabled
           ? "Impossible d'activer les questions de sécurité"
           : "Impossible de désactiver les questions de sécurité");
       if (error.response?.status === 401) {
@@ -425,10 +417,7 @@ export function SecurityQuestionsScreen() {
       setEditingQuestion({ question: "", answer: "" });
       Alert.alert("Succès", "Question mise à jour avec succès");
     } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.error ||
-        error.message ||
-        "Impossible de mettre à jour la question";
+      const errorMessage = getErrorMessage(error, "Impossible de mettre à jour la question");
       if (error.response?.status === 401) {
         Alert.alert(
           "Session expirée",

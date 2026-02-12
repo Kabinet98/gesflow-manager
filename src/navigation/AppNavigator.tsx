@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { NavigationContainer, useNavigationState } from "@react-navigation/native";
 import type { NavigationState } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -27,6 +27,7 @@ import { ActivitySectorsScreen } from "@/screens/ActivitySectorsScreen";
 import { InvestmentCategoriesScreen } from "@/screens/InvestmentCategoriesScreen";
 import { TwoFactorAuthScreen } from "@/screens/TwoFactorAuthScreen";
 import { SecurityQuestionsScreen } from "@/screens/SecurityQuestionsScreen";
+import { SplashScreen } from "@/components/SplashScreen";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTheme } from "@/contexts/ThemeContext";
 import { HugeiconsIcon } from "@hugeicons/react-native";
@@ -38,6 +39,7 @@ import {
   Link03Icon,
 } from "@hugeicons/core-free-icons";
 import api from "@/config/api";
+import { navigationRef } from "@/utils/navigation";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -212,45 +214,83 @@ function MainTabs() {
   );
 }
 
+const SPLASH_MIN_MS = 1200;
+
 export function AppNavigator() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [requires2FASetup, setRequires2FASetup] = useState(false);
+  const authResultRef = useRef<boolean | null>(null);
+  const splashMinTimeElapsedRef = useRef(false);
 
   useEffect(() => {
+    const check2FAStatus = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        if (user && !user.twoFactorEnabled) {
+          setRequires2FASetup(true);
+        } else {
+          setRequires2FASetup(false);
+        }
+      } catch {
+        setRequires2FASetup(false);
+      }
+    };
+
+    const checkAuth = async () => {
+      const authenticated = await authService.isAuthenticated();
+      authResultRef.current = authenticated;
+      if (splashMinTimeElapsedRef.current) {
+        setIsAuthenticated(authenticated);
+        if (authenticated) await check2FAStatus();
+      }
+    };
+
     checkAuth();
+
+    const splashTimer = setTimeout(() => {
+      splashMinTimeElapsedRef.current = true;
+      if (authResultRef.current !== null) {
+        setIsAuthenticated(authResultRef.current);
+        if (authResultRef.current) check2FAStatus();
+      }
+    }, SPLASH_MIN_MS);
 
     // Écouter les changements d'authentification
     const handleAuthChange = async (authenticated: boolean) => {
       // Utiliser la valeur passée directement, puis vérifier pour confirmer
       setIsAuthenticated(authenticated);
-      // Vérifier l'état réel pour s'assurer de la cohérence (en arrière-plan)
-      const actualAuth = await authService.isAuthenticated();
-      if (actualAuth !== authenticated) {
-        setIsAuthenticated(actualAuth);
+      if (authenticated) {
+        // Vérifier si le 2FA doit être configuré
+        await check2FAStatus();
+      } else {
+        setRequires2FASetup(false);
       }
     };
 
     const handleAuthLogout = () => {
       setIsAuthenticated(false);
+      setRequires2FASetup(false);
+    };
+
+    const handle2FASetupComplete = () => {
+      setRequires2FASetup(false);
     };
 
     authEventEmitter.on('auth-changed', handleAuthChange);
     authEventEmitter.on('auth-logout', handleAuthLogout);
+    authEventEmitter.on('2fa-setup-complete', handle2FASetupComplete);
 
-    // Nettoyer les listeners au démontage
+    // Nettoyer les listeners et le timer au démontage
     return () => {
+      clearTimeout(splashTimer);
       authEventEmitter.off('auth-changed', handleAuthChange);
       authEventEmitter.off('auth-logout', handleAuthLogout);
+      authEventEmitter.off('2fa-setup-complete', handle2FASetupComplete);
     };
   }, []);
 
-  const checkAuth = async () => {
-    const authenticated = await authService.isAuthenticated();
-    setIsAuthenticated(authenticated);
-  };
-
   if (isAuthenticated === null) {
-    // Loading state
-    return null;
+    return <SplashScreen />;
   }
 
   const onNavStateChange = (state: NavigationState | undefined) => {
@@ -261,83 +301,91 @@ export function AppNavigator() {
   };
 
   return (
-    <NavigationContainer onStateChange={onNavStateChange}>
+    <NavigationContainer ref={navigationRef} onStateChange={onNavStateChange}>
       <MoreDrawer />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
-          <>
-            <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen 
-              name="Investments" 
-              component={InvestmentsScreen as React.ComponentType}
-              options={{ presentation: 'card' }}
-            />
-            <Stack.Screen 
-              name="Loans" 
-              component={LoansScreen as React.ComponentType}
-              options={{ presentation: 'card' }}
-            />
-            <Stack.Screen 
-              name="Dat" 
-              component={DatScreen as React.ComponentType}
-              options={{ presentation: 'card' }}
-            />
-            <Stack.Screen 
-              name="Banks" 
-              component={BanksScreen as React.ComponentType}
-              options={{ presentation: 'card' }}
-            />
-            <Stack.Screen 
-              name="Users" 
-              component={UsersScreen as React.ComponentType}
-              options={{ presentation: 'card' }}
-            />
-            <Stack.Screen 
-              name="Roles" 
-              component={RolesScreen as React.ComponentType}
-              options={{ presentation: 'card' }}
-            />
-            <Stack.Screen 
-              name="Alerts" 
-              component={AlertsScreen as React.ComponentType}
-              options={{ presentation: 'card' }}
-            />
-            <Stack.Screen 
-              name="Logs" 
-              component={LogsScreen as React.ComponentType}
-              options={{ presentation: 'card' }}
-            />
-            <Stack.Screen 
-              name="Statistics" 
-              component={StatisticsScreen as React.ComponentType}
-              options={{ presentation: 'card' }}
-            />
-            <Stack.Screen 
-              name="ActivitySectors" 
-              component={ActivitySectorsScreen as React.ComponentType}
-              options={{ presentation: 'card' }}
-            />
-            <Stack.Screen 
-              name="InvestmentCategories" 
-              component={InvestmentCategoriesScreen as React.ComponentType}
-              options={{ presentation: 'card' }}
-            />
-            <Stack.Screen 
-              name="TwoFactorAuth" 
+          requires2FASetup ? (
+            <Stack.Screen
+              name="Mandatory2FA"
               component={TwoFactorAuthScreen as React.ComponentType}
-              options={{ presentation: 'card' }}
+              initialParams={{ mandatory: true }}
             />
-            <Stack.Screen 
-              name="SecurityQuestions" 
-              component={SecurityQuestionsScreen as React.ComponentType}
-              options={{ presentation: 'card' }}
-            />
-            <Stack.Screen 
-              name="Settings" 
-              component={SettingsScreen as React.ComponentType}
-              options={{ presentation: 'card' }}
-            />
-          </>
+          ) : (
+            <>
+              <Stack.Screen name="Main" component={MainTabs} />
+              <Stack.Screen
+                name="Investments"
+                component={InvestmentsScreen as React.ComponentType}
+                options={{ presentation: 'card' }}
+              />
+              <Stack.Screen
+                name="Loans"
+                component={LoansScreen as React.ComponentType}
+                options={{ presentation: 'card' }}
+              />
+              <Stack.Screen
+                name="Dat"
+                component={DatScreen as React.ComponentType}
+                options={{ presentation: 'card' }}
+              />
+              <Stack.Screen
+                name="Banks"
+                component={BanksScreen as React.ComponentType}
+                options={{ presentation: 'card' }}
+              />
+              <Stack.Screen
+                name="Users"
+                component={UsersScreen as React.ComponentType}
+                options={{ presentation: 'card' }}
+              />
+              <Stack.Screen
+                name="Roles"
+                component={RolesScreen as React.ComponentType}
+                options={{ presentation: 'card' }}
+              />
+              <Stack.Screen
+                name="Alerts"
+                component={AlertsScreen as React.ComponentType}
+                options={{ presentation: 'card' }}
+              />
+              <Stack.Screen
+                name="Logs"
+                component={LogsScreen as React.ComponentType}
+                options={{ presentation: 'card' }}
+              />
+              <Stack.Screen
+                name="Statistics"
+                component={StatisticsScreen as React.ComponentType}
+                options={{ presentation: 'card' }}
+              />
+              <Stack.Screen
+                name="ActivitySectors"
+                component={ActivitySectorsScreen as React.ComponentType}
+                options={{ presentation: 'card' }}
+              />
+              <Stack.Screen
+                name="InvestmentCategories"
+                component={InvestmentCategoriesScreen as React.ComponentType}
+                options={{ presentation: 'card' }}
+              />
+              <Stack.Screen
+                name="TwoFactorAuth"
+                component={TwoFactorAuthScreen as React.ComponentType}
+                options={{ presentation: 'card' }}
+              />
+              <Stack.Screen
+                name="SecurityQuestions"
+                component={SecurityQuestionsScreen as React.ComponentType}
+                options={{ presentation: 'card' }}
+              />
+              <Stack.Screen
+                name="Settings"
+                component={SettingsScreen as React.ComponentType}
+                options={{ presentation: 'card' }}
+              />
+            </>
+          )
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />
         )}

@@ -33,6 +33,7 @@ import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/Switch";
 import { formatDecimalInput, formatIntegerInput } from "@/utils/numeric-input";
+import { getErrorMessage } from "@/utils/get-error-message";
 
 const CHART_COLOR = "#0ea5e9";
 
@@ -359,10 +360,7 @@ export function AlertsScreen() {
         throw new Error("Failed to save configuration");
       }
     } catch (err: any) {
-      Alert.alert(
-        "Erreur",
-        err.response?.data?.error || "Erreur lors de la sauvegarde"
-      );
+      Alert.alert("Erreur", getErrorMessage(err, "Erreur lors de la sauvegarde"));
     } finally {
       setSaving(false);
     }
@@ -682,7 +680,7 @@ export function AlertsScreen() {
                   <AlertTypeToggle
                     icon={Calendar03Icon}
                     label="Alertes d'échéance"
-                    description="Alertes pour les échéances de DAT et prêts"
+                    description="Alertes pour les échéances de Placements et prêts"
                     enabled={currentConfig.enableMaturityAlerts}
                     onChange={(enabled) =>
                       updateConfig(selectedCompanyId, {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Text, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { authService } from '@/services/auth.service';
@@ -38,7 +38,7 @@ export function Avatar() {
   };
 
   // Couleurs pour le gradient 3D bleu - utiliser la couleur des tabs (#0ea5e9)
-  const gradientColors = ['#0ea5e9', '#0284c7', '#0369a1'];
+  const gradientColors = ['#0ea5e9', '#0284c7', '#0369a1'] as const;
 
   return (
     <TouchableOpacity
@@ -71,14 +71,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#0ea5e9',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    ...(Platform.OS === 'ios' ? {
+      shadowColor: '#0ea5e9',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+    } : {}),
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.2)',

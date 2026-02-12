@@ -51,6 +51,7 @@ import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { formatDecimalInput } from "@/utils/numeric-input";
 import { writeExcelFromJson } from "@/utils/excel-secure";
+import { getErrorMessage } from "@/utils/get-error-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CHART_COLOR = "#0ea5e9";
@@ -553,11 +554,7 @@ export function InvestmentsScreen() {
       await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.error ||
-        error.message ||
-        "Une erreur est survenue";
-      Alert.alert("Erreur", errorMessage);
+      Alert.alert("Erreur", getErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -609,11 +606,7 @@ export function InvestmentsScreen() {
       await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.error ||
-        error.message ||
-        "Une erreur est survenue";
-      Alert.alert("Erreur", errorMessage);
+      Alert.alert("Erreur", getErrorMessage(error));
     } finally {
       setIsCancelling(false);
     }

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   Modal,
   ScrollView,
@@ -9,7 +10,12 @@ import {
 } from "react-native";
 import { useTheme } from "@/contexts/ThemeContext";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { ArrowDown01Icon, ArrowUp01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowDown01Icon,
+  ArrowUp01Icon,
+  Cancel01Icon,
+  Search01Icon,
+} from "@hugeicons/core-free-icons";
 
 interface SelectOption {
   label: string;
@@ -25,6 +31,7 @@ interface SelectProps {
   label?: string;
   required?: boolean;
   disabled?: boolean;
+  searchable?: boolean;
 }
 
 export const Select = function Select({
@@ -36,9 +43,11 @@ export const Select = function Select({
   label,
   required = false,
   disabled = false,
+  searchable = true,
 }: SelectProps) {
   const { isDark } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Utiliser items si fourni, sinon options, sinon tableau vide
   const selectOptions = items || options || [];
@@ -48,7 +57,19 @@ export const Select = function Select({
     (opt) => opt && opt.value && opt.label
   );
 
+  // Filtrer par recherche
+  const filteredOptions = searchQuery
+    ? validOptions.filter((opt) =>
+        opt.label.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : validOptions;
+
   const selectedOption = validOptions.find((opt) => opt.value === value);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    setSearchQuery("");
+  };
 
   return (
     <View>
@@ -106,13 +127,13 @@ export const Select = function Select({
         visible={isOpen}
         transparent
         animationType="fade"
-        onRequestClose={() => setIsOpen(false)}
+        onRequestClose={handleClose}
       >
         <View style={styles.modalOverlay}>
           <TouchableOpacity
             style={StyleSheet.absoluteFill}
             activeOpacity={1}
-            onPress={() => setIsOpen(false)}
+            onPress={handleClose}
           />
           <View
             className={`rounded-xl ${
@@ -134,7 +155,7 @@ export const Select = function Select({
                 {label || "Sélectionner"}
               </Text>
               <TouchableOpacity
-                onPress={() => setIsOpen(false)}
+                onPress={handleClose}
                 className="p-2"
                 activeOpacity={0.7}
               >
@@ -145,10 +166,53 @@ export const Select = function Select({
                 />
               </TouchableOpacity>
             </View>
+
+            {searchable && (
+              <View
+                className={`mx-4 mt-3 mb-1 flex-row items-center rounded-lg border px-3 ${
+                  isDark
+                    ? "bg-[#0f172a] border-gray-700"
+                    : "bg-gray-50 border-gray-200"
+                }`}
+                style={{ height: 42 }}
+              >
+                <HugeiconsIcon
+                  icon={Search01Icon}
+                  size={18}
+                  color={isDark ? "#6b7280" : "#9ca3af"}
+                />
+                <TextInput
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Rechercher..."
+                  placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
+                  autoFocus={false}
+                  className={`flex-1 text-sm ml-2 ${
+                    isDark ? "text-gray-100" : "text-gray-900"
+                  }`}
+                  style={{ height: 42, padding: 0 }}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchQuery("")}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <HugeiconsIcon
+                      icon={Cancel01Icon}
+                      size={16}
+                      color={isDark ? "#6b7280" : "#9ca3af"}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
             <ScrollView
               style={styles.scrollView}
               showsVerticalScrollIndicator={true}
               nestedScrollEnabled={true}
+              keyboardShouldPersistTaps="handled"
             >
               {validOptions.length === 0 ? (
                 <View className="px-6 py-8 items-center">
@@ -160,13 +224,23 @@ export const Select = function Select({
                     Aucune option disponible
                   </Text>
                 </View>
+              ) : filteredOptions.length === 0 ? (
+                <View className="px-6 py-8 items-center">
+                  <Text
+                    className={`text-sm ${
+                      isDark ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  >
+                    Aucun résultat
+                  </Text>
+                </View>
               ) : (
-                validOptions.map((option, index) => (
+                filteredOptions.map((option, index) => (
                 <TouchableOpacity
                   key={option.value || index}
                   onPress={() => {
                     onValueChange(option.value);
-                    setIsOpen(false);
+                    handleClose();
                   }}
                   className={`px-6 py-4 border-b ${
                     value === option.value
@@ -239,12 +313,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottomColor: "#e5e7eb",
-  },
   scrollView: {
     maxHeight: 400,
     minHeight: 150,
@@ -253,4 +321,3 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
 });
-

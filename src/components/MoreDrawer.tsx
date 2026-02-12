@@ -9,7 +9,7 @@ import {
   MoneyIcon, 
   Building04Icon,
   ReverseWithdrawal02Icon,
-  Coins01Icon,
+  PiggyBankIcon,
   UserRoadsideIcon,
   LockKeyIcon,
   AlertDiamondIcon,
@@ -64,9 +64,9 @@ export function MoreDrawer() {
       permission: 'loans.view',
     },
     {
-      name: 'DAT',
+      name: 'Placements',
       screen: 'Dat',
-      icon: Coins01Icon,
+      icon: PiggyBankIcon,
       permission: 'dat.view',
     },
     {

@@ -3,12 +3,13 @@ import {
   View,
   Text,
   Modal,
-  TouchableOpacity,
   ScrollView,
   StyleSheet,
   Animated,
   Dimensions,
   TouchableWithoutFeedback,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -87,61 +88,69 @@ export function Drawer({
         />
       </TouchableWithoutFeedback>
 
-      <Animated.View
-        style={[
-          styles.drawerContainer,
-          {
-            transform: [{ translateY: slideAnim }],
-            backgroundColor: isDark ? "#1e293b" : "#ffffff",
-            paddingBottom: insets.bottom,
-            maxHeight: SCREEN_HEIGHT * 0.85,
-          },
-        ]}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardAvoid}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        {/* Handle bar */}
-        <View className="items-center py-3">
-          <View
-            className="w-12 h-1 rounded-full"
-            style={{ backgroundColor: isDark ? "#374151" : "#e5e7eb" }}
-          />
-        </View>
-
-        {/* Header */}
-        {title && (
-          <View className="px-6 pb-4">
-            <Text
-              className="text-lg font-bold"
-              style={{ color: isDark ? "#f1f5f9" : "#0f172a" }}
-            >
-              {title}
-            </Text>
-          </View>
-        )}
-
-        {/* Content */}
-        <ScrollView
-          style={{ flex: 1 }}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 16 }}
-          nestedScrollEnabled={true}
+        <Animated.View
+          style={[
+            styles.drawerContainer,
+            {
+              transform: [{ translateY: slideAnim }],
+              backgroundColor: isDark ? "#1e293b" : "#ffffff",
+              paddingBottom: insets.bottom,
+              maxHeight: SCREEN_HEIGHT * 0.85,
+            },
+          ]}
         >
-          {children}
-        </ScrollView>
-
-        {/* Footer */}
-        {footer && (
-          <View
-            className="px-6 pt-4 border-t"
-            style={{
-              borderTopColor: isDark ? "#374151" : "#e5e7eb",
-              zIndex: 10,
-            }}
-            onStartShouldSetResponder={() => true}
-          >
-            {footer}
+          {/* Handle bar */}
+          <View className="items-center py-3">
+            <View
+              className="w-12 h-1 rounded-full"
+              style={{ backgroundColor: isDark ? "#374151" : "#e5e7eb" }}
+            />
           </View>
-        )}
-      </Animated.View>
+
+          {/* Header */}
+          {title && (
+            <View className="px-6 pb-4">
+              <Text
+                className="text-lg font-bold"
+                style={{ color: isDark ? "#f1f5f9" : "#0f172a" }}
+              >
+                {title}
+              </Text>
+            </View>
+          )}
+
+          {/* Content */}
+          <ScrollView
+            style={{ flex: 1 }}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 16 }}
+            nestedScrollEnabled={true}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
+            {children}
+          </ScrollView>
+
+          {/* Footer */}
+          {footer && (
+            <View
+              className="px-6 pt-4 border-t"
+              style={{
+                borderTopColor: isDark ? "#374151" : "#e5e7eb",
+                zIndex: 10,
+              }}
+              onStartShouldSetResponder={() => true}
+            >
+              {footer}
+            </View>
+          )}
+        </Animated.View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -150,6 +159,12 @@ const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  keyboardAvoid: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   drawerContainer: {
     position: "absolute",

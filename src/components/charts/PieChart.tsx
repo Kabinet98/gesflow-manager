@@ -28,7 +28,9 @@ export function PieChartComponent({ data, currency = "GNF", height = 400 }: PieC
   // S'assurer que data est un tableau valide
   const safeData = Array.isArray(data) ? data : [];
 
-  if (safeData.length === 0) {
+  const total = safeData.reduce((sum, item) => sum + (item.value || 0), 0);
+
+  if (safeData.length === 0 || total <= 0) {
     return (
       <View style={styles.container}>
         <Text style={[styles.emptyText, { color: isDark ? "#9ca3af" : "#6b7280" }]}>
@@ -37,8 +39,6 @@ export function PieChartComponent({ data, currency = "GNF", height = 400 }: PieC
       </View>
     );
   }
-
-  const total = safeData.reduce((sum, item) => sum + item.value, 0);
   
   // Calculer les angles pour chaque segment
   let currentAngle = -90; // Commencer en haut
@@ -53,28 +53,46 @@ export function PieChartComponent({ data, currency = "GNF", height = 400 }: PieC
     const startRad = (startAngle * Math.PI) / 180;
     const endRad = (endAngle * Math.PI) / 180;
     
-    const x1 = CENTER + RADIUS * Math.cos(startRad);
-    const y1 = CENTER + RADIUS * Math.sin(startRad);
-    const x2 = CENTER + RADIUS * Math.cos(endRad);
-    const y2 = CENTER + RADIUS * Math.sin(endRad);
-    
+    // Arrondir et protéger contre NaN/Infinity pour le PathParser Android
+    const r = (n: number) => {
+      if (!isFinite(n)) return 0;
+      return Math.round(n * 100) / 100;
+    };
+
+    // Ignorer les segments sans valeur
+    if (!item.value || item.value <= 0) {
+      return { ...item, pathData: '', innerPathData: '', percentage: 0, labelX: 0, labelY: 0, angle: 0 };
+    }
+
+    const x1 = r(CENTER + RADIUS * Math.cos(startRad));
+    const y1 = r(CENTER + RADIUS * Math.sin(startRad));
+    const x2 = r(CENTER + RADIUS * Math.cos(endRad));
+    const y2 = r(CENTER + RADIUS * Math.sin(endRad));
+
     const largeArcFlag = angle > 180 ? 1 : 0;
-    
+
+    // Si l'angle est ~360° (un seul segment), réduire légèrement pour éviter un arc dégénéré
+    const adjustedX2 = angle >= 359.99 ? r(CENTER + RADIUS * Math.cos(endRad - 0.01)) : x2;
+    const adjustedY2 = angle >= 359.99 ? r(CENTER + RADIUS * Math.sin(endRad - 0.01)) : y2;
+
     const pathData = [
       `M ${CENTER} ${CENTER}`,
       `L ${x1} ${y1}`,
-      `A ${RADIUS} ${RADIUS} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+      `A ${RADIUS} ${RADIUS} 0 ${largeArcFlag} 1 ${adjustedX2} ${adjustedY2}`,
       'Z',
     ].join(' ');
 
-    const innerX1 = CENTER + INNER_RADIUS * Math.cos(startRad);
-    const innerY1 = CENTER + INNER_RADIUS * Math.sin(startRad);
-    const innerX2 = CENTER + INNER_RADIUS * Math.cos(endRad);
-    const innerY2 = CENTER + INNER_RADIUS * Math.sin(endRad);
-    
+    const innerX1 = r(CENTER + INNER_RADIUS * Math.cos(startRad));
+    const innerY1 = r(CENTER + INNER_RADIUS * Math.sin(startRad));
+    const innerX2 = r(CENTER + INNER_RADIUS * Math.cos(endRad));
+    const innerY2 = r(CENTER + INNER_RADIUS * Math.sin(endRad));
+
+    const adjustedInnerX2 = angle >= 359.99 ? r(CENTER + INNER_RADIUS * Math.cos(endRad - 0.01)) : innerX2;
+    const adjustedInnerY2 = angle >= 359.99 ? r(CENTER + INNER_RADIUS * Math.sin(endRad - 0.01)) : innerY2;
+
     const innerPathData = [
       `M ${CENTER} ${CENTER}`,
-      `L ${innerX2} ${innerY2}`,
+      `L ${adjustedInnerX2} ${adjustedInnerY2}`,
       `A ${INNER_RADIUS} ${INNER_RADIUS} 0 ${largeArcFlag} 0 ${innerX1} ${innerY1}`,
       'Z',
     ].join(' ');
@@ -100,7 +118,7 @@ export function PieChartComponent({ data, currency = "GNF", height = 400 }: PieC
   return (
     <View style={styles.container}>
       <Svg width={CHART_SIZE} height={CHART_SIZE} viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`}>
-        {segments.map((segment, index) => (
+        {segments.filter(s => s.pathData).map((segment, index) => (
           <G key={`segment-${index}`}>
             {/* Arc extérieur */}
             <Path

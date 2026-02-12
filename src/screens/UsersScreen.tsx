@@ -51,6 +51,7 @@ import { formatDecimalInput } from "@/utils/numeric-input";
 import { LinearGradient } from "expo-linear-gradient";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import { getErrorMessage } from "@/utils/get-error-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CHART_COLOR = "#0ea5e9";
@@ -141,6 +142,7 @@ interface Company {
   id: string;
   name: string;
   currency: string;
+  activitySectorId?: string;
 }
 
 // Fonction helper pour obtenir les initiales d'un nom
@@ -1177,10 +1179,7 @@ export function UsersScreen() {
       setEditingUser(null);
       Alert.alert("Succès", editingUser ? "Utilisateur mis à jour" : "Utilisateur créé");
     } catch (err: any) {
-      Alert.alert(
-        "Erreur",
-        err.response?.data?.error || "Une erreur est survenue"
-      );
+      Alert.alert("Erreur", getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -1201,10 +1200,7 @@ export function UsersScreen() {
         user.active ? "Compte désactivé avec succès" : "Compte activé avec succès"
       );
     } catch (err: any) {
-      Alert.alert(
-        "Erreur",
-        err.response?.data?.error || "Erreur lors de la mise à jour"
-      );
+      Alert.alert("Erreur", getErrorMessage(err, "Erreur lors de la mise à jour"));
     }
   }, [queryClient]);
 
@@ -1223,9 +1219,6 @@ export function UsersScreen() {
       await queryClient.invalidateQueries({ queryKey: ["users"] });
       Alert.alert("Succès", "Compte dégelé avec succès");
     };
-    const getErrMsg = (e: any) =>
-      e.response?.data?.error ?? e.response?.data?.message ?? "Erreur lors du dégel du compte";
-
     try {
       await api.delete(`/api/company-managers/${cmId}/freeze`);
       await onSuccess();
@@ -1235,10 +1228,10 @@ export function UsersScreen() {
           await api.delete(`/api/users/${user.id}/company-manager/freeze`);
           await onSuccess();
         } catch (e2: any) {
-          Alert.alert("Erreur", String(getErrMsg(e2)));
+          Alert.alert("Erreur", getErrorMessage(e2, "Erreur lors du dégel du compte"));
         }
       } else {
-        Alert.alert("Erreur", String(getErrMsg(e1)));
+        Alert.alert("Erreur", getErrorMessage(e1, "Erreur lors du dégel du compte"));
       }
     }
   }, [queryClient]);
@@ -1255,9 +1248,6 @@ export function UsersScreen() {
       setReturnAmount(false);
       Alert.alert("Succès", "Compte gelé avec succès");
     };
-    const getErrMsg = (e: any) =>
-      e.response?.data?.error ?? e.response?.data?.message ?? "Erreur lors du gel du compte";
-
     setIsFreezing(true);
     try {
       await api.post(`/api/company-managers/${cmId}/freeze`, body);
@@ -1268,10 +1258,10 @@ export function UsersScreen() {
           await api.post(`/api/users/${userToFreeze.id}/company-manager/freeze`, body);
           await onSuccess();
         } catch (e2: any) {
-          Alert.alert("Erreur", String(getErrMsg(e2)));
+          Alert.alert("Erreur", getErrorMessage(e2, "Erreur lors du gel du compte"));
         }
       } else {
-        Alert.alert("Erreur", String(getErrMsg(e1)));
+        Alert.alert("Erreur", getErrorMessage(e1, "Erreur lors du gel du compte"));
       }
     } finally {
       setIsFreezing(false);
@@ -1297,11 +1287,7 @@ export function UsersScreen() {
       setDeleteConfirmation("");
       Alert.alert("Succès", "Utilisateur supprimé");
     } catch (err: any) {
-      const errorMessage =
-        err.response?.data?.error ||
-        err.response?.data?.details ||
-        "Impossible de supprimer l'utilisateur";
-      Alert.alert("Erreur", errorMessage);
+      Alert.alert("Erreur", getErrorMessage(err, "Impossible de supprimer l'utilisateur"));
     } finally {
       setIsDeleting(false);
     }
@@ -1325,7 +1311,7 @@ export function UsersScreen() {
 
       const csvContent = [
         ["Nom", "Email", "Rôle", "Entreprise", "Montant alloué", "Statut", "2FA"],
-        ...dataToExport.map((row) => [
+        ...dataToExport.map((row: Record<string, string>) => [
           row.Nom,
           row.Email,
           row.Rôle,
@@ -1335,7 +1321,7 @@ export function UsersScreen() {
           row["2FA"],
         ]),
       ]
-        .map((row) => row.map((cell) => `"${cell}"`).join(","))
+        .map((row: string[]) => row.map((cell: string) => `"${cell}"`).join(","))
         .join("\n");
 
       const filename = `utilisateurs_${new Date().toISOString().split("T")[0]}.csv`;

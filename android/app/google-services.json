@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "75397829746",
+    "project_id": "gesflow-manager-4057b",
+    "storage_bucket": "gesflow-manager-4057b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:75397829746:android:60ac88606ce6672f165eeb",
+        "android_client_info": {
+          "package_name": "com.gesflow.manager"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyATPrmJe71Y7QJEhQ1rEzZTk8VmDI2vszA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

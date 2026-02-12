@@ -38,6 +38,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Switch } from "@/components/ui/Switch";
+import { getErrorMessage } from "@/utils/get-error-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CHART_COLOR = "#0ea5e9";
@@ -267,7 +268,7 @@ export function ActivitySectorsScreen() {
       setEditingSector(null);
       Alert.alert("Succès", editingSector ? "Secteur d'activité modifié avec succès" : "Secteur d'activité créé avec succès");
     } catch (err: any) {
-      Alert.alert("Erreur", err.response?.data?.message || "Une erreur est survenue");
+      Alert.alert("Erreur", getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -296,7 +297,7 @@ export function ActivitySectorsScreen() {
       setDeleteConfirmation("");
       Alert.alert("Succès", "Secteur d'activité supprimé avec succès");
     } catch (err: any) {
-      Alert.alert("Erreur", err.response?.data?.message || "Une erreur est survenue");
+      Alert.alert("Erreur", getErrorMessage(err));
     } finally {
       setIsDeleting(false);
     }
