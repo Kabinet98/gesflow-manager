@@ -1060,7 +1060,7 @@ export function DashboardScreen() {
                         "En Attente",
                         kpis.totalPendingAmount || 0,
                         true,
-                        `${kpis.totalPendingCount || 0} dépense${
+                        `${kpis.totalPendingCount || 0} transaction${
                           (kpis.totalPendingCount || 0) !== 1 ? "s" : ""
                         }`,
                         "bg-gradient-to-br from-yellow-900/20 to-yellow-800/20",
@@ -1120,7 +1120,7 @@ export function DashboardScreen() {
                         "Validées ce Mois",
                         kpis.validatedExpensesAmount || 0,
                         true,
-                        `${kpis.validatedExpensesCount || 0} dépense${
+                        `${kpis.validatedExpensesCount || 0} transaction${
                           (kpis.validatedExpensesCount || 0) !== 1 ? "s" : ""
                         }`,
                         "bg-gradient-to-br from-green-900/20 to-green-800/20",
@@ -1154,7 +1154,7 @@ export function DashboardScreen() {
                         "Rejetées ce Mois",
                         kpis.rejectedExpensesAmount || 0,
                         true,
-                        `${kpis.rejectedExpensesCount || 0} dépense${
+                        `${kpis.rejectedExpensesCount || 0} transaction${
                           (kpis.rejectedExpensesCount || 0) !== 1 ? "s" : ""
                         }`,
                         "bg-gradient-to-br from-red-900/20 to-red-800/20",
@@ -1230,7 +1230,7 @@ export function DashboardScreen() {
                         "Total Sorties",
                         kpis.totalOutcome || 0,
                         true,
-                        "Dépenses + Investissements",
+                        "Transactions + Investissements",
                         "bg-gradient-to-br from-orange-900/20 to-orange-800/20",
                         "bg-gradient-to-br from-orange-50 to-orange-100",
                         "bg-orange-500/10",
@@ -1306,10 +1306,10 @@ export function DashboardScreen() {
                     allCards.push(
                       createCard(
                         "pendingExpenses",
-                        "Dépenses en Attente",
+                        "Transactions en Attente",
                         pendingAmount || 0,
                         true,
-                        `${kpis.pendingExpensesCount || 0} dépense${
+                        `${kpis.pendingExpensesCount || 0} transaction${
                           (kpis.pendingExpensesCount || 0) !== 1 ? "s" : ""
                         } à valider`,
                         "bg-gradient-to-br from-amber-900/20 to-amber-800/20",
@@ -1863,7 +1863,7 @@ export function DashboardScreen() {
                             isDark ? "text-gray-100" : "text-gray-900"
                           }`}
                         >
-                          Statut des Dépenses
+                          Statut des Transactions
                           {selectedYear
                             ? ` - ${selectedYear}`
                             : " (6 derniers mois)"}
@@ -1966,14 +1966,14 @@ export function DashboardScreen() {
                             isDark ? "text-gray-100" : "text-gray-900"
                           }`}
                         >
-                          Répartition des Dépenses : Famille vs Business
+                          Répartition des Transactions : Famille vs Business
                         </Text>
                         <Text
                           className={`text-sm mb-6 ${
                             isDark ? "text-gray-400" : "text-gray-600"
                           }`}
                         >
-                          Analyse comparative des dépenses par catégorie
+                          Analyse comparative des transactions par catégorie
                         </Text>
                         <PieChartComponent
                           data={(() => {

@@ -3881,7 +3881,7 @@ export function LoansScreen() {
                       Attention
                     </Text>
                     <Text className={`text-xs mt-1 ${isDark ? 'text-orange-300' : 'text-orange-700'}`}>
-                      Cette action annulera le paiement et créera une dépense avec le statut "Paiement annulé" dans les dépenses.
+                      Cette action annulera le paiement et créera une transaction avec le statut "Paiement annulé" dans les transactions.
                     </Text>
                   </View>
                 </View>

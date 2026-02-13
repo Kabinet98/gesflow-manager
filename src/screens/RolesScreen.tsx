@@ -509,7 +509,7 @@ export function RolesScreen() {
     dashboard: "Dashboard",
     companies: "Entreprises",
     "activity-sectors": "Secteurs d'activité",
-    expenses: "Dépenses",
+    expenses: "Transactions",
     "investment-categories": "Catégories d'investissements",
     investments: "Investissements",
     loans: "Emprunts",

@@ -40,6 +40,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import api from "@/config/api";
 import { navigationRef } from "@/utils/navigation";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -61,6 +62,7 @@ function MainTabs() {
   const { isDark } = useTheme();
   const { hasPermission } = usePermissions();
   const [isManager, setIsManager] = React.useState(false);
+  useNotifications();
 
   // Vérifier si l'utilisateur est un manager
   React.useEffect(() => {
@@ -156,7 +158,7 @@ function MainTabs() {
           name="Expenses"
           component={ExpensesScreen}
           options={{
-            tabBarLabel: "Dépenses",
+            tabBarLabel: "Transactions",
             tabBarIcon: ({ color, size }) => (
               <HugeiconsIcon icon={MoneyIcon} size={size || 24} color={color} />
             ),

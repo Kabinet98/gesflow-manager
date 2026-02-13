@@ -23,12 +23,13 @@ export function InputOTP({
 
   useEffect(() => {
     if (autoFocus) {
-      // Petit délai pour laisser le layout se stabiliser
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [autoFocus]);
 
   const handleChange = (text: string) => {
+    // Gère à la fois la saisie normale et le collage (paste)
+    // Le texte collé arrive en entier via onChangeText
     const numericText = text.replace(/[^0-9]/g, "").slice(0, maxLength);
     onChange(numericText);
   };
@@ -41,76 +42,80 @@ export function InputOTP({
   const activeIndex = Math.min(value.length, maxLength - 1);
 
   return (
-    <Pressable onPress={handlePress} style={styles.container}>
-      {/* TextInput caché qui gère toute la saisie */}
-      <TextInput
-        ref={inputRef}
-        value={value}
-        onChangeText={handleChange}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        keyboardType="number-pad"
-        maxLength={maxLength}
-        editable={!disabled}
-        caretHidden
-        autoComplete="one-time-code"
-        style={styles.hiddenInput}
-      />
-      {/* Slots visuels */}
-      {Array.from({ length: maxLength }).map((_, index) => {
-        const char = value[index] || "";
-        const isActive = isFocused && index === activeIndex;
-        const isFilled = !!char;
+    <View style={styles.wrapper}>
+      <Pressable onPress={handlePress} style={styles.container}>
+        {/* Slots visuels (dessous) */}
+        {Array.from({ length: maxLength }).map((_, index) => {
+          const char = value[index] || "";
+          const isActive = isFocused && index === activeIndex;
+          const isFilled = !!char;
 
-        return (
-          <View
-            key={index}
-            style={[
-              styles.slot,
-              {
-                backgroundColor: isDark
-                  ? isFilled
-                    ? "rgba(255, 255, 255, 0.15)"
-                    : "rgba(255, 255, 255, 0.07)"
-                  : isFilled
-                  ? "rgba(0, 0, 0, 0.06)"
-                  : "rgba(0, 0, 0, 0.03)",
-                borderColor: isActive
-                  ? "#0ea5e9"
-                  : isFilled
-                  ? isDark
-                    ? "rgba(255, 255, 255, 0.3)"
-                    : "rgba(0, 0, 0, 0.2)"
-                  : isDark
-                  ? "rgba(255, 255, 255, 0.12)"
-                  : "rgba(0, 0, 0, 0.1)",
-                borderWidth: isActive ? 2 : 1.5,
-              },
-            ]}
-          >
-            {isFilled && (
-              <Text
-                style={[
-                  styles.slotText,
-                  { color: isDark ? "#ffffff" : "#000000" },
-                ]}
-              >
-                {char}
-              </Text>
-            )}
-            {/* Curseur clignotant */}
-            {isActive && !isFilled && (
-              <View
-                style={[
-                  styles.cursor,
-                  { backgroundColor: "#0ea5e9" },
-                ]}
-              />
-            )}
-          </View>
-        );
-      })}
-    </Pressable>
+          return (
+            <View
+              key={index}
+              style={[
+                styles.slot,
+                {
+                  backgroundColor: isDark
+                    ? isFilled
+                      ? "rgba(255, 255, 255, 0.15)"
+                      : "rgba(255, 255, 255, 0.07)"
+                    : isFilled
+                    ? "rgba(0, 0, 0, 0.06)"
+                    : "rgba(0, 0, 0, 0.03)",
+                  borderColor: isActive
+                    ? "#0ea5e9"
+                    : isFilled
+                    ? isDark
+                      ? "rgba(255, 255, 255, 0.3)"
+                      : "rgba(0, 0, 0, 0.2)"
+                    : isDark
+                    ? "rgba(255, 255, 255, 0.12)"
+                    : "rgba(0, 0, 0, 0.1)",
+                  borderWidth: isActive ? 2 : 1.5,
+                },
+              ]}
+            >
+              {isFilled && (
+                <Text
+                  style={[
+                    styles.slotText,
+                    { color: isDark ? "#ffffff" : "#000000" },
+                  ]}
+                >
+                  {char}
+                </Text>
+              )}
+              {/* Curseur clignotant */}
+              {isActive && !isFilled && (
+                <View
+                  style={[
+                    styles.cursor,
+                    { backgroundColor: "#0ea5e9" },
+                  ]}
+                />
+              )}
+            </View>
+          );
+        })}
+
+        {/* TextInput pleine taille par-dessus les slots pour capter le long-press / paste */}
+        <TextInput
+          ref={inputRef}
+          value={value}
+          onChangeText={handleChange}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          keyboardType="number-pad"
+          textContentType="oneTimeCode"
+          autoComplete="one-time-code"
+          maxLength={maxLength}
+          editable={!disabled}
+          caretHidden
+          style={styles.overlayInput}
+        />
+      </Pressable>
+    </View>
   );
 }
 
@@ -123,6 +128,9 @@ export function InputOTPSlot({ index }: { index: number }) {
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    alignItems: "center",
+  },
   container: {
     flexDirection: "row",
     gap: 8,
@@ -132,11 +140,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     position: "relative",
   },
-  hiddenInput: {
-    position: "absolute",
-    opacity: 0,
-    width: 1,
-    height: 1,
+  overlayInput: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: Platform.OS === "android" ? 0.01 : 0,
+    color: "transparent",
+    backgroundColor: "transparent",
+    fontSize: 1,
+    zIndex: 2,
+    // Sur iOS, une taille minimale est nécessaire pour le menu contextuel
+    ...(Platform.OS === "ios"
+      ? { width: "100%", height: "100%" }
+      : {}),
   },
   group: {
     flexDirection: "row",

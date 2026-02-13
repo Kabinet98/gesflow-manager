@@ -1334,7 +1334,7 @@ export function ExpensesScreen() {
     if (isManagerAccountFrozen) {
       Alert.alert(
         "Compte gelé",
-        "Votre compte a été gelé. Vous ne pouvez plus effectuer de dépenses. Contactez l'administrateur.",
+        "Votre compte a été gelé. Vous ne pouvez plus effectuer de transactions. Contactez l'administrateur.",
       );
       return;
     }
@@ -1888,7 +1888,7 @@ export function ExpensesScreen() {
             // Afficher un message d'erreur à l'utilisateur
             Alert.alert(
               "Attention",
-              `Le fichier "${doc.title || doc.file.name}" a été uploadé dans MinIO mais n'a pas pu être associé à la dépense. L'erreur est : ${createError.response?.data?.error || createError.message}. Veuillez contacter l'administrateur.`,
+              `Le fichier "${doc.title || doc.file.name}" a été uploadé dans MinIO mais n'a pas pu être associé à la transaction. L'erreur est : ${createError.response?.data?.error || createError.message}. Veuillez contacter l'administrateur.`,
               [{ text: "OK" }],
             );
 
@@ -1995,7 +1995,7 @@ export function ExpensesScreen() {
                 } catch (createError: any) {
                   Alert.alert(
                     "Attention",
-                    `Le fichier "${doc.title || doc.file.name}" a été uploadé dans MinIO mais n'a pas pu être associé à la dépense. L'erreur est : ${createError.response?.data?.error || createError.message}. Veuillez contacter l'administrateur.`,
+                    `Le fichier "${doc.title || doc.file.name}" a été uploadé dans MinIO mais n'a pas pu être associé à la transaction. L'erreur est : ${createError.response?.data?.error || createError.message}. Veuillez contacter l'administrateur.`,
                     [{ text: "OK" }],
                   );
                 }
@@ -2188,7 +2188,7 @@ export function ExpensesScreen() {
         } catch (error: any) {
           Alert.alert(
             "Attention",
-            `La dépense a été créée mais certains documents n'ont pas pu être uploadés. ${getErrorMessage(error, "")}`,
+            `La transaction a été créée mais certains documents n'ont pas pu être uploadés. ${getErrorMessage(error, "")}`,
           );
         }
       }
@@ -2232,7 +2232,7 @@ export function ExpensesScreen() {
         // Ignorer les erreurs de calcul pour le logging
       }
       
-      let errorMessage = "Une erreur est survenue lors de la création de la dépense.";
+      let errorMessage = "Une erreur est survenue lors de la création de la transaction.";
       
       if (error.response?.status === 400) {
         // Erreur de validation
@@ -2275,7 +2275,7 @@ export function ExpensesScreen() {
       if (!filteredExpenses || filteredExpenses.length === 0) {
         Alert.alert(
           "Aucune donnée",
-          "Il n'y a aucune dépense à exporter avec les filtres actuels.",
+          "Il n'y a aucune transaction à exporter avec les filtres actuels.",
         );
         return;
       }
@@ -2336,7 +2336,7 @@ export function ExpensesScreen() {
         let useExcel = false;
 
         try {
-          fileContent = await writeExcelFromJson(exportData, "Dépenses");
+          fileContent = await writeExcelFromJson(exportData, "Transactions");
           filename = `depenses_${new Date().toISOString().split("T")[0]}.xlsx`;
           mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
           useExcel = true;
@@ -2668,7 +2668,7 @@ export function ExpensesScreen() {
               <Text className="font-semibold">
                 {formatAmountUtil(frozenAmount ?? 0, frozenCurrency, isAmountVisible)}
               </Text>
-              . Vous ne pouvez pas effectuer de nouvelles dépenses.
+              . Vous ne pouvez pas effectuer de nouvelles transactions.
             </Text>
           </View>
         )}
@@ -2842,8 +2842,8 @@ export function ExpensesScreen() {
                     endDate ||
                     minAmount ||
                     maxAmount
-                      ? "Aucune dépense trouvée"
-                      : "Aucune dépense disponible"}
+                      ? "Aucune transaction trouvée"
+                      : "Aucune transaction disponible"}
                   </Text>
                 </View>
               ) : (
@@ -4099,7 +4099,7 @@ export function ExpensesScreen() {
             setExpenseDocuments([]);
           }
         }}
-        title={editingExpense ? "Modifier la dépense" : "Nouvelle dépense"}
+        title={editingExpense ? "Modifier la transaction" : "Nouvelle transaction"}
         footer={
           <View className="flex-row gap-3">
             <TouchableOpacity
@@ -4723,7 +4723,7 @@ export function ExpensesScreen() {
                     isDark ? "text-gray-100" : "text-gray-900"
                   }`}
                 >
-                  Détails de la dépense
+                  Détails de la transaction
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
@@ -5027,8 +5027,8 @@ export function ExpensesScreen() {
                 >
                   {expenseToValidate && validationAction
                     ? validationAction === "approve"
-                      ? "Valider la dépense"
-                      : "Rejeter la dépense"
+                      ? "Valider la transaction"
+                      : "Rejeter la transaction"
                     : ""}
                 </Text>
                 <TouchableOpacity
@@ -5079,7 +5079,7 @@ export function ExpensesScreen() {
                   >
                     {validationAction === "approve" ? (
                       <>
-                        Êtes-vous sûr de vouloir valider cette dépense de{" "}
+                        Êtes-vous sûr de vouloir valider cette transaction de{" "}
                         <Text className="font-semibold">
                           {expenseToValidate?.company?.name || "N/A"}
                         </Text>
@@ -5087,11 +5087,11 @@ export function ExpensesScreen() {
                       </>
                     ) : (
                       <>
-                        Êtes-vous sûr de vouloir rejeter cette dépense de{" "}
+                        Êtes-vous sûr de vouloir rejeter cette transaction de{" "}
                         <Text className="font-semibold">
                           {expenseToValidate?.company?.name || "N/A"}
                         </Text>
-                        . La dépense sera annulée.
+                        . La transaction sera annulée.
                       </>
                     )}
                   </Text>

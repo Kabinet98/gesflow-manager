@@ -945,14 +945,6 @@ export function CompaniesScreen() {
       Alert.alert("Erreur", "Le RCCM est requis");
       return;
     }
-    const rccmRegex = /^RCCM-[A-Z]{2}-[A-Z]{2,5}-\d{4}-[A-Z]-\d{1,10}$/;
-    if (!rccmRegex.test(formData.registrationNumber.trim().toUpperCase())) {
-      Alert.alert(
-        "Format RCCM invalide",
-        "Le format attendu est : RCCM-CC-VVV-YYYY-X-NNNNN\n\nExemple : RCCM-GN-KAL-2024-B-12345"
-      );
-      return;
-    }
     if (!formData.countryId) {
       Alert.alert("Erreur", "Le pays est requis");
       return;
@@ -1308,7 +1300,7 @@ export function CompaniesScreen() {
                     </Text>
                   </View>
 
-                  {/* Dépenses */}
+                  {/* Transactions */}
                   <View
                     style={{ width: columnWidths.expenses }}
                     className="px-3 py-3"
@@ -1318,7 +1310,7 @@ export function CompaniesScreen() {
                         isDark ? "text-gray-400" : "text-gray-500"
                       }`}
                     >
-                      Dépenses
+                      Transactions
                     </Text>
                   </View>
 
@@ -1568,7 +1560,7 @@ export function CompaniesScreen() {
                             </View>
                           </View>
 
-                          {/* Dépenses */}
+                          {/* Transactions */}
                           <View
                             style={{ width: columnWidths.expenses }}
                             className="px-3 py-4 justify-center"
@@ -1792,7 +1784,7 @@ export function CompaniesScreen() {
                 onChangeText={(text) =>
                   setFormData({ ...formData, registrationNumber: text.toUpperCase() })
                 }
-                placeholder="RCCM-GN-KAL-2024-B-12345"
+                placeholder="Entrez le RCCM"
                 placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
                 autoCapitalize="characters"
                 className={`px-4 py-3 rounded-lg border ${
@@ -1807,9 +1799,6 @@ export function CompaniesScreen() {
                   minHeight: 48,
                 }}
               />
-              <Text className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                Format : RCCM-CC-VVV-YYYY-X-NNNNN
-              </Text>
             </View>
 
             {/* Pays (même source que GesFlow : world-countries) */}
@@ -1974,10 +1963,10 @@ export function CompaniesScreen() {
               />
             </View>
 
-            {/* Seuil de dépenses */}
+            {/* Seuil de transactions */}
             <View>
               <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Seuil de dépenses
+                Seuil de transactions
               </Text>
               <TextInput
                 value={formData.expenseThreshold}
@@ -2409,7 +2398,7 @@ export function CompaniesScreen() {
                             isDark ? "text-gray-400" : "text-gray-600"
                           }`}
                         >
-                          Seuil de dépenses
+                          Seuil de transactions
                         </Text>
                         <Text
                           className={`text-sm font-medium ${
@@ -2440,7 +2429,7 @@ export function CompaniesScreen() {
                               isDark ? "text-gray-400" : "text-gray-600"
                             }`}
                           >
-                            Dépenses
+                            Transactions
                           </Text>
                           <Text
                             className={`text-lg font-bold ${

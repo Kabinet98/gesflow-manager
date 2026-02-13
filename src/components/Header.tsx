@@ -39,7 +39,7 @@ export function Header({ yearFilter, onOpenFilters, hasFilters, activeFiltersCou
     const titleMap: Record<string, string> = {
       Dashboard: "Dashboard",
       Companies: "Entreprises",
-      Expenses: "Dépenses",
+      Expenses: "Transactions",
       Investments: "Investissements",
       Loans: "Emprunts",
       Dat: "Placements",

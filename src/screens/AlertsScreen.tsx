@@ -541,7 +541,7 @@ export function AlertsScreen() {
                         isDark ? "text-gray-300" : "text-gray-700"
                       }`}
                     >
-                      Seuil de dépenses (GNF)
+                      Seuil de transactions (GNF)
                     </Text>
                     <TextInput
                       value={
@@ -574,7 +574,7 @@ export function AlertsScreen() {
                         isDark ? "text-gray-500" : "text-gray-500"
                       }`}
                     >
-                      Alerte lorsque les dépenses mensuelles dépassent ce montant
+                      Alerte lorsque les transactions mensuelles dépassent ce montant
                     </Text>
                   </View>
 
@@ -655,8 +655,8 @@ export function AlertsScreen() {
                 <View className="gap-3">
                   <AlertTypeToggle
                     icon={MoneySend01Icon}
-                    label="Alertes de dépenses"
-                    description="Alertes lorsque les dépenses dépassent le seuil"
+                    label="Alertes de transactions"
+                    description="Alertes lorsque les transactions dépassent le seuil"
                     enabled={currentConfig.enableExpenseAlerts}
                     onChange={(enabled) =>
                       updateConfig(selectedCompanyId, {
