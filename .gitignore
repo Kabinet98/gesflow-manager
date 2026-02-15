@@ -233,4 +233,5 @@ google-service-account.json
 # Google Services (Firebase config - never commit!)
 google-services.json
 **/google-services.json
+gesflow-manager-4057b-firebase-adminsdk-fbsvc-5d793ee2b1.json
 

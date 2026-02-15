@@ -2905,15 +2905,9 @@ export function ExpensesScreen() {
                     !shouldHideAllActions &&
                     canManagerActOnExpense(expense) &&
                     canCancelExpense(expense);
-                  // Bouton View pour les admins - afficher pour les dépenses en attente (comme GesFlow, pas pour paiement emprunt)
+                  // Bouton View pour tous (admin et manager), toute dépense non annulée — toujours visible sans limite de temps
                   const hasViewAction =
-                    !shouldHideAllActions &&
-                    !isManager &&
-                    canUpdate &&
-                    expense.validationStatus === "PENDING" &&
-                    expense.type === "OUTCOME" &&
-                    expense.status !== "CANCELLED" &&
-                    !isLoanPayment;
+                    expense.status !== "CANCELLED";
                   const hasAnyAction =
                     hasEditAction || hasCancelAction || hasViewAction;
 
@@ -4789,14 +4783,13 @@ export function ExpensesScreen() {
                         >
                           Montant
                         </Text>
-                        <BlurredAmount
-                          amount={expenseToView.amount}
-                          currency={expenseToView.currency}
-                          prefix=""
-                          textClassName={`text-sm font-semibold ${
+                        <Text
+                          className={`text-sm font-semibold ${
                             isDark ? "text-white" : "text-gray-900"
                           }`}
-                        />
+                        >
+                          {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: expenseToView.currency }).format(expenseToView.amount)}
+                        </Text>
                       </View>
                       <View className="flex-1 ml-2">
                         <Text
@@ -4862,6 +4855,45 @@ export function ExpensesScreen() {
                         </Text>
                       </View>
                     )}
+                  </View>
+
+                  {/* Statut de validation */}
+                  <View className="mb-4">
+                    <View className="flex-row items-center gap-2">
+                      <Text
+                        className={`text-xs mb-1 ${
+                          isDark ? "text-gray-400" : "text-gray-600"
+                        }`}
+                      >
+                        Statut de validation:
+                      </Text>
+                      <View
+                        className="px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor:
+                            getValidationStatusColor(expenseToView.validationStatus) + "20",
+                        }}
+                      >
+                        <Text
+                          className="text-xs font-semibold"
+                          style={{
+                            color: getValidationStatusColor(expenseToView.validationStatus),
+                          }}
+                        >
+                          {getValidationStatusLabel(expenseToView.validationStatus)}
+                        </Text>
+                      </View>
+                    </View>
+                    {expenseToView.validationStatus === "REJECTED" &&
+                      (expenseToView as any).rejectionReason && (
+                        <Text
+                          className={`text-xs mt-1 ${
+                            isDark ? "text-red-400" : "text-red-600"
+                          }`}
+                        >
+                          Raison: {(expenseToView as any).rejectionReason}
+                        </Text>
+                      )}
                   </View>
 
                   {/* Documents associés */}
@@ -5110,14 +5142,13 @@ export function ExpensesScreen() {
                       >
                         Montant:
                       </Text>
-                      <BlurredAmount
-                        amount={expenseToValidate?.amount || 0}
-                        currency={expenseToValidate?.currency || "GNF"}
-                        prefix=""
-                        textClassName={`text-xs font-semibold ${
+                      <Text
+                        className={`text-xs font-semibold ${
                           isDark ? "text-gray-100" : "text-gray-900"
                         }`}
-                      />
+                      >
+                        {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: expenseToValidate?.currency || "GNF" }).format(expenseToValidate?.amount || 0)}
+                      </Text>
                     </View>
                     <View className="flex-row justify-between">
                       <Text
@@ -5225,67 +5256,70 @@ export function ExpensesScreen() {
                     </View>
                   )}
 
-                  {/* Boutons */}
-                  <View className="flex-row gap-3">
-                    <TouchableOpacity
-                      onPress={handleValidateExpense}
-                      disabled={
-                        isValidating ||
-                        (validationAction === "reject" &&
-                          !rejectionReason.trim())
-                      }
-                      className={`flex-1 py-3 rounded-full items-center ${
-                        validationAction === "approve"
-                          ? "bg-green-600"
-                          : "bg-red-600"
-                      }`}
-                      style={{
-                        opacity:
-                          isValidating ||
-                          (validationAction === "reject" &&
-                            !rejectionReason.trim())
-                            ? 0.5
-                            : 1,
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      {isValidating ? (
-                        <ActivityIndicator size="small" color="#ffffff" />
-                      ) : (
-                        <Text className="text-white font-semibold">
-                          {validationAction === "approve"
-                            ? "Valider"
-                            : "Rejeter"}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setShowValidationModal(false);
-                        setExpenseToValidate(null);
-                        setValidationAction(null);
-                        setRejectionReason("");
-                      }}
-                      disabled={isValidating}
-                      className={`flex-1 py-3 rounded-full items-center border ${
-                        isDark
-                          ? "border-gray-600 bg-[#1e293b]"
-                          : "border-gray-300 bg-white"
-                      }`}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        className={`font-semibold ${
-                          isDark ? "text-gray-300" : "text-gray-700"
-                        }`}
-                      >
-                        Annuler
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
                 </>
               )}
             </ScrollView>
+
+            {/* Boutons - en dehors du ScrollView pour rester toujours visibles */}
+            {expenseToValidate && validationAction && (
+              <View className="flex-row gap-3 pt-4">
+                <TouchableOpacity
+                  onPress={handleValidateExpense}
+                  disabled={
+                    isValidating ||
+                    (validationAction === "reject" &&
+                      !rejectionReason.trim())
+                  }
+                  className={`flex-1 py-3 rounded-full items-center ${
+                    validationAction === "approve"
+                      ? "bg-green-600"
+                      : "bg-red-600"
+                  }`}
+                  style={{
+                    opacity:
+                      isValidating ||
+                      (validationAction === "reject" &&
+                        !rejectionReason.trim())
+                        ? 0.5
+                        : 1,
+                  }}
+                  activeOpacity={0.8}
+                >
+                  {isValidating ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Text className="text-white font-semibold">
+                      {validationAction === "approve"
+                        ? "Valider"
+                        : "Rejeter"}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowValidationModal(false);
+                    setExpenseToValidate(null);
+                    setValidationAction(null);
+                    setRejectionReason("");
+                  }}
+                  disabled={isValidating}
+                  className={`flex-1 py-3 rounded-full items-center border ${
+                    isDark
+                      ? "border-gray-600 bg-[#1e293b]"
+                      : "border-gray-300 bg-white"
+                  }`}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    className={`font-semibold ${
+                      isDark ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Annuler
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </TouchableOpacity>
       </Modal>

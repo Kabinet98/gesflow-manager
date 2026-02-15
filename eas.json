@@ -19,8 +19,15 @@
     },
     "preview": {
       "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "API_BASE_URL": "https://godisone.fr",
+        "APP_ENV": "production"
       }
     },
     "production": {

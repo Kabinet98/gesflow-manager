@@ -29,7 +29,7 @@ export default {
       edgeToEdgeEnabled: true,
       // Garde le champ de saisie visible quand le clavier s'ouvre
       softwareKeyboardLayoutMode: "resize",
-      googleServicesFile: "./android/app/google-services.json"
+      googleServicesFile: "./google-services.json"
     },
     plugins: [
       [

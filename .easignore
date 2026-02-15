@@ -93,21 +93,21 @@ temp/
 .gitignore
 .gitattributes
 
-# Other project directories (si présents)
-GesFlow/
-gespla/
-E_vote/
-Elections/
-Feguifoot/
-GED/
-GesFlowManagerNew/
-GesProj/
-"Gestion des plaintes/"
-"Projets DG/"
-"Seaclub projects/"
-SSO/
-Ufcc-admin/
-constitution-app/
+# Other project directories (préfixer avec / pour matcher uniquement à la racine)
+/GesFlow/
+/gespla/
+/E_vote/
+/Elections/
+/Feguifoot/
+/GED/
+/GesFlowManagerNew/
+/GesProj/
+/Gestion des plaintes/
+/Projets DG/
+/Seaclub projects/
+/SSO/
+/Ufcc-admin/
+/constitution-app/
 
 # Public assets non nécessaires (si trop volumineux)
 public/uploads/

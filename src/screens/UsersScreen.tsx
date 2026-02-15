@@ -1211,58 +1211,32 @@ export function UsersScreen() {
     setShowFreezeDrawer(true);
   }, []);
 
-  // Dégeler le compte — compatible avec les deux routes backend possibles
+  // Dégeler le compte
   const handleUnfreeze = useCallback(async (user: User) => {
     if (!user.companyManager) return;
-    const cmId = user.companyManager.id;
-    const onSuccess = async () => {
+    try {
+      await api.delete(`/api/users/${user.id}/company-manager/freeze`);
       await queryClient.invalidateQueries({ queryKey: ["users"] });
       Alert.alert("Succès", "Compte dégelé avec succès");
-    };
-    try {
-      await api.delete(`/api/company-managers/${cmId}/freeze`);
-      await onSuccess();
-    } catch (e1: any) {
-      if (e1.response?.status === 404 || e1.response?.status === 401) {
-        try {
-          await api.delete(`/api/users/${user.id}/company-manager/freeze`);
-          await onSuccess();
-        } catch (e2: any) {
-          Alert.alert("Erreur", getErrorMessage(e2, "Erreur lors du dégel du compte"));
-        }
-      } else {
-        Alert.alert("Erreur", getErrorMessage(e1, "Erreur lors du dégel du compte"));
-      }
+    } catch (error: any) {
+      Alert.alert("Erreur", getErrorMessage(error, "Erreur lors du dégel du compte"));
     }
   }, [queryClient]);
 
-  // Gel du compte — compatible avec les deux routes backend possibles, body minimal
+  // Gel du compte
   const handleConfirmFreeze = useCallback(async () => {
     if (!userToFreeze?.companyManager) return;
-    const cmId = userToFreeze.companyManager.id;
     const body = { returnAmount: !!returnAmount };
-    const onSuccess = async () => {
+    setIsFreezing(true);
+    try {
+      await api.post(`/api/users/${userToFreeze.id}/company-manager/freeze`, body);
       await queryClient.invalidateQueries({ queryKey: ["users"] });
       setShowFreezeDrawer(false);
       setUserToFreeze(null);
       setReturnAmount(false);
       Alert.alert("Succès", "Compte gelé avec succès");
-    };
-    setIsFreezing(true);
-    try {
-      await api.post(`/api/company-managers/${cmId}/freeze`, body);
-      await onSuccess();
-    } catch (e1: any) {
-      if (e1.response?.status === 404 || e1.response?.status === 401) {
-        try {
-          await api.post(`/api/users/${userToFreeze.id}/company-manager/freeze`, body);
-          await onSuccess();
-        } catch (e2: any) {
-          Alert.alert("Erreur", getErrorMessage(e2, "Erreur lors du gel du compte"));
-        }
-      } else {
-        Alert.alert("Erreur", getErrorMessage(e1, "Erreur lors du gel du compte"));
-      }
+    } catch (error: any) {
+      Alert.alert("Erreur", getErrorMessage(error, "Erreur lors du gel du compte"));
     } finally {
       setIsFreezing(false);
     }

@@ -37,19 +37,6 @@ const TOKEN_REVALIDATION_MS = 7 * 24 * 60 * 60 * 1000;
 /** Nombre max de tentatives de retry. */
 const MAX_RETRIES = 3;
 
-function logNotif(message: string, data?: unknown) {
-  if (__DEV__) {
-    console.log(`[Notifications] ${message}`, data ?? '');
-  }
-}
-
-function logNotifError(message: string, error: unknown) {
-  const msg = error instanceof Error ? error.message : String(error);
-  if (__DEV__) {
-    console.error(`[Notifications] ${message}:`, msg);
-  }
-}
-
 /** Délai exponentiel : 2s, 4s, 8s */
 function retryDelay(attempt: number): number {
   return Math.min(2000 * Math.pow(2, attempt), 8000);
@@ -66,11 +53,9 @@ class NotificationsService {
   async initialize(): Promise<void> {
     try {
       if (!Device.isDevice) {
-        logNotif('Ignoré: pas un appareil physique');
         return;
       }
 
-      // Demander les permissions (iOS et Android)
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
 
@@ -100,7 +85,6 @@ class NotificationsService {
 
         if (finalStatus !== 'granted') {
           await AsyncStorage.setItem(STORAGE_KEYS.PERMISSION_DENIED, 'true');
-          logNotif('Permission refusée par l\'utilisateur');
           return;
         }
 
@@ -142,7 +126,7 @@ class NotificationsService {
         }
       }
     } catch (error) {
-      logNotifError('Échec initialisation', error);
+      console.error('[Notifications] Échec initialisation', error);
     }
   }
 
@@ -178,7 +162,7 @@ class NotificationsService {
         Constants.expoConfig?.extra?.projectId;
 
       if (!projectId && Platform.OS === 'ios') {
-        logNotifError('Project ID manquant', 'Requis pour iOS');
+        console.error('[Notifications] Project ID manquant');
         return null;
       }
 
@@ -187,7 +171,6 @@ class NotificationsService {
       });
 
       if (!token || !token.data) {
-        logNotifError('Token vide', 'getExpoPushTokenAsync a retourné null');
         return null;
       }
 
@@ -207,7 +190,7 @@ class NotificationsService {
         platform: Platform.OS as 'ios' | 'android',
       };
     } catch (error) {
-      logNotifError('Échec obtention token', error);
+      console.error('[Notifications] Échec obtention token', error);
       return null;
     }
   }
@@ -218,7 +201,6 @@ class NotificationsService {
   async registerTokenWithRetry(tokenData: PushNotificationToken): Promise<void> {
     // Vérifier le cooldown pour éviter le spam
     if (await this.isWithinCooldown(tokenData.token)) {
-      logNotif('Enregistrement ignoré: cooldown actif');
       return;
     }
 
@@ -233,26 +215,23 @@ class NotificationsService {
         await AsyncStorage.setItem(STORAGE_KEYS.PUSH_TOKEN, tokenData.token);
         await AsyncStorage.setItem(STORAGE_KEYS.TOKEN_REGISTERED_AT, Date.now().toString());
         this.isRegistered = true;
-        logNotif('Token enregistré avec succès');
         return;
-      } catch (error) {
-        logNotifError(`Échec enregistrement (tentative ${attempt + 1}/${MAX_RETRIES})`, error);
+      } catch (error: any) {
+        console.error(`[Notifications] Échec enregistrement (${attempt + 1}/${MAX_RETRIES})`, error?.response?.status, error?.message);
         if (attempt < MAX_RETRIES - 1) {
           await new Promise(resolve => setTimeout(resolve, retryDelay(attempt)));
         }
       }
     }
 
-    logNotifError('Enregistrement abandonné après retries', `${MAX_RETRIES} tentatives`);
+    console.error(`[Notifications] Enregistrement abandonné après ${MAX_RETRIES} tentatives`);
   }
 
   /**
    * Configure les listeners de notifications
    */
   private setupNotificationListeners(): void {
-    Notifications.addNotificationReceivedListener((notification) => {
-      logNotif('Notification reçue en foreground', notification.request.content.title);
-    });
+    Notifications.addNotificationReceivedListener(() => {});
 
     Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
@@ -306,9 +285,8 @@ class NotificationsService {
       this.token = null;
       this.deviceId = null;
       this.isRegistered = false;
-      logNotif('Token désinscrit');
     } catch (error) {
-      logNotifError('Échec désinscription token', error);
+      console.error('[Notifications] Échec désinscription token', error);
     }
   }
 
