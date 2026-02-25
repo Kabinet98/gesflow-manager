@@ -21,6 +21,11 @@ export interface User {
   };
   createdAt: string;
   lastLogin?: string;
+  /** Workspace de l'utilisateur (retourné par /api/users/me) */
+  workspace?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface Permission {

@@ -10,6 +10,7 @@ import {
   Building04Icon,
   ReverseWithdrawal02Icon,
   PiggyBankIcon,
+  LockerIcon,
   UserRoadsideIcon,
   LockKeyIcon,
   AlertDiamondIcon,
@@ -68,6 +69,12 @@ export function MoreDrawer() {
       screen: 'Dat',
       icon: PiggyBankIcon,
       permission: 'dat.view',
+    },
+    {
+      name: 'Coffre-fort',
+      screen: 'Vault',
+      icon: LockerIcon,
+      permission: 'vault.view',
     },
     {
       name: 'Banques',

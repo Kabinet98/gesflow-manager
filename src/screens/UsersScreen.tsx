@@ -2161,13 +2161,13 @@ export function UsersScreen() {
                   >
                     Solde non consommé (disponible):
                   </Text>
-                  <BlurredAmount
-                    amount={userToFreeze.companyManager.availableBalance}
-                    currency={userToFreeze.companyManager.company.currency || "GNF"}
+                  <Text
                     className={`text-sm font-semibold ${
                       isDark ? "text-gray-100" : "text-gray-900"
                     }`}
-                  />
+                  >
+                    {new Intl.NumberFormat("fr-FR", { style: "currency", currency: userToFreeze.companyManager.company.currency || "GNF", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(userToFreeze.companyManager.availableBalance)}
+                  </Text>
                 </View>
                 <View className="flex-row items-center justify-between">
                   <Text
@@ -2177,13 +2177,13 @@ export function UsersScreen() {
                   >
                     Montant alloué:
                   </Text>
-                  <BlurredAmount
-                    amount={userToFreeze.companyManager.allocatedAmount}
-                    currency={userToFreeze.companyManager.company.currency || "GNF"}
+                  <Text
                     className={`text-sm font-semibold ${
                       isDark ? "text-gray-100" : "text-gray-900"
                     }`}
-                  />
+                  >
+                    {new Intl.NumberFormat("fr-FR", { style: "currency", currency: userToFreeze.companyManager.company.currency || "GNF", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(userToFreeze.companyManager.allocatedAmount)}
+                  </Text>
                 </View>
               </View>
             </View>

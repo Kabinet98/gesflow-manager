@@ -43,6 +43,7 @@ export function Header({ yearFilter, onOpenFilters, hasFilters, activeFiltersCou
       Investments: "Investissements",
       Loans: "Emprunts",
       Dat: "Placements",
+      Vault: "Coffre-fort",
       Banks: "Banques",
       Users: "Utilisateurs",
       Roles: "Rôles & Permissions",

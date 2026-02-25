@@ -1,9 +1,9 @@
 import React, { useEffect } from "react";
-import { StatusBar, AppState, AppStateStatus, View } from "react-native";
+import { StatusBar, AppState, AppStateStatus, View, Platform } from "react-native";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { AmountVisibilityProvider } from "@/contexts/AmountVisibilityContext";
 import { AppNavigator } from "@/navigation/AppNavigator";
 import { setAuditLogsInvalidator } from "@/services/audit.service";
@@ -87,6 +87,18 @@ function PendingCountRefetchOnActive() {
   return null;
 }
 
+/** StatusBar toujours visible et adaptée au thème (heure, batterie lisibles en dark/light). */
+function StatusBarThemed() {
+  const { isDark } = useTheme();
+  return (
+    <StatusBar
+      barStyle={isDark ? "light-content" : "dark-content"}
+      backgroundColor={isDark ? "#0f172a" : "#ffffff"}
+      translucent={Platform.OS === "android"}
+    />
+  );
+}
+
 export default function App() {
   const [appState, setAppState] = React.useState<AppStateStatus>(
     AppState.currentState
@@ -143,8 +155,6 @@ export default function App() {
       screenshotDetector.destroy();
       const { authEventEmitter } = require('@/config/api');
       authEventEmitter.off('auth-changed', handleAuthChange);
-      // Supprimer le token de notification lors de la déconnexion
-      notificationsService.unregisterToken();
     };
   }, [appState]);
 
@@ -156,13 +166,15 @@ export default function App() {
           <PendingCountRefetchOnActive />
           <ThemeProvider>
             <AmountVisibilityProvider>
-              <StatusBar barStyle="default" />
               {isVideoRecording ? (
                 <View style={{ flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' }}>
                   <StatusBar barStyle="light-content" backgroundColor="#000000" />
                 </View>
               ) : (
-                <AppNavigator />
+                <>
+                  <StatusBarThemed />
+                  <AppNavigator />
+                </>
               )}
             </AmountVisibilityProvider>
           </ThemeProvider>

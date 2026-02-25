@@ -78,32 +78,50 @@ api.interceptors.request.use(
   }
 );
 
+// Compteur de 401 consécutifs avec token valide (détection compte désactivé)
+let consecutive401Count = 0;
+let isLoggingOut = false;
+
 // Intercepteur pour gérer les erreurs
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Réponse réussie → réinitialiser le compteur
+    consecutive401Count = 0;
+    return response;
+  },
   async (error) => {
-    // Ne pas déconnecter l'utilisateur si skipAuthError est défini
     const skipAuthError = error.config?.skipAuthError;
-    
-    if (error.response?.status === 401 && !skipAuthError) {
-      // Vérifier si le token est vraiment expiré avant de déconnecter
-      // Cela évite de déconnecter lors d'erreurs réseau temporaires
+
+    if (error.response?.status === 401 && !skipAuthError && !isLoggingOut) {
       try {
         const token = await getSecureItem('auth_token');
-        
-        // Seulement déconnecter si le token est vraiment expiré
-        if (token && authService.isTokenExpired(token)) {
-          await deleteSecureItem('auth_token');
-          await AsyncStorage.removeItem('user_id');
-          await AsyncStorage.removeItem('user'); // Nettoyer l'ancien format si présent
-          // Émettre un événement pour notifier la déconnexion
-          authEventEmitter.emit('auth-logout');
+
+        if (token) {
+          if (authService.isTokenExpired(token)) {
+            // Token expiré → déconnecter immédiatement
+            isLoggingOut = true;
+            await deleteSecureItem('auth_token');
+            await AsyncStorage.removeItem('user_id');
+            await AsyncStorage.removeItem('user');
+            authEventEmitter.emit('auth-logout');
+            isLoggingOut = false;
+          } else {
+            // Token valide mais rejeté → le serveur refuse (compte désactivé ?)
+            consecutive401Count++;
+            if (consecutive401Count >= 3) {
+              // 3 rejets consécutifs avec token valide → forcer la déconnexion
+              consecutive401Count = 0;
+              isLoggingOut = true;
+              await deleteSecureItem('auth_token');
+              await AsyncStorage.removeItem('user_id');
+              await AsyncStorage.removeItem('user');
+              authEventEmitter.emit('auth-logout');
+              isLoggingOut = false;
+            }
+          }
         }
-        // Si le token n'est pas expiré, c'est probablement une erreur réseau temporaire
-        // Ne pas déconnecter l'utilisateur
       } catch (e) {
-        // En cas d'erreur lors de la vérification, ne pas déconnecter
-        // C'est probablement une erreur réseau temporaire
+        isLoggingOut = false;
       }
     }
     return Promise.reject(error);

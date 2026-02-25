@@ -230,8 +230,10 @@ security-audit.json
 google-service-account.json
 *-service-account*.json
 
-# Google Services (Firebase config - never commit!)
+# Google Services / Firebase config (never commit - contain API keys)
 google-services.json
 **/google-services.json
+android/app/google-services.json
+ios/GoogleService-Info.plist
 gesflow-manager-4057b-firebase-adminsdk-fbsvc-5d793ee2b1.json
 

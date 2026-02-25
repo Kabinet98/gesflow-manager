@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Platform, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { authService } from '@/services/auth.service';
+import { api } from '@/config/api';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { AmountVisibilityToggle } from '@/components/AmountVisibilityToggle';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Drawer } from '@/components/ui/Drawer';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { REFRESH_CONTROL_COLOR } from '@/constants/layout';
 import { LinearGradient } from 'expo-linear-gradient';
 import { HugeiconsIcon } from '@hugeicons/react-native';
@@ -24,6 +26,9 @@ import {
   CheckmarkCircle02Icon,
   Cancel01Icon,
   AlertDiamondIcon,
+  Building04Icon,
+  Edit01Icon,
+  KeyIcon,
 } from '@hugeicons/core-free-icons';
 import { User } from '@/types';
 
@@ -43,6 +48,36 @@ export function SettingsScreen() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Édition profil
+  const [showEditNameDrawer, setShowEditNameDrawer] = useState(false);
+  const [showEditWorkspaceDrawer, setShowEditWorkspaceDrawer] = useState(false);
+  const [showPasswordDrawer, setShowPasswordDrawer] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editWorkspaceName, setEditWorkspaceName] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [savingWorkspace, setSavingWorkspace] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const isAdmin = (user?.role?.name?.toLowerCase() || '').includes('admin') || (user?.role?.name?.toLowerCase() || '') === 'administrateur';
+
+  // Workspace : plusieurs formats possibles selon le backend
+  const [workspaceNameFromApi, setWorkspaceNameFromApi] = useState<string | null>(null);
+  const workspaceName = (() => {
+    const u = user as any;
+    return (
+      u?.workspace?.name ??
+      u?.workspaceName ??
+      u?.company?.name ??
+      u?.organization?.name ??
+      u?.tenant?.name ??
+      workspaceNameFromApi
+    );
+  })();
+
   // Rafraîchir l'utilisateur à chaque focus (retour depuis 2FA, Questions de sécurité, etc.)
   useFocusEffect(
     React.useCallback(() => {
@@ -58,6 +93,29 @@ export function SettingsScreen() {
       };
       loadUser();
     }, [])
+  );
+
+  // Fallback : charger le workspace via GET /api/workspace si pas inclus dans user (backend renvoie désormais user.workspace)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!user) return;
+      const u = user as any;
+      if (u.workspace?.name) {
+        setWorkspaceNameFromApi(null);
+        return;
+      }
+      const fetchWorkspace = async () => {
+        try {
+          const res = await api.get("/api/workspace");
+          const name = res.data?.name ?? res.data?.workspace?.name;
+          if (name) setWorkspaceNameFromApi(name);
+          else setWorkspaceNameFromApi(null);
+        } catch {
+          setWorkspaceNameFromApi(null);
+        }
+      };
+      fetchWorkspace();
+    }, [user?.id])
   );
 
   // Fonction pour le refresh control
@@ -103,6 +161,109 @@ export function SettingsScreen() {
     }
   };
 
+  const openEditNameDrawer = () => {
+    setEditName(user?.name ?? '');
+    setEditError(null);
+    setShowEditNameDrawer(true);
+  };
+
+  const getApiErrorMessage = (err: any, fallback: string) => {
+    const d = err?.response?.data;
+    if (!d) return err?.message ?? fallback;
+    if (typeof d.message === "string") return d.message;
+    if (typeof d.error === "string") return d.error;
+    const arr = Array.isArray(d.errors) ? d.errors[0] : null;
+    if (arr && typeof arr.message === "string") return arr.message;
+    return fallback;
+  };
+
+  const saveName = async () => {
+    const name = editName.trim();
+    if (!name) {
+      setEditError("Le nom est requis");
+      return;
+    }
+    setSavingName(true);
+    setEditError(null);
+    try {
+      await api.put("/api/users/profile", { name });
+      const updated = await authService.refreshUser();
+      setUser(updated);
+      setShowEditNameDrawer(false);
+    } catch (err: any) {
+      setEditError(getApiErrorMessage(err, "Impossible de modifier le nom"));
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const openEditWorkspaceDrawer = () => {
+    setEditWorkspaceName(workspaceName ?? '');
+    setEditError(null);
+    setShowEditWorkspaceDrawer(true);
+  };
+
+  const saveWorkspace = async () => {
+    const name = editWorkspaceName.trim();
+    if (!name) {
+      setEditError("Le nom du workspace est requis");
+      return;
+    }
+    setSavingWorkspace(true);
+    setEditError(null);
+    try {
+      await api.patch("/api/workspace", { name });
+      const updated = await authService.refreshUser();
+      setUser(updated);
+      setWorkspaceNameFromApi(name);
+      setShowEditWorkspaceDrawer(false);
+    } catch (err: any) {
+      setEditError(getApiErrorMessage(err, "Impossible de modifier le workspace"));
+    } finally {
+      setSavingWorkspace(false);
+    }
+  };
+
+  const openPasswordDrawer = () => {
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setEditError(null);
+    setShowPasswordDrawer(true);
+  };
+
+  const savePassword = async () => {
+    if (!currentPassword.trim()) {
+      setEditError("Indiquez votre mot de passe actuel");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setEditError("Le nouveau mot de passe doit contenir au moins 8 caractères");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setEditError("Les mots de passe ne correspondent pas");
+      return;
+    }
+    setSavingPassword(true);
+    setEditError(null);
+    try {
+      await api.put("/api/users/profile", {
+        currentPassword: currentPassword.trim(),
+        newPassword: newPassword,
+      });
+      setShowPasswordDrawer(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      Alert.alert("Mot de passe modifié", "Votre mot de passe a bien été mis à jour.");
+    } catch (err: any) {
+      setEditError(getApiErrorMessage(err, "Impossible de modifier le mot de passe"));
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
   const initials = getInitials(user?.name, user?.email);
 
   // Formater la date
@@ -122,6 +283,13 @@ export function SettingsScreen() {
 
   // Liste des informations de compte
   const accountInfoList: SettingsItem[] = [
+    {
+      icon: UserRoadsideIcon,
+      label: 'Nom',
+      value: user?.name || 'N/A',
+      onPress: openEditNameDrawer,
+      showArrow: true,
+    },
     {
       icon: UserRoadsideIcon,
       label: 'Email',
@@ -171,6 +339,13 @@ export function SettingsScreen() {
       label: 'Questions de sécurité',
       value: user?.securityQuestionsEnabled ? 'Activées' : 'Désactivées',
       onPress: handleNavigateSecurityQuestions,
+    },
+    {
+      icon: KeyIcon,
+      label: 'Changer le mot de passe',
+      value: undefined,
+      onPress: openPasswordDrawer,
+      showArrow: true,
     },
   ];
 
@@ -305,6 +480,63 @@ export function SettingsScreen() {
               {accountInfoList.map((item, index) => 
                 renderSettingsItem(item, index, index === accountInfoList.length - 1)
               )}
+            </View>
+          </View>
+
+          {/* Section Workspace */}
+          <View
+            className={`mb-4 rounded-xl overflow-hidden ${
+              isDark ? 'bg-[#1e293b]' : 'bg-gray-50'
+            }`}
+            style={styles.card}
+          >
+            <View className="p-4">
+              <Text
+                className={`text-sm font-semibold mb-3 ${
+                  isDark ? 'text-gray-400' : 'text-gray-600'
+                }`}
+              >
+                WORKSPACE
+              </Text>
+              <TouchableOpacity
+                onPress={isAdmin ? openEditWorkspaceDrawer : undefined}
+                disabled={!isAdmin}
+                className="flex-row items-center justify-between py-3"
+                style={{
+                  borderBottomWidth: 0,
+                  opacity: isAdmin ? 1 : 0.8,
+                }}
+              >
+                <View className="flex-row items-center flex-1">
+                  <View
+                    className="w-10 h-10 rounded-full items-center justify-center mr-3"
+                    style={{
+                      backgroundColor: isDark ? 'rgba(14, 165, 233, 0.2)' : 'rgba(14, 165, 233, 0.1)',
+                    }}
+                  >
+                    <HugeiconsIcon icon={Building04Icon} size={20} color="#0ea5e9" />
+                  </View>
+                  <View className="flex-1">
+                    <Text
+                      className={`text-base font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}
+                    >
+                      Workspace actuel
+                    </Text>
+                    <Text
+                      className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
+                    >
+                      {workspaceName || '—'}
+                    </Text>
+                  </View>
+                </View>
+                {isAdmin && (
+                  <HugeiconsIcon
+                    icon={ArrowRight01Icon}
+                    size={20}
+                    color={isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)'}
+                  />
+                )}
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -462,6 +694,181 @@ export function SettingsScreen() {
             </View>
           </View>
         </View>
+      </Drawer>
+
+      {/* Drawer Modifier le nom */}
+      <Drawer
+        open={showEditNameDrawer}
+        onOpenChange={(open) => {
+          if (!open) setEditError(null);
+          setShowEditNameDrawer(open);
+        }}
+        title="Modifier le nom"
+        footer={
+          <View style={{ gap: 12 }}>
+            {editError ? (
+              <Text className="text-red-500 text-sm">{editError}</Text>
+            ) : null}
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Button variant="outline" onPress={() => setShowEditNameDrawer(false)} disabled={savingName}>
+                  <Text className={isDark ? 'text-gray-300' : 'text-gray-700'}>Annuler</Text>
+                </Button>
+              </View>
+              <View className="flex-1">
+                <Button onPress={saveName} loading={savingName} disabled={savingName}>
+                  <Text className="text-white font-semibold">Enregistrer</Text>
+                </Button>
+              </View>
+            </View>
+          </View>
+        }
+      >
+        {editError ? (
+          <View
+            className="mb-4 p-3 rounded-lg"
+            style={{
+              backgroundColor: isDark ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.1)",
+              borderWidth: 1,
+              borderColor: "rgba(239, 68, 68, 0.3)",
+            }}
+          >
+            <Text className="text-red-500 text-sm">{editError}</Text>
+          </View>
+        ) : null}
+        <Input
+          label="Nom"
+          value={editName}
+          onChangeText={(t) => {
+            setEditName(t);
+            if (editError) setEditError(null);
+          }}
+          placeholder="Votre nom"
+          autoCapitalize="words"
+        />
+      </Drawer>
+
+      {/* Drawer Modifier le workspace (admin) */}
+      <Drawer
+        open={showEditWorkspaceDrawer}
+        onOpenChange={(open) => {
+          if (!open) setEditError(null);
+          setShowEditWorkspaceDrawer(open);
+        }}
+        title="Modifier le workspace"
+        footer={
+          <View style={{ gap: 12 }}>
+            {editError ? (
+              <Text className="text-red-500 text-sm">{editError}</Text>
+            ) : null}
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Button variant="outline" onPress={() => setShowEditWorkspaceDrawer(false)} disabled={savingWorkspace}>
+                  <Text className={isDark ? 'text-gray-300' : 'text-gray-700'}>Annuler</Text>
+                </Button>
+              </View>
+              <View className="flex-1">
+                <Button onPress={saveWorkspace} loading={savingWorkspace} disabled={savingWorkspace}>
+                  <Text className="text-white font-semibold">Enregistrer</Text>
+                </Button>
+              </View>
+            </View>
+          </View>
+        }
+      >
+        {editError ? (
+          <View
+            className="mb-4 p-3 rounded-lg"
+            style={{
+              backgroundColor: isDark ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.1)",
+              borderWidth: 1,
+              borderColor: "rgba(239, 68, 68, 0.3)",
+            }}
+          >
+            <Text className="text-red-500 text-sm">{editError}</Text>
+          </View>
+        ) : null}
+        <Input
+          label="Nom du workspace"
+          value={editWorkspaceName}
+          onChangeText={(t) => {
+            setEditWorkspaceName(t);
+            if (editError) setEditError(null);
+          }}
+          placeholder="Nom du workspace"
+        />
+      </Drawer>
+
+      {/* Drawer Changer le mot de passe */}
+      <Drawer
+        open={showPasswordDrawer}
+        onOpenChange={(open) => {
+          if (!open) setEditError(null);
+          setShowPasswordDrawer(open);
+        }}
+        title="Changer le mot de passe"
+        footer={
+          <View style={{ gap: 12 }}>
+            {editError ? (
+              <Text className="text-red-500 text-sm">{editError}</Text>
+            ) : null}
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Button variant="outline" onPress={() => setShowPasswordDrawer(false)} disabled={savingPassword}>
+                  <Text className={isDark ? 'text-gray-300' : 'text-gray-700'}>Annuler</Text>
+                </Button>
+              </View>
+              <View className="flex-1">
+                <Button onPress={savePassword} loading={savingPassword} disabled={savingPassword}>
+                  <Text className="text-white font-semibold">Enregistrer</Text>
+                </Button>
+              </View>
+            </View>
+          </View>
+        }
+      >
+        {editError ? (
+          <View
+            className="mb-4 p-3 rounded-lg"
+            style={{
+              backgroundColor: isDark ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.1)",
+              borderWidth: 1,
+              borderColor: "rgba(239, 68, 68, 0.3)",
+            }}
+          >
+            <Text className="text-red-500 text-sm">{editError}</Text>
+          </View>
+        ) : null}
+        <Input
+          label="Mot de passe actuel"
+          value={currentPassword}
+          onChangeText={(t) => {
+            setCurrentPassword(t);
+            if (editError) setEditError(null);
+          }}
+          placeholder="••••••••"
+          secureTextEntry
+        />
+        <Input
+          label="Nouveau mot de passe"
+          value={newPassword}
+          onChangeText={(t) => {
+            setNewPassword(t);
+            if (editError) setEditError(null);
+          }}
+          placeholder="Min. 8 caractères"
+          secureTextEntry
+        />
+        <Input
+          label="Confirmer le mot de passe"
+          value={confirmPassword}
+          onChangeText={(t) => {
+            setConfirmPassword(t);
+            if (editError) setEditError(null);
+          }}
+          placeholder="••••••••"
+          secureTextEntry
+        />
       </Drawer>
     </SafeAreaView>
   );

@@ -890,20 +890,6 @@ export function LoginScreen() {
         />
       </Animated.View>
 
-      {/* Bouton Mot de passe oublié */}
-      <Animated.View
-        entering={FadeInDown.delay(450).duration(600)}
-        style={{ marginBottom: 20, alignItems: "flex-end" }}
-      >
-        <TouchableOpacity
-          onPress={() => setShowForgotPassword(true)}
-          activeOpacity={0.7}
-        >
-          <Text className="text-sm text-primary-dynamic underline">
-            Mot de passe oublié ?
-          </Text>
-        </TouchableOpacity>
-      </Animated.View>
     </>
   );
 
@@ -1466,14 +1452,20 @@ export function LoginScreen() {
           >
             <Animated.View
               entering={FadeInDown.delay(100).duration(600)}
-              className="mb-6"
+              style={{
+                marginBottom: 24,
+                width: 120,
+                height: 120,
+                borderRadius: 60,
+                overflow: "hidden",
+              }}
             >
               <Image
                 source={require("../../assets/logo.png")}
                 style={{
                   width: 120,
                   height: 120,
-                  resizeMode: "contain",
+                  resizeMode: "cover",
                 }}
               />
             </Animated.View>
@@ -1693,6 +1685,32 @@ export function LoginScreen() {
                 </Button>
               </LinearGradient>
             </Animated.View>
+
+            {/* Liens sous le bouton (étape email uniquement) */}
+            {step === "email" && !showForgotPassword && (
+              <Animated.View
+                entering={FadeInDown.delay(550).duration(600)}
+                style={{ marginTop: 24, alignItems: "center", gap: 12 }}
+              >
+                <TouchableOpacity
+                  onPress={() => setShowForgotPassword(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text className="text-sm text-primary-dynamic underline">
+                    Mot de passe oublié ?
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("Signup" as never)}
+                  activeOpacity={0.7}
+                >
+                  <Text className={`text-sm ${isDark ? "text-gray-400" : "text-slate-600"}`}>
+                    Pas encore de compte ?{" "}
+                    <Text className="text-primary-dynamic font-semibold underline">Créer un compte</Text>
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
+            )}
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>

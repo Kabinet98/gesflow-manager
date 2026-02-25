@@ -4,9 +4,10 @@ import { Platform, Linking, Alert } from 'react-native';
 import Constants from 'expo-constants';
 import api from '@/config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { deleteSecureItem } from '@/utils/secure-storage';
 import { navigate } from '@/utils/navigation';
 
-// Configuration des notifications
+// Configuration des notifications — doit être au niveau module (avant toute notification)
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -16,6 +17,21 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
+
+// Créer le canal Android au chargement du module (AVANT toute notification)
+// Sur Android 8+, sans canal existant, les notifications sont bloquées silencieusement
+if (Platform.OS === 'android') {
+  Notifications.setNotificationChannelAsync('gesflow-notifications', {
+    name: 'GesFlow Notifications',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#0ea5e9',
+    sound: 'default',
+    showBadge: true,
+    enableVibrate: true,
+    enableLights: true,
+  }).catch(() => {});
+}
 
 export interface PushNotificationToken {
   token: string;
@@ -46,6 +62,7 @@ class NotificationsService {
   private token: string | null = null;
   private deviceId: string | null = null;
   private isRegistered = false;
+  private listenersSetup = false;
 
   /**
    * Initialise le service de notifications
@@ -92,26 +109,17 @@ class NotificationsService {
         await AsyncStorage.removeItem(STORAGE_KEYS.PERMISSION_DENIED);
       }
 
-      // Configurer le canal de notification Android
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('gesflow-notifications', {
-          name: 'GesFlow Notifications',
-          importance: Notifications.AndroidImportance.HIGH,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#0ea5e9',
-          sound: 'default',
-          showBadge: true,
-        });
-      }
-
       // Obtenir le token (avec revalidation si nécessaire)
       const tokenData = await this.getPushToken();
       if (tokenData) {
         await this.registerTokenWithRetry(tokenData);
       }
 
-      // Configurer les listeners
-      this.setupNotificationListeners();
+      // Configurer les listeners (une seule fois)
+      if (!this.listenersSetup) {
+        this.setupNotificationListeners();
+        this.listenersSetup = true;
+      }
 
       // Gérer le cas où l'app a été ouverte via un tap sur une notification (app killed)
       const lastResponse = await Notifications.getLastNotificationResponseAsync();
@@ -231,18 +239,51 @@ class NotificationsService {
    * Configure les listeners de notifications
    */
   private setupNotificationListeners(): void {
-    Notifications.addNotificationReceivedListener(() => {});
+    Notifications.addNotificationReceivedListener((notification) => {
+      const data = notification.request.content.data;
+      const type = data?.type as string | undefined;
+
+      if (type === 'account_deactivated') {
+        this.forceLogout();
+      } else if (type === 'account_frozen' || type === 'account_unfrozen') {
+        const { authEventEmitter } = require('@/config/api');
+        authEventEmitter.emit('freeze-status-changed');
+      }
+    });
 
     Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
       const type = data?.type as string | undefined;
       if (!type) return;
 
+      if (type === 'account_deactivated') {
+        this.forceLogout();
+        return;
+      }
+
+      if (type === 'account_frozen' || type === 'account_unfrozen') {
+        const { authEventEmitter } = require('@/config/api');
+        authEventEmitter.emit('freeze-status-changed');
+      }
+
       const screen = this.getScreenForNotificationType(type);
       if (screen) {
         navigate(screen);
       }
     });
+  }
+
+  private async forceLogout(): Promise<void> {
+    try {
+      await deleteSecureItem('auth_token');
+      await AsyncStorage.removeItem('user_id');
+      await AsyncStorage.removeItem('user');
+      // Import lazy pour éviter la dépendance circulaire
+      const { authEventEmitter } = require('@/config/api');
+      authEventEmitter.emit('auth-logout');
+    } catch {
+      // Erreur silencieuse
+    }
   }
 
   private getScreenForNotificationType(type: string): string | null {

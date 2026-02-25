@@ -514,6 +514,7 @@ export function RolesScreen() {
     investments: "Investissements",
     loans: "Emprunts",
     dat: "Placements",
+    vault: "Coffre-fort",
     banks: "Banques",
     alerts: "Alertes",
     users: "Utilisateurs",

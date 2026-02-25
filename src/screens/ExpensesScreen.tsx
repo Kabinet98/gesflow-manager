@@ -18,12 +18,13 @@ import {
   ActivityIndicator,
   Linking,
   Animated,
+  AppState,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Swipeable } from "react-native-gesture-handler";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import api from "@/config/api";
+import api, { authEventEmitter } from "@/config/api";
 import { auditService } from "@/services/audit.service";
 // Types axios sont automatiquement inclus via src/types/axios.d.ts
 import { useTheme } from "@/contexts/ThemeContext";
@@ -792,20 +793,45 @@ export function ExpensesScreen() {
   const canUpdate = hasPermission("expenses.update");
   const canDelete = hasPermission("expenses.delete");
 
+  // Ref pour stocker l'ID utilisateur (éviter dépendance circulaire dans les effets)
+  const currentUserIdRef = useRef<string | null>(null);
+
+  // Rafraîchir le statut de gel du compte gestionnaire
+  const refreshFreezeStatus = useCallback(async () => {
+    const userId = currentUserIdRef.current;
+    if (!userId) return;
+    try {
+      const managerResponse = await api.get(
+        `/api/users/${userId}/company-manager`,
+      );
+      const manager = managerResponse.data;
+      if (manager) {
+        if (manager.isFrozen === true) {
+          setIsManagerAccountFrozen(true);
+          setFrozenAmount(manager.frozenBalance ?? 0);
+          setFrozenCurrency(manager?.company?.currency ?? "GNF");
+        } else {
+          setIsManagerAccountFrozen(false);
+          setFrozenAmount(null);
+        }
+      }
+    } catch {
+      // Erreur silencieuse
+    }
+  }, []);
+
   // Récupérer le companyId de l'utilisateur s'il est gestionnaire
   useEffect(() => {
     const fetchUserCompany = async () => {
       try {
         const user = await authService.getCurrentUser();
         if (user) {
-          // Stocker l'ID de l'utilisateur actuel
           setCurrentUserId(user.id);
+          currentUserIdRef.current = user.id;
 
-          // Vérifier si l'utilisateur est un gestionnaire
           const response = await api.get("/api/users/me");
           const fullUser = response.data;
 
-          // Vérifier si l'utilisateur a un rôle de gestionnaire ou admin
           const roleName = fullUser?.role?.name?.toLowerCase() || "";
           const isManagerRole =
             roleName.includes("gestionnaire") || roleName.includes("manager");
@@ -816,8 +842,6 @@ export function ExpensesScreen() {
             setIsAdmin(true);
           }
 
-          // Compte gelé : comme GesFlow, on utilise GET /api/users/:id/company-manager
-          // (manager.frozenBalance ?? null et affichage avec ?? 0)
           const companyManagerFromMe = (fullUser as any)?.companyManager;
           if (companyManagerFromMe?.isFrozen === true) {
             setIsManagerAccountFrozen(true);
@@ -826,7 +850,6 @@ export function ExpensesScreen() {
           }
 
           if (isManagerRole) {
-            // Récupérer le companyId et infos gel depuis company-manager (comme GesFlow dashboard/expenses)
             try {
               const managerResponse = await api.get(
                 `/api/users/${user.id}/company-manager`,
@@ -856,6 +879,26 @@ export function ExpensesScreen() {
 
     fetchUserCompany();
   }, []);
+
+  // Écouter les événements de gel/dégel et le retour au premier plan
+  useEffect(() => {
+    const handleFreezeChanged = () => {
+      refreshFreezeStatus();
+    };
+
+    const appStateSub = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        refreshFreezeStatus();
+      }
+    });
+
+    authEventEmitter.on("freeze-status-changed", handleFreezeChanged);
+
+    return () => {
+      appStateSub.remove();
+      authEventEmitter.off("freeze-status-changed", handleFreezeChanged);
+    };
+  }, [refreshFreezeStatus]);
 
   useEffect(() => {
     // Initialisation
@@ -1281,7 +1324,6 @@ export function ExpensesScreen() {
 
   // Vérifier si une dépense peut être modifiée (conditions selon GesFlow)
   const canEditExpense = (expense: Expense): boolean => {
-    if (isManagerAccountFrozen) return false;
     if (
       expense.validationStatus === "APPROVED" ||
       expense.validationStatus === "REJECTED"
@@ -1293,7 +1335,6 @@ export function ExpensesScreen() {
 
   // Vérifier si une dépense peut être supprimée (conditions selon GesFlow - pour admins)
   const canDeleteExpense = (expense: Expense): boolean => {
-    if (isManagerAccountFrozen) return false;
     if (
       expense.validationStatus === "APPROVED" ||
       expense.validationStatus === "REJECTED"
@@ -1305,7 +1346,6 @@ export function ExpensesScreen() {
 
   // Vérifier si une dépense peut être annulée (conditions selon GesFlow)
   const canCancelExpense = (expense: Expense): boolean => {
-    if (isManagerAccountFrozen) return false;
     if (
       expense.validationStatus === "APPROVED" ||
       expense.validationStatus === "REJECTED"
@@ -1330,12 +1370,16 @@ export function ExpensesScreen() {
     return canCancelTransaction(expense.createdAt);
   };
 
+  const showFrozenAlert = () => {
+    Alert.alert(
+      "Compte gelé",
+      "Votre compte a été gelé. Vous ne pouvez plus effectuer de transactions. Contactez l'administrateur.",
+    );
+  };
+
   const handleCreate = () => {
     if (isManagerAccountFrozen) {
-      Alert.alert(
-        "Compte gelé",
-        "Votre compte a été gelé. Vous ne pouvez plus effectuer de transactions. Contactez l'administrateur.",
-      );
+      showFrozenAlert();
       return;
     }
     if (!canCreate) {
@@ -2668,7 +2712,7 @@ export function ExpensesScreen() {
               <Text className="font-semibold">
                 {formatAmountUtil(frozenAmount ?? 0, frozenCurrency, isAmountVisible)}
               </Text>
-              . Vous ne pouvez pas effectuer de nouvelles transactions.
+              . Vous ne pouvez pas effectuer de nouvelles transactions. Contactez l'administrateur.
             </Text>
           </View>
         )}
@@ -2905,9 +2949,8 @@ export function ExpensesScreen() {
                     !shouldHideAllActions &&
                     canManagerActOnExpense(expense) &&
                     canCancelExpense(expense);
-                  // Bouton View pour tous (admin et manager), toute dépense non annulée — toujours visible sans limite de temps
-                  const hasViewAction =
-                    expense.status !== "CANCELLED";
+                  // Bouton View pour tous (admin et manager) — toujours visible
+                  const hasViewAction = true;
                   const hasAnyAction =
                     hasEditAction || hasCancelAction || hasViewAction;
 
@@ -3366,16 +3409,19 @@ export function ExpensesScreen() {
                                 <TouchableOpacity
                                   className="rounded-full"
                                   style={{
-                                    backgroundColor: `${CHART_COLOR}20`,
+                                    backgroundColor: isManagerAccountFrozen
+                                      ? (isDark ? "#37415120" : "#9ca3af20")
+                                      : `${CHART_COLOR}20`,
                                     padding: actionCount >= 3 ? 6 : 8,
+                                    opacity: isManagerAccountFrozen ? 0.5 : 1,
                                   }}
                                   activeOpacity={0.7}
-                                  onPress={() => handleEdit(expense)}
+                                  onPress={() => isManagerAccountFrozen ? showFrozenAlert() : handleEdit(expense)}
                                 >
                                   <HugeiconsIcon
                                     icon={Edit01Icon}
                                     size={actionCount >= 3 ? 14 : 16}
-                                    color={CHART_COLOR}
+                                    color={isManagerAccountFrozen ? (isDark ? "#6b7280" : "#9ca3af") : CHART_COLOR}
                                   />
                                 </TouchableOpacity>
                               )}
@@ -3384,20 +3430,23 @@ export function ExpensesScreen() {
                                 <TouchableOpacity
                                   className="rounded-full"
                                   style={{
-                                    backgroundColor: "#ef444420",
+                                    backgroundColor: isManagerAccountFrozen
+                                      ? (isDark ? "#37415120" : "#9ca3af20")
+                                      : "#ef444420",
                                     padding: actionCount >= 3 ? 6 : 8,
+                                    opacity: isManagerAccountFrozen ? 0.5 : 1,
                                   }}
                                   activeOpacity={0.7}
-                                  onPress={() => handleCancelExpense(expense)}
+                                  onPress={() => isManagerAccountFrozen ? showFrozenAlert() : handleCancelExpense(expense)}
                                 >
                                   <HugeiconsIcon
                                     icon={Cancel01Icon}
                                     size={actionCount >= 3 ? 14 : 16}
-                                    color="#ef4444"
+                                    color={isManagerAccountFrozen ? (isDark ? "#6b7280" : "#9ca3af") : "#ef4444"}
                                   />
                                 </TouchableOpacity>
                               )}
-                              {/* Le bouton "Voir détails" n'existe pas pour les gestionnaires, seulement pour les admins */}
+                              {/* Bouton Voir détails — toujours actif */}
                               {hasViewAction && (
                                 <TouchableOpacity
                                   className="rounded-full"

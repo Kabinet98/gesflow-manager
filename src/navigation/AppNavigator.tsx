@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
-import { NavigationContainer, useNavigationState } from "@react-navigation/native";
+import {
+  NavigationContainer,
+  useNavigationState,
+} from "@react-navigation/native";
 import type { NavigationState } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -9,6 +12,8 @@ import { authService } from "@/services/auth.service";
 import { authEventEmitter } from "@/config/api";
 import { auditService } from "@/services/audit.service";
 import { LoginScreen } from "@/screens/LoginScreen";
+import { SignupScreen } from "@/screens/SignupScreen";
+import { VaultScreen } from "@/screens/VaultScreen";
 import { DashboardScreen } from "@/screens/DashboardScreen";
 import { CompaniesScreen } from "@/screens/CompaniesScreen";
 import { ExpensesScreen } from "@/screens/ExpensesScreen";
@@ -36,7 +41,7 @@ import {
   Building04Icon,
   MoneyIcon,
   Settings01Icon,
-  Link03Icon,
+  Layers02Icon,
 } from "@hugeicons/core-free-icons";
 import api from "@/config/api";
 import { navigationRef } from "@/utils/navigation";
@@ -90,7 +95,7 @@ function MainTabs() {
   ].filter(Boolean).length;
 
   const hasSettings = hasPermission("settings.view");
-  
+
   // Afficher "More" si on a au moins 3 tabs principaux
   // Cela garantit qu'on affiche "More" quand il y a au moins 4 tabs au total (3 principaux + More + Settings)
   // Le tab "More" doit toujours être visible quand il y a plus de 4 tabs au total
@@ -115,7 +120,7 @@ function MainTabs() {
   });
 
   // Les managers ne doivent pas voir le badge
-  const pendingExpensesCount = isManager ? 0 : (pendingCountData?.count || 0);
+  const pendingExpensesCount = isManager ? 0 : pendingCountData?.count || 0;
 
   return (
     <Tab.Navigator
@@ -136,7 +141,11 @@ function MainTabs() {
           options={{
             tabBarLabel: "Dashboard",
             tabBarIcon: ({ color, size }) => (
-              <HugeiconsIcon icon={Home03Icon} size={size || 24} color={color} />
+              <HugeiconsIcon
+                icon={Home03Icon}
+                size={size || 24}
+                color={color}
+              />
             ),
           }}
         />
@@ -148,7 +157,11 @@ function MainTabs() {
           options={{
             tabBarLabel: "Entreprises",
             tabBarIcon: ({ color, size }) => (
-              <HugeiconsIcon icon={Building04Icon} size={size || 24} color={color} />
+              <HugeiconsIcon
+                icon={Building04Icon}
+                size={size || 24}
+                color={color}
+              />
             ),
           }}
         />
@@ -162,7 +175,8 @@ function MainTabs() {
             tabBarIcon: ({ color, size }) => (
               <HugeiconsIcon icon={MoneyIcon} size={size || 24} color={color} />
             ),
-            tabBarBadge: pendingExpensesCount > 0 ? pendingExpensesCount : undefined,
+            tabBarBadge:
+              pendingExpensesCount > 0 ? pendingExpensesCount : undefined,
             tabBarBadgeStyle: {
               backgroundColor: "#eab308", // Couleur yellow-500 pour les dépenses en attente
             },
@@ -175,9 +189,8 @@ function MainTabs() {
           component={EmptyScreen}
           options={{
             tabBarLabel: "Plus",
-            tabBarIcon: ({ color, size }) => (
-              <HugeiconsIcon icon={Link03Icon} size={size || 24} color={color} />
-            ),
+            tabBarShowLabel: false,
+            tabBarIcon: () => null,
             tabBarButton: (props: any) => {
               const { onPress, ...otherProps } = props;
               return (
@@ -188,23 +201,25 @@ function MainTabs() {
                     flex: 1,
                     alignItems: "center",
                     justifyContent: "center",
+                    paddingVertical: 6,
                   }}
                 >
-                  <View style={{ alignItems: "center", gap: 4 }}>
-                    <HugeiconsIcon 
-                      icon={Link03Icon} 
-                      size={24} 
-                      color={isDark ? "#f1f5f9" : "#0f172a"} 
+                  <View
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 28,
+                      backgroundColor: "#0ea5e9",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginTop: -48,
+                    }}
+                  >
+                    <HugeiconsIcon
+                      icon={Layers02Icon}
+                      size={24}
+                      color="#ffffff"
                     />
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        color: isDark ? "#f1f5f9" : "#0f172a",
-                        fontWeight: "500",
-                      }}
-                    >
-                      Plus
-                    </Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -278,16 +293,16 @@ export function AppNavigator() {
       setRequires2FASetup(false);
     };
 
-    authEventEmitter.on('auth-changed', handleAuthChange);
-    authEventEmitter.on('auth-logout', handleAuthLogout);
-    authEventEmitter.on('2fa-setup-complete', handle2FASetupComplete);
+    authEventEmitter.on("auth-changed", handleAuthChange);
+    authEventEmitter.on("auth-logout", handleAuthLogout);
+    authEventEmitter.on("2fa-setup-complete", handle2FASetupComplete);
 
     // Nettoyer les listeners et le timer au démontage
     return () => {
       clearTimeout(splashTimer);
-      authEventEmitter.off('auth-changed', handleAuthChange);
-      authEventEmitter.off('auth-logout', handleAuthLogout);
-      authEventEmitter.off('2fa-setup-complete', handle2FASetupComplete);
+      authEventEmitter.off("auth-changed", handleAuthChange);
+      authEventEmitter.off("auth-logout", handleAuthLogout);
+      authEventEmitter.off("2fa-setup-complete", handle2FASetupComplete);
     };
   }, []);
 
@@ -319,77 +334,85 @@ export function AppNavigator() {
               <Stack.Screen
                 name="Investments"
                 component={InvestmentsScreen as React.ComponentType}
-                options={{ presentation: 'card' }}
+                options={{ presentation: "card" }}
               />
               <Stack.Screen
                 name="Loans"
                 component={LoansScreen as React.ComponentType}
-                options={{ presentation: 'card' }}
+                options={{ presentation: "card" }}
+              />
+              <Stack.Screen
+                name="Vault"
+                component={VaultScreen as React.ComponentType}
+                options={{ presentation: "card" }}
               />
               <Stack.Screen
                 name="Dat"
                 component={DatScreen as React.ComponentType}
-                options={{ presentation: 'card' }}
+                options={{ presentation: "card" }}
               />
               <Stack.Screen
                 name="Banks"
                 component={BanksScreen as React.ComponentType}
-                options={{ presentation: 'card' }}
+                options={{ presentation: "card" }}
               />
               <Stack.Screen
                 name="Users"
                 component={UsersScreen as React.ComponentType}
-                options={{ presentation: 'card' }}
+                options={{ presentation: "card" }}
               />
               <Stack.Screen
                 name="Roles"
                 component={RolesScreen as React.ComponentType}
-                options={{ presentation: 'card' }}
+                options={{ presentation: "card" }}
               />
               <Stack.Screen
                 name="Alerts"
                 component={AlertsScreen as React.ComponentType}
-                options={{ presentation: 'card' }}
+                options={{ presentation: "card" }}
               />
               <Stack.Screen
                 name="Logs"
                 component={LogsScreen as React.ComponentType}
-                options={{ presentation: 'card' }}
+                options={{ presentation: "card" }}
               />
               <Stack.Screen
                 name="Statistics"
                 component={StatisticsScreen as React.ComponentType}
-                options={{ presentation: 'card' }}
+                options={{ presentation: "card" }}
               />
               <Stack.Screen
                 name="ActivitySectors"
                 component={ActivitySectorsScreen as React.ComponentType}
-                options={{ presentation: 'card' }}
+                options={{ presentation: "card" }}
               />
               <Stack.Screen
                 name="InvestmentCategories"
                 component={InvestmentCategoriesScreen as React.ComponentType}
-                options={{ presentation: 'card' }}
+                options={{ presentation: "card" }}
               />
               <Stack.Screen
                 name="TwoFactorAuth"
                 component={TwoFactorAuthScreen as React.ComponentType}
-                options={{ presentation: 'card' }}
+                options={{ presentation: "card" }}
               />
               <Stack.Screen
                 name="SecurityQuestions"
                 component={SecurityQuestionsScreen as React.ComponentType}
-                options={{ presentation: 'card' }}
+                options={{ presentation: "card" }}
               />
               <Stack.Screen
                 name="Settings"
                 component={SettingsScreen as React.ComponentType}
-                options={{ presentation: 'card' }}
+                options={{ presentation: "card" }}
               />
             </>
           )
         ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Signup" component={SignupScreen} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

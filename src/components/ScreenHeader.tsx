@@ -41,6 +41,7 @@ export function ScreenHeader({ showBack = true, title }: ScreenHeaderProps) {
       Investments: "Investissements",
       Loans: "Emprunts",
       Dat: "Placements",
+      Vault: "Coffre-fort",
       Banks: "Banques",
       Users: "Utilisateurs",
       Logs: "Logs",

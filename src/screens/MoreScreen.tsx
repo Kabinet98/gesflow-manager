@@ -5,7 +5,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { Settings01Icon, MoneyIcon, Building04Icon, Home03Icon, ReverseWithdrawal02Icon, PiggyBankIcon, BankIcon, UserRoadsideIcon, LockKeyIcon, AlertDiamondIcon, Activity03Icon, Chart01Icon } from '@hugeicons/core-free-icons';
+import { Settings01Icon, MoneyIcon, Building04Icon, Home03Icon, ReverseWithdrawal02Icon, PiggyBankIcon, BankIcon, UserRoadsideIcon, LockKeyIcon, AlertDiamondIcon, Activity03Icon, Chart01Icon, LockerIcon } from '@hugeicons/core-free-icons';
 import { Header } from '@/components/Header';
 import { Drawer } from '@/components/ui/Drawer';
 
@@ -47,6 +47,12 @@ export function MoreScreen() {
       screen: 'Dat',
       icon: PiggyBankIcon,
       permission: 'dat.view',
+    },
+    {
+      name: 'Coffre-fort',
+      screen: 'Vault',
+      icon: LockerIcon,
+      permission: 'vault.view',
     },
     {
       name: 'Banques',
