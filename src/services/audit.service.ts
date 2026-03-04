@@ -62,13 +62,8 @@ export const auditService = {
 
       await api.post("/api/logs", body);
       onLogSent?.();
-    } catch (err: any) {
-      // Ne pas bloquer l'app si l'API échoue
-      if (__DEV__) {
-        const msg = err?.response?.data?.error ?? err?.message ?? String(err);
-        const status = err?.response?.status;
-        console.warn("[Audit] Échec envoi log:", action, "|", status, msg);
-      }
+    } catch {
+      // Ne pas bloquer l'app si l'API échoue (silencieux)
     }
   },
 

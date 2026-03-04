@@ -63,11 +63,22 @@ class NotificationsService {
   private deviceId: string | null = null;
   private isRegistered = false;
   private listenersSetup = false;
+  private initializationPromise: Promise<void> | null = null;
 
   /**
-   * Initialise le service de notifications
+   * Initialise le service de notifications (protégé contre les appels concurrents)
    */
   async initialize(): Promise<void> {
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+    this.initializationPromise = this._doInitialize().finally(() => {
+      this.initializationPromise = null;
+    });
+    return this.initializationPromise;
+  }
+
+  private async _doInitialize(): Promise<void> {
     try {
       if (!Device.isDevice) {
         return;
@@ -129,12 +140,18 @@ class NotificationsService {
         if (type) {
           const screen = this.getScreenForNotificationType(type);
           if (screen) {
-            setTimeout(() => navigate(screen), 500);
+            const params: any = {};
+            if (data?.expenseId) params.highlightExpenseId = data.expenseId;
+            setTimeout(() => {
+              navigate(screen, params);
+              const { authEventEmitter } = require('@/config/api');
+              authEventEmitter.emit('notification-navigate', { screen, data });
+            }, 500);
           }
         }
       }
-    } catch (error) {
-      console.error('[Notifications] Échec initialisation', error);
+    } catch {
+      // Échec initialisation notifications (silencieux)
     }
   }
 
@@ -170,7 +187,6 @@ class NotificationsService {
         Constants.expoConfig?.extra?.projectId;
 
       if (!projectId && Platform.OS === 'ios') {
-        console.error('[Notifications] Project ID manquant');
         return null;
       }
 
@@ -197,8 +213,7 @@ class NotificationsService {
         deviceId,
         platform: Platform.OS as 'ios' | 'android',
       };
-    } catch (error) {
-      console.error('[Notifications] Échec obtention token', error);
+    } catch {
       return null;
     }
   }
@@ -224,15 +239,12 @@ class NotificationsService {
         await AsyncStorage.setItem(STORAGE_KEYS.TOKEN_REGISTERED_AT, Date.now().toString());
         this.isRegistered = true;
         return;
-      } catch (error: any) {
-        console.error(`[Notifications] Échec enregistrement (${attempt + 1}/${MAX_RETRIES})`, error?.response?.status, error?.message);
+      } catch {
         if (attempt < MAX_RETRIES - 1) {
           await new Promise(resolve => setTimeout(resolve, retryDelay(attempt)));
         }
       }
     }
-
-    console.error(`[Notifications] Enregistrement abandonné après ${MAX_RETRIES} tentatives`);
   }
 
   /**
@@ -268,7 +280,11 @@ class NotificationsService {
 
       const screen = this.getScreenForNotificationType(type);
       if (screen) {
-        navigate(screen);
+        const params: any = {};
+        if (data?.expenseId) params.highlightExpenseId = data.expenseId;
+        navigate(screen, params);
+        const { authEventEmitter } = require('@/config/api');
+        authEventEmitter.emit('notification-navigate', { screen, data });
       }
     });
   }
@@ -326,8 +342,8 @@ class NotificationsService {
       this.token = null;
       this.deviceId = null;
       this.isRegistered = false;
-    } catch (error) {
-      console.error('[Notifications] Échec désinscription token', error);
+    } catch {
+      // Échec désinscription token (silencieux)
     }
   }
 

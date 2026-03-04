@@ -40,6 +40,9 @@ export function Drawer({
 
   useEffect(() => {
     if (open) {
+      // Reset to offscreen before animating in (ensures clean state after remount)
+      slideAnim.setValue(SCREEN_HEIGHT);
+      backdropOpacity.setValue(0);
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: 0,

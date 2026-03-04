@@ -14,6 +14,9 @@ import { auditService } from "@/services/audit.service";
 import { LoginScreen } from "@/screens/LoginScreen";
 import { SignupScreen } from "@/screens/SignupScreen";
 import { VaultScreen } from "@/screens/VaultScreen";
+import { LandTitlesScreen } from "@/screens/LandTitlesScreen";
+import { LandTitleDetailScreen } from "@/screens/LandTitleDetailScreen";
+import { MapBoundaryScreen } from "@/screens/MapBoundaryScreen";
 import { DashboardScreen } from "@/screens/DashboardScreen";
 import { CompaniesScreen } from "@/screens/CompaniesScreen";
 import { ExpensesScreen } from "@/screens/ExpensesScreen";
@@ -345,6 +348,21 @@ export function AppNavigator() {
                 name="Vault"
                 component={VaultScreen as React.ComponentType}
                 options={{ presentation: "card" }}
+              />
+              <Stack.Screen
+                name="LandTitles"
+                component={LandTitlesScreen as React.ComponentType}
+                options={{ presentation: "card" }}
+              />
+              <Stack.Screen
+                name="LandTitleDetail"
+                component={LandTitleDetailScreen as React.ComponentType}
+                options={{ presentation: "card" }}
+              />
+              <Stack.Screen
+                name="MapBoundary"
+                component={MapBoundaryScreen as React.ComponentType}
+                options={{ presentation: "fullScreenModal" }}
               />
               <Stack.Screen
                 name="Dat"

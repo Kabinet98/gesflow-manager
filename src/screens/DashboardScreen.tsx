@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
-import api from "@/config/api";
+import api, { authEventEmitter } from "@/config/api";
 import { useTheme } from "@/contexts/ThemeContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
@@ -109,6 +109,17 @@ export function DashboardScreen() {
 
     fetchUserCompany();
   }, []);
+
+  // Rafraîchir le dashboard lors d'une navigation par notification
+  useEffect(() => {
+    const handleNotificationNavigate = ({ screen }: { screen: string; data: any }) => {
+      if (screen === 'Dashboard') refetch();
+    };
+    authEventEmitter.on('notification-navigate', handleNotificationNavigate);
+    return () => {
+      authEventEmitter.off('notification-navigate', handleNotificationNavigate);
+    };
+  }, [refetch]);
 
   // Récupérer les années disponibles
   const { data: availableYears } = useQuery({
@@ -309,6 +320,7 @@ export function DashboardScreen() {
     enabled:
       hasPermission("dashboard.view") &&
       (isManager ? !!userCompanyId : isAdmin ? true : false),
+    refetchInterval: 30000, // Rafraîchissement automatique toutes les 30 secondes
   });
 
   // Vérifier que stats existe et a la structure attendue

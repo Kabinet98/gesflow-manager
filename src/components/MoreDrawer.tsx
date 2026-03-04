@@ -4,9 +4,9 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { 
-  Settings01Icon, 
-  MoneyIcon, 
+import {
+  Settings01Icon,
+  MoneyIcon,
   Building04Icon,
   ReverseWithdrawal02Icon,
   PiggyBankIcon,
@@ -15,6 +15,7 @@ import {
   LockKeyIcon,
   AlertDiamondIcon,
   Activity03Icon,
+  PinLocation03Icon,
 } from '@hugeicons/core-free-icons';
 import { Drawer } from '@/components/ui/Drawer';
 
@@ -75,6 +76,12 @@ export function MoreDrawer() {
       screen: 'Vault',
       icon: LockerIcon,
       permission: 'vault.view',
+    },
+    {
+      name: 'Espace Foncier',
+      screen: 'LandTitles',
+      icon: PinLocation03Icon,
+      permission: 'land-titles.view',
     },
     {
       name: 'Banques',

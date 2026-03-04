@@ -14,9 +14,11 @@ interface InputProps extends TextInputProps {
   numericOnly?: boolean;
   /** Champ décimal : chiffres et un point (clavier décimal + filtre) */
   decimalOnly?: boolean;
+  /** Affiche un astérisque rouge après le label */
+  required?: boolean;
 }
 
-export function Input({ label, error, className, leftIcon, numericOnly, decimalOnly, onChangeText, ...props }: InputProps) {
+export function Input({ label, error, className, leftIcon, numericOnly, decimalOnly, required, onChangeText, ...props }: InputProps) {
   const { isDark } = useTheme();
 
   const handleChangeText = (text: string) => {
@@ -49,6 +51,7 @@ export function Input({ label, error, className, leftIcon, numericOnly, decimalO
           }`}
         >
           {label}
+          {required && <Text className="text-red-500"> *</Text>}
         </Text>
       )}
       {leftIcon ? (

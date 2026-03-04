@@ -9,16 +9,21 @@ export default {
     splash: {
       image: "./assets/logo.png",
       resizeMode: "contain",
-      backgroundColor: "#000000"
+      backgroundColor: "#0f172a"
     },
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.gesflow.manager",
       googleServicesFile: "./ios/GoogleService-Info.plist",
       infoPlist: {
-        UIBackgroundModes: ["remote-notification"]
+        UIBackgroundModes: ["remote-notification"],
+        NSLocationWhenInUseUsageDescription: "GesFlow a besoin de votre position pour scanner les limites de vos terrains.",
+        NSLocationAlwaysAndWhenInUseUsageDescription: "GesFlow a besoin de votre position pour scanner les limites de vos terrains.",
       },
       usesAppleSignIn: false,
+      config: {
+        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || "",
+      },
     },
     android: {
       adaptiveIcon: {
@@ -29,7 +34,12 @@ export default {
       edgeToEdgeEnabled: true,
       // Garde le champ de saisie visible quand le clavier s'ouvre
       softwareKeyboardLayoutMode: "resize",
-      googleServicesFile: "./google-services.json"
+      googleServicesFile: "./google-services.json",
+      config: {
+        googleMaps: {
+          apiKey: process.env.GOOGLE_MAPS_API_KEY || "",
+        },
+      },
     },
     plugins: [
       [
@@ -40,7 +50,15 @@ export default {
           mode: "production"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          locationAlwaysAndWhenInUsePermission: "GesFlow a besoin de votre position pour scanner les limites de vos terrains.",
+          locationAlwaysPermission: "GesFlow a besoin de votre position pour scanner les limites de vos terrains.",
+          locationWhenInUsePermission: "GesFlow a besoin de votre position pour scanner les limites de vos terrains.",
+        }
+      ]
     ],
     // Hermes explicite pour React Native DevTools (debugging)
     jsEngine: "hermes",

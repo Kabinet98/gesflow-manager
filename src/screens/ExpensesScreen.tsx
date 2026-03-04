@@ -784,9 +784,14 @@ export function ExpensesScreen() {
 
   // Refs pour synchroniser le scroll (utiliser ref au lieu de state pour éviter les re-renders)
   const headerScrollRef = useRef<ScrollView>(null);
+  const bodyScrollRef = useRef<ScrollView>(null);
   const contentScrollRefs = useRef<Map<string, ScrollView>>(new Map());
   const scrollXRef = useRef(0);
   const isScrollingRef = useRef(false);
+  const rowOffsetsRef = useRef<Map<string, number>>(new Map());
+
+  // ID de la transaction à mettre en évidence (navigation par notification)
+  const [highlightedExpenseId, setHighlightedExpenseId] = useState<string | null>(null);
 
   const canView = hasPermission("expenses.view");
   const canCreate = hasPermission("expenses.create");
@@ -904,6 +909,31 @@ export function ExpensesScreen() {
     // Initialisation
   }, []); // Seulement au montage
 
+  // Écouter les navigations via notification pour rafraîchir et scroller vers la transaction
+  useEffect(() => {
+    const handleNotificationNavigate = async ({ screen, data }: { screen: string; data: any }) => {
+      if (screen !== 'Expenses') return;
+      await refetch();
+      const expenseId = data?.expenseId as string | undefined;
+      if (expenseId) {
+        setHighlightedExpenseId(expenseId);
+        // Effacer le highlight après 4 secondes
+        setTimeout(() => setHighlightedExpenseId(null), 4000);
+        // Scroller vers la transaction après un court délai (laisser le temps au refetch)
+        setTimeout(() => {
+          const offset = rowOffsetsRef.current.get(expenseId);
+          if (offset !== undefined && bodyScrollRef.current) {
+            bodyScrollRef.current.scrollTo({ y: offset, animated: true });
+          }
+        }, 400);
+      }
+    };
+    authEventEmitter.on('notification-navigate', handleNotificationNavigate);
+    return () => {
+      authEventEmitter.off('notification-navigate', handleNotificationNavigate);
+    };
+  }, [refetch]);
+
   // Récupérer les entreprises pour le filtre
   const { data: companies } = useQuery({
     queryKey: ["companies"],
@@ -961,6 +991,7 @@ export function ExpensesScreen() {
       }
     },
     enabled: canView,
+    refetchInterval: 30000, // Rafraîchissement automatique toutes les 30 secondes
   });
 
   // Filtrer les dépenses - DOIT être avant tout return conditionnel (règle des hooks)
@@ -2861,6 +2892,7 @@ export function ExpensesScreen() {
 
             {/* Liste des dépenses avec scroll synchronisé */}
             <ScrollView
+              ref={bodyScrollRef}
               className="flex-1"
               refreshControl={
                 <RefreshControl
@@ -2968,6 +3000,8 @@ export function ExpensesScreen() {
                     expense.status !== "CANCELLED" &&
                     expense.type === "OUTCOME";
 
+                  const isHighlighted = highlightedExpenseId === expense.id;
+
                   return (
                     <PendingExpenseRowWrapper
                       key={expense.id}
@@ -2976,6 +3010,9 @@ export function ExpensesScreen() {
                       isDark={isDark}
                     >
                       <View
+                        onLayout={(e) => {
+                          rowOffsetsRef.current.set(expense.id, e.nativeEvent.layout.y);
+                        }}
                         className={`border-b ${
                           isDark
                             ? isPendingForAdmin
@@ -2987,6 +3024,11 @@ export function ExpensesScreen() {
                         }`}
                         style={{
                           position: "relative",
+                          ...(isHighlighted && {
+                            backgroundColor: isDark ? "rgba(14,165,233,0.15)" : "rgba(14,165,233,0.1)",
+                            borderLeftWidth: 3,
+                            borderLeftColor: "#0ea5e9",
+                          }),
                         }}
                       >
                         {/* Contenu scrollable */}

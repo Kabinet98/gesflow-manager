@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0757C50D4C387C18415DA84F /* libPods-GesFlowManager.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AD74DDD4AA7C09EF224FE347 /* libPods-GesFlowManager.a */; };
+		10F60B4335189778477B4CE5 /* libPods-GesFlowManager.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A04CED0DDA4B692C7547734D /* libPods-GesFlowManager.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		7A9281FED0BBFCEF8A48BA6D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E998AC6EB55123420878DF5 /* ExpoModulesProvider.swift */; };
-		A199A201151A89F26F7507A6 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 59579B40E40238FAD34B500B /* PrivacyInfo.xcprivacy */; };
+		818D0FE6201EBCB84EE3FA44 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D137C118DAA1535FB99A1400 /* PrivacyInfo.xcprivacy */; };
+		A2EBADF2947A9D9759F99979 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 725AE84FBF29DAF23555CD95 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
@@ -20,13 +20,13 @@
 		13B07F961A680F5B00A75B9A /* GesFlowManager.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GesFlowManager.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = GesFlowManager/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = GesFlowManager/Info.plist; sourceTree = "<group>"; };
-		1F50A82152BE8B2A8715419F /* Pods-GesFlowManager.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GesFlowManager.release.xcconfig"; path = "Target Support Files/Pods-GesFlowManager/Pods-GesFlowManager.release.xcconfig"; sourceTree = "<group>"; };
-		59579B40E40238FAD34B500B /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = GesFlowManager/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		8E998AC6EB55123420878DF5 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-GesFlowManager/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		A562ED7B2B91FEA0A33C8959 /* Pods-GesFlowManager.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GesFlowManager.debug.xcconfig"; path = "Target Support Files/Pods-GesFlowManager/Pods-GesFlowManager.debug.xcconfig"; sourceTree = "<group>"; };
+		37047A55E63FA53EE13FC6D5 /* Pods-GesFlowManager.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GesFlowManager.release.xcconfig"; path = "Target Support Files/Pods-GesFlowManager/Pods-GesFlowManager.release.xcconfig"; sourceTree = "<group>"; };
+		4378EC73059254A3BE0D603D /* Pods-GesFlowManager.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GesFlowManager.debug.xcconfig"; path = "Target Support Files/Pods-GesFlowManager/Pods-GesFlowManager.debug.xcconfig"; sourceTree = "<group>"; };
+		725AE84FBF29DAF23555CD95 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-GesFlowManager/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		A04CED0DDA4B692C7547734D /* libPods-GesFlowManager.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-GesFlowManager.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = GesFlowManager/SplashScreen.storyboard; sourceTree = "<group>"; };
-		AD74DDD4AA7C09EF224FE347 /* libPods-GesFlowManager.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-GesFlowManager.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		D137C118DAA1535FB99A1400 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = GesFlowManager/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = GesFlowManager/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* GesFlowManager-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "GesFlowManager-Bridging-Header.h"; path = "GesFlowManager/GesFlowManager-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -37,13 +37,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0757C50D4C387C18415DA84F /* libPods-GesFlowManager.a in Frameworks */,
+				10F60B4335189778477B4CE5 /* libPods-GesFlowManager.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		030559E494001097A5810E91 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				F85B1A609A5FF707102E2FBD /* GesFlowManager */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
 		13B07FAE1A68108700A75B9A /* GesFlowManager */ = {
 			isa = PBXGroup;
 			children = (
@@ -53,7 +61,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				59579B40E40238FAD34B500B /* PrivacyInfo.xcprivacy */,
+				D137C118DAA1535FB99A1400 /* PrivacyInfo.xcprivacy */,
 			);
 			name = GesFlowManager;
 			sourceTree = "<group>";
@@ -62,9 +70,19 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				AD74DDD4AA7C09EF224FE347 /* libPods-GesFlowManager.a */,
+				A04CED0DDA4B692C7547734D /* libPods-GesFlowManager.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		6304046383D7BB727E124062 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				4378EC73059254A3BE0D603D /* Pods-GesFlowManager.debug.xcconfig */,
+				37047A55E63FA53EE13FC6D5 /* Pods-GesFlowManager.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -81,8 +99,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				FE2B9CB82E5377BBC315509F /* Pods */,
-				D7B206F7D99C02A70E8CA1CE /* ExpoModulesProviders */,
+				6304046383D7BB727E124062 /* Pods */,
+				030559E494001097A5810E91 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -106,30 +124,12 @@
 			path = GesFlowManager/Supporting;
 			sourceTree = "<group>";
 		};
-		D7B206F7D99C02A70E8CA1CE /* ExpoModulesProviders */ = {
+		F85B1A609A5FF707102E2FBD /* GesFlowManager */ = {
 			isa = PBXGroup;
 			children = (
-				F15867A90FFBF70F9DAD70E9 /* GesFlowManager */,
-			);
-			name = ExpoModulesProviders;
-			sourceTree = "<group>";
-		};
-		F15867A90FFBF70F9DAD70E9 /* GesFlowManager */ = {
-			isa = PBXGroup;
-			children = (
-				8E998AC6EB55123420878DF5 /* ExpoModulesProvider.swift */,
+				725AE84FBF29DAF23555CD95 /* ExpoModulesProvider.swift */,
 			);
 			name = GesFlowManager;
-			sourceTree = "<group>";
-		};
-		FE2B9CB82E5377BBC315509F /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				A562ED7B2B91FEA0A33C8959 /* Pods-GesFlowManager.debug.xcconfig */,
-				1F50A82152BE8B2A8715419F /* Pods-GesFlowManager.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -140,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "GesFlowManager" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				4C090DD9E32820598679B9A9 /* [Expo] Configure project */,
+				480ECAA46A3FFF3CE6C6027B /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				33770513D00D051D5B812266 /* [CP] Embed Pods Frameworks */,
+				D5A2B1504876212AB5199BEA /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				A199A201151A89F26F7507A6 /* PrivacyInfo.xcprivacy in Resources */,
+				818D0FE6201EBCB84EE3FA44 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -242,29 +242,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		33770513D00D051D5B812266 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-GesFlowManager/Pods-GesFlowManager-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-GesFlowManager/Pods-GesFlowManager-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		4C090DD9E32820598679B9A9 /* [Expo] Configure project */ = {
+		480ECAA46A3FFF3CE6C6027B /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -307,6 +285,7 @@
 				"${PODS_CONFIGURATION_BUILD_DIR}/React-cxxreact/React-cxxreact_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/expo-dev-launcher/EXDevLauncher.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/expo-dev-menu/EXDevMenu.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/react-native-maps/ReactNativeMapsPrivacy.bundle",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputPaths = (
@@ -322,10 +301,33 @@
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-cxxreact_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXDevLauncher.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXDevMenu.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ReactNativeMapsPrivacy.bundle",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-GesFlowManager/Pods-GesFlowManager-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		D5A2B1504876212AB5199BEA /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-GesFlowManager/Pods-GesFlowManager-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-GesFlowManager/Pods-GesFlowManager-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -336,7 +338,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				7A9281FED0BBFCEF8A48BA6D /* ExpoModulesProvider.swift in Sources */,
+				A2EBADF2947A9D9759F99979 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -345,7 +347,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = A562ED7B2B91FEA0A33C8959 /* Pods-GesFlowManager.debug.xcconfig */;
+			baseConfigurationReference = 4378EC73059254A3BE0D603D /* Pods-GesFlowManager.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -374,14 +376,13 @@
 				SWIFT_OBJC_BRIDGING_HEADER = "GesFlowManager/GesFlowManager-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Debug;
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1F50A82152BE8B2A8715419F /* Pods-GesFlowManager.release.xcconfig */;
+			baseConfigurationReference = 37047A55E63FA53EE13FC6D5 /* Pods-GesFlowManager.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -404,7 +405,6 @@
 				PRODUCT_NAME = GesFlowManager;
 				SWIFT_OBJC_BRIDGING_HEADER = "GesFlowManager/GesFlowManager-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;

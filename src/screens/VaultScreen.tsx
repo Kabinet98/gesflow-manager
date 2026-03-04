@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+} from "react";
 import {
   View,
   Text,
@@ -16,10 +22,7 @@ import {
   Dimensions,
   Clipboard,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/config/api";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -58,7 +61,10 @@ import {
   VAULT_CURRENCIES,
   type VaultCategory,
 } from "@/constants/vault";
-import { REFRESH_CONTROL_COLOR, TAB_BAR_PADDING_BOTTOM } from "@/constants/layout";
+import {
+  REFRESH_CONTROL_COLOR,
+  TAB_BAR_PADDING_BOTTOM,
+} from "@/constants/layout";
 import { formatDecimalInput, formatIntegerInput } from "@/utils/numeric-input";
 import { SimpleBarChart } from "@/components/charts/SimpleBarChart";
 import { VaultSkeleton } from "@/components/skeletons/VaultSkeleton";
@@ -151,19 +157,19 @@ function GoldBarChart({ data }: { data: { date: string; price: number }[] }) {
   );
 }
 
-
-const HEADER_CONTENT_HEIGHT = 56;
-const CONTENT_PADDING_TOP_EXTRA = 24;
+// Padding du contenu pour compenser le ScreenHeader absolu (même valeur que pt-20 utilisée dans les autres screens)
+const CONTENT_PADDING_TOP = 80;
 
 export function VaultScreen() {
-  const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
   const { hasPermission } = usePermissions();
   const queryClient = useQueryClient();
-  const contentTopPadding = insets.top + HEADER_CONTENT_HEIGHT + CONTENT_PADDING_TOP_EXTRA;
+  const contentTopPadding = CONTENT_PADDING_TOP;
 
   const [metalHistoryOpen, setMetalHistoryOpen] = useState(false);
-  const [metalHistory, setMetalHistory] = useState<{ date: string; price: number }[]>([]);
+  const [metalHistory, setMetalHistory] = useState<
+    { date: string; price: number }[]
+  >([]);
   const [metalHistoryLoading, setMetalHistoryLoading] = useState(false);
 
   const canCreate = hasPermission("vault.create");
@@ -220,7 +226,9 @@ export function VaultScreen() {
     if (!metalHistoryOpen) return;
     setMetalHistoryLoading(true);
     api
-      .get<{ gold: { date: string; price: number }[] }>("/api/market-prices/metals-history?days=90")
+      .get<{ gold: { date: string; price: number }[] }>(
+        "/api/market-prices/metals-history?days=90",
+      )
       .then((res) => {
         const gold = res.data?.gold;
         if (Array.isArray(gold) && gold.length) setMetalHistory(gold);
@@ -427,15 +435,18 @@ export function VaultScreen() {
   const listBgColor = isDark ? "#1e293b" : "#fff";
 
   const columnWidths = {
-    name: 140,
-    category: 90,
-    qty: 44,
-    purchasePrice: 120,
-    currentValue: 120,
-    date: 80,
+    name: 170,
+    category: 120,
+    qty: 50,
+    purchasePrice: 140,
+    currentValue: 140,
+    date: 100,
     actions: 88,
   };
-  const totalTableWidth = Object.values(columnWidths).reduce((s, w) => s + w, 0);
+  const totalTableWidth = Object.values(columnWidths).reduce(
+    (s, w) => s + w,
+    0,
+  );
 
   const headerScrollRef = useRef<ScrollView>(null);
   const contentScrollRefs = useRef<Map<string, ScrollView>>(new Map());
@@ -450,20 +461,28 @@ export function VaultScreen() {
     contentScrollRefs.current.forEach((sv) => {
       if (sv) sv.scrollTo({ x: offsetX, animated: false });
     });
-    setTimeout(() => { isScrollingRef.current = false; }, 100);
+    setTimeout(() => {
+      isScrollingRef.current = false;
+    }, 100);
   }, []);
 
-  const handleContentScroll = useCallback((itemId: string) => (event: any) => {
-    if (isScrollingRef.current) return;
-    const offsetX = event.nativeEvent.contentOffset.x;
-    scrollXRef.current = offsetX;
-    isScrollingRef.current = true;
-    if (headerScrollRef.current) headerScrollRef.current.scrollTo({ x: offsetX, animated: false });
-    contentScrollRefs.current.forEach((sv, id) => {
-      if (id !== itemId && sv) sv.scrollTo({ x: offsetX, animated: false });
-    });
-    setTimeout(() => { isScrollingRef.current = false; }, 100);
-  }, []);
+  const handleContentScroll = useCallback(
+    (itemId: string) => (event: any) => {
+      if (isScrollingRef.current) return;
+      const offsetX = event.nativeEvent.contentOffset.x;
+      scrollXRef.current = offsetX;
+      isScrollingRef.current = true;
+      if (headerScrollRef.current)
+        headerScrollRef.current.scrollTo({ x: offsetX, animated: false });
+      contentScrollRefs.current.forEach((sv, id) => {
+        if (id !== itemId && sv) sv.scrollTo({ x: offsetX, animated: false });
+      });
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 100);
+    },
+    [],
+  );
 
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
@@ -477,9 +496,6 @@ export function VaultScreen() {
 
   const renderStatsHeader = () => (
     <View style={styles.headerBlock}>
-      <Text style={[styles.subtitle, { color: isDark ? "#94a3b8" : "#64748b" }]}>
-        Gérez vos actifs physiques : or, argent, diamants, montres et objets de valeur
-      </Text>
       {/* Stats cards — 2x2 grid */}
       <View style={styles.statsGrid}>
         <Card
@@ -786,7 +802,11 @@ export function VaultScreen() {
         <View
           style={[
             styles.searchBar,
-            { flex: 1, marginBottom: 0, backgroundColor: isDark ? "#1e293b" : "#f3f4f6" },
+            {
+              flex: 1,
+              marginBottom: 0,
+              backgroundColor: isDark ? "#1e293b" : "#f3f4f6",
+            },
           ]}
         >
           <HugeiconsIcon
@@ -831,7 +851,9 @@ export function VaultScreen() {
           if (ref) {
             contentScrollRefs.current.set(item.id, ref);
             if (scrollXRef.current > 0) {
-              requestAnimationFrame(() => ref.scrollTo({ x: scrollXRef.current, animated: false }));
+              requestAnimationFrame(() =>
+                ref.scrollTo({ x: scrollXRef.current, animated: false }),
+              );
             }
           } else contentScrollRefs.current.delete(item.id);
         }}
@@ -844,28 +866,106 @@ export function VaultScreen() {
           paddingRight: columnWidths.actions,
         }}
       >
-        <View style={{ flexDirection: "row", minWidth: totalTableWidth - columnWidths.actions }}>
-          <View style={{ width: columnWidths.name, borderRightWidth: 1, borderRightColor: rowBorderColor }} className="px-3 py-3">
-            <Text className={`text-sm font-medium ${isDark ? "text-gray-200" : "text-gray-900"}`} numberOfLines={1}>{item.name}</Text>
+        <View
+          style={{
+            flexDirection: "row",
+            minWidth: totalTableWidth - columnWidths.actions,
+          }}
+        >
+          <View
+            style={{
+              width: columnWidths.name,
+              borderRightWidth: 1,
+              borderRightColor: rowBorderColor,
+            }}
+            className="px-3 py-3"
+          >
+            <Text
+              className={`text-sm font-medium ${isDark ? "text-gray-200" : "text-gray-900"}`}
+            >
+              {item.name}
+            </Text>
           </View>
-          <View style={{ width: columnWidths.category, borderRightWidth: 1, borderRightColor: rowBorderColor }} className="px-3 py-3">
-            <Text className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`} numberOfLines={1}>{item.category}</Text>
+          <View
+            style={{
+              width: columnWidths.category,
+              borderRightWidth: 1,
+              borderRightColor: rowBorderColor,
+            }}
+            className="px-3 py-3"
+          >
+            <Text
+              className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}
+            >
+              {item.category}
+            </Text>
           </View>
-          <View style={{ width: columnWidths.qty, borderRightWidth: 1, borderRightColor: rowBorderColor }} className="px-3 py-3">
-            <Text className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}>{item.quantity}</Text>
+          <View
+            style={{
+              width: columnWidths.qty,
+              borderRightWidth: 1,
+              borderRightColor: rowBorderColor,
+            }}
+            className="px-3 py-3"
+          >
+            <Text
+              className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}
+            >
+              {item.quantity}
+            </Text>
           </View>
-          <View style={{ width: columnWidths.purchasePrice, borderRightWidth: 1, borderRightColor: rowBorderColor }} className="px-3 py-3">
-            <BlurredAmount amount={item.purchasePrice * item.quantity} currency={item.currency} className={isDark ? "text-cyan-200" : "text-cyan-800"} textClassName="text-sm" />
+          <View
+            style={{
+              width: columnWidths.purchasePrice,
+              borderRightWidth: 1,
+              borderRightColor: rowBorderColor,
+            }}
+            className="px-3 py-3"
+          >
+            <BlurredAmount
+              amount={item.purchasePrice * item.quantity}
+              currency={item.currency}
+              className={isDark ? "text-cyan-200" : "text-cyan-800"}
+              textClassName="text-sm"
+            />
           </View>
-          <View style={{ width: columnWidths.currentValue, borderRightWidth: 1, borderRightColor: rowBorderColor }} className="px-3 py-3">
+          <View
+            style={{
+              width: columnWidths.currentValue,
+              borderRightWidth: 1,
+              borderRightColor: rowBorderColor,
+            }}
+            className="px-3 py-3"
+          >
             {item.currentValue != null ? (
-              <BlurredAmount amount={item.currentValue} currency={item.currency} className={isDark ? "text-gray-300" : "text-gray-700"} textClassName="text-sm" />
+              <BlurredAmount
+                amount={item.currentValue}
+                currency={item.currency}
+                className={isDark ? "text-gray-300" : "text-gray-700"}
+                textClassName="text-sm"
+              />
             ) : (
-              <Text className={`text-sm ${isDark ? "text-gray-500" : "text-gray-500"}`}>—</Text>
+              <Text
+                className={`text-sm ${isDark ? "text-gray-500" : "text-gray-500"}`}
+              >
+                —
+              </Text>
             )}
           </View>
-          <View style={{ width: columnWidths.date, borderRightWidth: 1, borderRightColor: rowBorderColor }} className="px-3 py-3">
-            <Text className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`} numberOfLines={1}>{formatPurchaseDate(item.purchaseDate)}</Text>
+          <View
+            style={{
+              width: columnWidths.date,
+              borderRightWidth: 1,
+              borderRightColor: rowBorderColor,
+            }}
+            className="px-3 py-3"
+          >
+            <Text
+              className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}
+              numberOfLines={1}
+            >
+              {formatPurchaseDate(item.purchaseDate)}
+            </Text>
           </View>
         </View>
       </ScrollView>
@@ -891,7 +991,9 @@ export function VaultScreen() {
             <TouchableOpacity
               onPress={() => openEdit(item)}
               className="p-2 rounded-full"
-              style={{ backgroundColor: isDark ? "rgba(14, 165, 233, 0.1)" : "#e0f2fe" }}
+              style={{
+                backgroundColor: isDark ? "rgba(14, 165, 233, 0.1)" : "#e0f2fe",
+              }}
               activeOpacity={0.7}
             >
               <HugeiconsIcon icon={Edit01Icon} size={18} color="#0ea5e9" />
@@ -901,7 +1003,9 @@ export function VaultScreen() {
             <TouchableOpacity
               onPress={() => openDeleteDrawer(item)}
               className="p-2 rounded-full"
-              style={{ backgroundColor: isDark ? "rgba(239, 68, 68, 0.1)" : "#fee2e2" }}
+              style={{
+                backgroundColor: isDark ? "rgba(239, 68, 68, 0.1)" : "#fee2e2",
+              }}
               activeOpacity={0.7}
             >
               <HugeiconsIcon icon={Delete01Icon} size={18} color="#ef4444" />
@@ -947,24 +1051,95 @@ export function VaultScreen() {
                   paddingRight: columnWidths.actions,
                 }}
               >
-                <View style={{ flexDirection: "row", minWidth: totalTableWidth - columnWidths.actions }}>
-                  <View style={{ width: columnWidths.name, borderRightWidth: 1, borderRightColor: tableHeaderBorderColor }} className="px-3 py-3">
-                    <Text className={`text-xs font-semibold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}>Objet</Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    minWidth: totalTableWidth - columnWidths.actions,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: columnWidths.name,
+                      borderRightWidth: 1,
+                      borderRightColor: tableHeaderBorderColor,
+                    }}
+                    className="px-3 py-3"
+                  >
+                    <Text
+                      className={`text-xs font-semibold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
+                      Objet
+                    </Text>
                   </View>
-                  <View style={{ width: columnWidths.category, borderRightWidth: 1, borderRightColor: tableHeaderBorderColor }} className="px-3 py-3">
-                    <Text className={`text-xs font-semibold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}>Catégorie</Text>
+                  <View
+                    style={{
+                      width: columnWidths.category,
+                      borderRightWidth: 1,
+                      borderRightColor: tableHeaderBorderColor,
+                    }}
+                    className="px-3 py-3"
+                  >
+                    <Text
+                      className={`text-xs font-semibold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
+                      Catégorie
+                    </Text>
                   </View>
-                  <View style={{ width: columnWidths.qty, borderRightWidth: 1, borderRightColor: tableHeaderBorderColor }} className="px-3 py-3">
-                    <Text className={`text-xs font-semibold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}>Qté</Text>
+                  <View
+                    style={{
+                      width: columnWidths.qty,
+                      borderRightWidth: 1,
+                      borderRightColor: tableHeaderBorderColor,
+                    }}
+                    className="px-3 py-3"
+                  >
+                    <Text
+                      className={`text-xs font-semibold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
+                      Qté
+                    </Text>
                   </View>
-                  <View style={{ width: columnWidths.purchasePrice, borderRightWidth: 1, borderRightColor: tableHeaderBorderColor }} className="px-3 py-3">
-                    <Text className={`text-xs font-semibold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}>Prix d'achat</Text>
+                  <View
+                    style={{
+                      width: columnWidths.purchasePrice,
+                      borderRightWidth: 1,
+                      borderRightColor: tableHeaderBorderColor,
+                    }}
+                    className="px-3 py-3"
+                  >
+                    <Text
+                      className={`text-xs font-semibold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
+                      Prix d'achat
+                    </Text>
                   </View>
-                  <View style={{ width: columnWidths.currentValue, borderRightWidth: 1, borderRightColor: tableHeaderBorderColor }} className="px-3 py-3">
-                    <Text className={`text-xs font-semibold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}>Valeur act.</Text>
+                  <View
+                    style={{
+                      width: columnWidths.currentValue,
+                      borderRightWidth: 1,
+                      borderRightColor: tableHeaderBorderColor,
+                    }}
+                    className="px-3 py-3"
+                  >
+                    <Text
+                      className={`text-xs font-semibold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
+                      Valeur act.
+                    </Text>
                   </View>
-                  <View style={{ width: columnWidths.date, borderRightWidth: 1, borderRightColor: tableHeaderBorderColor }} className="px-3 py-3">
-                    <Text className={`text-xs font-semibold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}>Date</Text>
+                  <View
+                    style={{
+                      width: columnWidths.date,
+                      borderRightWidth: 1,
+                      borderRightColor: tableHeaderBorderColor,
+                    }}
+                    className="px-3 py-3"
+                  >
+                    <Text
+                      className={`text-xs font-semibold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
+                      Date
+                    </Text>
                   </View>
                 </View>
               </ScrollView>
@@ -985,27 +1160,61 @@ export function VaultScreen() {
                     paddingHorizontal: 8,
                   }}
                 >
-                  <Text className={`text-xs font-semibold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}>Actions</Text>
+                  <Text
+                    className={`text-xs font-semibold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                  >
+                    Actions
+                  </Text>
                 </View>
               )}
             </View>
             <ScrollView
               style={styles.tableBodyScroll}
-              contentContainerStyle={{ paddingBottom: TAB_BAR_PADDING_BOTTOM + 20 }}
+              contentContainerStyle={{
+                paddingBottom: TAB_BAR_PADDING_BOTTOM + 20,
+              }}
               refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={REFRESH_CONTROL_COLOR} />
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={REFRESH_CONTROL_COLOR}
+                />
               }
             >
               {filteredItems.length === 0 ? (
-                <View style={[styles.emptyInTable, { borderColor: listBorderColor }]}>
-                  <HugeiconsIcon icon={LockerIcon} size={48} color={isDark ? "#64748b" : "#94a3b8"} />
-                  <Text style={[styles.emptyTitle, { color: isDark ? "#e2e8f0" : "#334155" }]}>Aucun objet dans le coffre-fort</Text>
-                  <Text style={[styles.emptyDesc, { color: isDark ? "#94a3b8" : "#64748b" }]}>
-                    Ajoutez or, argent, diamants, montres ou autres biens pour suivre leur valeur.
+                <View
+                  style={[
+                    styles.emptyInTable,
+                    { borderColor: listBorderColor },
+                  ]}
+                >
+                  <HugeiconsIcon
+                    icon={LockerIcon}
+                    size={48}
+                    color={isDark ? "#64748b" : "#94a3b8"}
+                  />
+                  <Text
+                    style={[
+                      styles.emptyTitle,
+                      { color: isDark ? "#e2e8f0" : "#334155" },
+                    ]}
+                  >
+                    Aucun objet dans le coffre-fort
+                  </Text>
+                  <Text
+                    style={[
+                      styles.emptyDesc,
+                      { color: isDark ? "#94a3b8" : "#64748b" },
+                    ]}
+                  >
+                    Ajoutez or, argent, diamants, montres ou autres biens pour
+                    suivre leur valeur.
                   </Text>
                   {canCreate && (
                     <Button onPress={openAdd} style={styles.emptyButton}>
-                      <Text style={styles.addButtonText}>Ajouter un premier objet</Text>
+                      <Text style={styles.addButtonText}>
+                        Ajouter un premier objet
+                      </Text>
                     </Button>
                   )}
                 </View>
@@ -1033,7 +1242,9 @@ export function VaultScreen() {
           >
             <View className="gap-4 pb-4" style={{ alignSelf: "stretch" }}>
               <View className="gap-2">
-                <Text className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                <Text
+                  className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
                   Nom <Text className="text-red-500">*</Text>
                 </Text>
                 <Input
@@ -1042,15 +1253,19 @@ export function VaultScreen() {
                   placeholder={
                     form.category === "Or"
                       ? "Ex : Lingot 100g"
-                      : form.category === "Argent" || form.category === "Platine" || form.category === "Palladium"
+                      : form.category === "Argent" ||
+                          form.category === "Platine" ||
+                          form.category === "Palladium"
                         ? "Ex : Pièces ou lingot"
                         : form.category === "Diamant"
                           ? "Ex : Solitaire 1,5 ct"
                           : form.category === "Montre"
                             ? "Ex : Submariner Date"
-                            : form.category === "Billets et devises" || form.category === "Cash"
+                            : form.category === "Billets et devises" ||
+                                form.category === "Cash"
                               ? "Ex : Espèces EUR"
-                              : form.category === "Titres et documents" || form.category === "Document"
+                              : form.category === "Titres et documents" ||
+                                  form.category === "Document"
                                 ? "Ex : Titre de propriété"
                                 : form.category === "Œuvres d'art"
                                   ? "Ex : Tableau, sculpture"
@@ -1065,7 +1280,9 @@ export function VaultScreen() {
               </View>
 
               <View className="gap-2">
-                <Text className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                <Text
+                  className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
                   Catégorie <Text className="text-red-500">*</Text>
                 </Text>
                 <Select
@@ -1081,7 +1298,9 @@ export function VaultScreen() {
               {isWatch && (
                 <>
                   <View className="gap-2">
-                    <Text className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    <Text
+                      className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                    >
                       Marque
                     </Text>
                     <Select
@@ -1099,7 +1318,9 @@ export function VaultScreen() {
                     />
                   </View>
                   <View className="gap-2">
-                    <Text className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    <Text
+                      className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                    >
                       Type de montre
                     </Text>
                     <Select
@@ -1121,21 +1342,33 @@ export function VaultScreen() {
 
               {quantityOne ? (
                 <View className="gap-2">
-                  <Text className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                  <Text
+                    className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                  >
                     Devise de la valeur <Text className="text-red-500">*</Text>
                   </Text>
                   <Select
                     value={form.currency}
-                    onValueChange={(v) => setForm((f) => ({ ...f, currency: v }))}
-                    items={VAULT_CURRENCIES.map((c) => ({ label: `${c.code} - ${c.name}`, value: c.code }))}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, currency: v }))
+                    }
+                    items={VAULT_CURRENCIES.map((c) => ({
+                      label: `${c.code} - ${c.name}`,
+                      value: c.code,
+                    }))}
                     placeholder="Sélectionner une devise"
                   />
                 </View>
               ) : (
                 <>
                   <View className="gap-2">
-                    <Text className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                      {form.category === "Billets et devises" ? "Nombre d'unités" : "Quantité"} <Text className="text-red-500">*</Text>
+                    <Text
+                      className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                    >
+                      {form.category === "Billets et devises"
+                        ? "Nombre d'unités"
+                        : "Quantité"}{" "}
+                      <Text className="text-red-500">*</Text>
                     </Text>
                     <Input
                       value={form.quantity}
@@ -1151,13 +1384,20 @@ export function VaultScreen() {
                     />
                   </View>
                   <View className="gap-2">
-                    <Text className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                    <Text
+                      className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                    >
                       Devise <Text className="text-red-500">*</Text>
                     </Text>
                     <Select
                       value={form.currency}
-                      onValueChange={(v) => setForm((f) => ({ ...f, currency: v }))}
-                      items={VAULT_CURRENCIES.map((c) => ({ label: `${c.code} - ${c.name}`, value: c.code }))}
+                      onValueChange={(v) =>
+                        setForm((f) => ({ ...f, currency: v }))
+                      }
+                      items={VAULT_CURRENCIES.map((c) => ({
+                        label: `${c.code} - ${c.name}`,
+                        value: c.code,
+                      }))}
                       placeholder="Sélectionner une devise"
                     />
                   </View>
@@ -1165,10 +1405,14 @@ export function VaultScreen() {
               )}
 
               <View className="gap-2">
-                <Text className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                  {form.category === "Titres et documents" || form.category === "Document"
+                <Text
+                  className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  {form.category === "Titres et documents" ||
+                  form.category === "Document"
                     ? "Valeur estimée"
-                    : form.category === "Billets et devises" || form.category === "Cash"
+                    : form.category === "Billets et devises" ||
+                        form.category === "Cash"
                       ? "Montant"
                       : "Prix d'achat"}{" "}
                   <Text className="text-red-500">*</Text>
@@ -1191,7 +1435,9 @@ export function VaultScreen() {
 
               {!noDate && (
                 <View className="gap-2">
-                  <Text className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                  <Text
+                    className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                  >
                     Date d'achat
                   </Text>
                   <Input
@@ -1213,7 +1459,9 @@ export function VaultScreen() {
 
               {isMetal && (
                 <View className="gap-2">
-                  <Text className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                  <Text
+                    className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                  >
                     Poids (grammes) <Text className="text-red-500">*</Text>
                   </Text>
                   <Input
@@ -1235,7 +1483,9 @@ export function VaultScreen() {
 
               {form.category === "Diamant" && (
                 <View className="gap-2">
-                  <Text className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                  <Text
+                    className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                  >
                     Poids (carats)
                   </Text>
                   <Input
@@ -1254,9 +1504,13 @@ export function VaultScreen() {
                 </View>
               )}
 
-              {VAULT_CATEGORIES_SERIAL_NUMBER.includes(form.category as any) && (
+              {VAULT_CATEGORIES_SERIAL_NUMBER.includes(
+                form.category as any,
+              ) && (
                 <View className="gap-2">
-                  <Text className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                  <Text
+                    className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                  >
                     Numéro de série
                   </Text>
                   <Input
@@ -1271,7 +1525,9 @@ export function VaultScreen() {
 
               {VAULT_CATEGORIES_NOTES.includes(form.category as any) && (
                 <View className="gap-2">
-                  <Text className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                  <Text
+                    className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                  >
                     Notes (optionnel)
                   </Text>
                   <Input
@@ -1332,8 +1588,7 @@ export function VaultScreen() {
               className={`text-base leading-6 ${isDark ? "text-gray-200" : "text-gray-800"}`}
             >
               Êtes-vous sûr de vouloir supprimer l'objet{" "}
-              <Text className="font-bold">{itemToDelete.name}</Text> ?
-              {"\n\n"}
+              <Text className="font-bold">{itemToDelete.name}</Text> ?{"\n\n"}
               Cette action est irréversible.
             </Text>
             <View>
@@ -1418,19 +1673,41 @@ export function VaultScreen() {
             onPress={() => setMetalHistoryOpen(false)}
           />
           <View
-            style={[styles.modalContent, { backgroundColor: isDark ? "#1e293b" : "#fff" }]}
+            style={[
+              styles.modalContent,
+              { backgroundColor: isDark ? "#1e293b" : "#fff" },
+            ]}
             onStartShouldSetResponder={() => true}
           >
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: isDark ? "#f1f5f9" : "#0f172a" }]}>
+              <Text
+                style={[
+                  styles.modalTitle,
+                  { color: isDark ? "#f1f5f9" : "#0f172a" },
+                ]}
+              >
                 Fluctuation des prix des métaux
               </Text>
-              <Text style={[styles.modalSubtitle, { color: isDark ? "#94a3b8" : "#64748b" }]}>
-                Or : évolution sur 90 jours (freegoldapi.com). Argent : cours actuel (MetalpriceAPI).
+              <Text
+                style={[
+                  styles.modalSubtitle,
+                  { color: isDark ? "#94a3b8" : "#64748b" },
+                ]}
+              >
+                Or : évolution sur 90 jours (freegoldapi.com). Argent : cours
+                actuel (MetalpriceAPI).
               </Text>
             </View>
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              <Text style={[styles.modalChartTitle, { color: isDark ? "#fcd34d" : "#b45309" }]}>
+            <ScrollView
+              style={styles.modalBody}
+              showsVerticalScrollIndicator={false}
+            >
+              <Text
+                style={[
+                  styles.modalChartTitle,
+                  { color: isDark ? "#fcd34d" : "#b45309" },
+                ]}
+              >
                 Or (XAU) — Historique 90 jours (USD/oz)
               </Text>
               {metalHistoryLoading ? (
@@ -1439,25 +1716,64 @@ export function VaultScreen() {
                 </View>
               ) : metalHistory.length === 0 ? (
                 <View style={styles.modalChartPlaceholder}>
-                  <Text style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Données or indisponibles</Text>
+                  <Text style={{ color: isDark ? "#94a3b8" : "#64748b" }}>
+                    Données or indisponibles
+                  </Text>
                 </View>
               ) : (
                 <View style={styles.modalChartWrap}>
                   <GoldBarChart data={metalHistory} />
                 </View>
               )}
-              <View style={[styles.modalSilverBlock, { backgroundColor: isDark ? "rgba(148,163,184,0.15)" : "#f1f5f9", borderColor: listBorderColor }]}>
-                <Text style={[styles.modalSilverTitle, { color: isDark ? "#cbd5e1" : "#475569" }]}>
+              <View
+                style={[
+                  styles.modalSilverBlock,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(148,163,184,0.15)"
+                      : "#f1f5f9",
+                    borderColor: listBorderColor,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.modalSilverTitle,
+                    { color: isDark ? "#cbd5e1" : "#475569" },
+                  ]}
+                >
                   Argent (XAG) — Cours actuel (USD/oz)
                 </Text>
                 {marketPrices?.metalPrices?.rates?.XAG != null ? (
-                  <Text style={[styles.modalSilverValue, { color: isDark ? "#e2e8f0" : "#334155" }]}>
-                    {Number(metalRateToUsdPerOz(marketPrices.metalPrices.rates.XAG)).toLocaleString("fr-FR", { maximumFractionDigits: 4 })} USD/oz
+                  <Text
+                    style={[
+                      styles.modalSilverValue,
+                      { color: isDark ? "#e2e8f0" : "#334155" },
+                    ]}
+                  >
+                    {Number(
+                      metalRateToUsdPerOz(marketPrices.metalPrices.rates.XAG),
+                    ).toLocaleString("fr-FR", {
+                      maximumFractionDigits: 4,
+                    })}{" "}
+                    USD/oz
                   </Text>
                 ) : (
-                  <Text style={{ color: isDark ? "#94a3b8" : "#64748b", fontSize: 13 }}>Cours non disponible.</Text>
+                  <Text
+                    style={{
+                      color: isDark ? "#94a3b8" : "#64748b",
+                      fontSize: 13,
+                    }}
+                  >
+                    Cours non disponible.
+                  </Text>
                 )}
-                <Text style={[styles.modalSilverNote, { color: isDark ? "#94a3b8" : "#64748b" }]}>
+                <Text
+                  style={[
+                    styles.modalSilverNote,
+                    { color: isDark ? "#94a3b8" : "#64748b" },
+                  ]}
+                >
                   Historique argent non disponible avec l'API gratuite utilisée.
                 </Text>
               </View>

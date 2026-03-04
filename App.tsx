@@ -105,16 +105,13 @@ export default function App() {
   );
   const [isVideoRecording, setIsVideoRecording] = React.useState(false);
 
+  // Effet unique au montage : screenshot detector, auth listener, init notifications
   useEffect(() => {
-    // Initialiser la détection de captures d'écran
     screenshotDetector.init();
-    
-    // Enregistrer le callback pour détecter les enregistrements vidéo
     screenshotDetector.onVideoRecordingDetected((isRecording) => {
       setIsVideoRecording(isRecording);
     });
 
-    // Fonction pour initialiser les notifications
     const initNotifications = async () => {
       const isAuthenticated = await authService.isAuthenticated();
       if (isAuthenticated) {
@@ -122,39 +119,43 @@ export default function App() {
       }
     };
 
-    // Initialiser les notifications au démarrage
     initNotifications();
 
-    // Écouter les changements d'authentification pour réinitialiser les notifications
     const handleAuthChange = async (authenticated: boolean) => {
       if (authenticated) {
-        // Réinitialiser les notifications après la connexion
         await notificationsService.initialize();
       } else {
-        // Supprimer le token lors de la déconnexion
         await notificationsService.unregisterToken();
       }
     };
 
-    // Écouter les événements d'authentification
     authEventEmitter.on('auth-changed', handleAuthChange);
 
-    // Écouter les changements d'état de l'application
+    return () => {
+      screenshotDetector.destroy();
+      authEventEmitter.off('auth-changed', handleAuthChange);
+    };
+  }, []);
+
+  // Effet séparé pour le retour au premier plan (dépend de appState pour avoir le bon closure)
+  useEffect(() => {
+    const initNotificationsOnForeground = async () => {
+      const isAuthenticated = await authService.isAuthenticated();
+      if (isAuthenticated) {
+        await notificationsService.initialize();
+      }
+    };
+
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       if (appState.match(/inactive|background/) && nextAppState === "active") {
-        // L'application revient au premier plan : réactiver la protection uniquement
-        // Ne pas logger de "suspected_capture" ici : cela créait des faux positifs (chaque retour = fausse alerte screenshot)
         screenshotDetector.init();
-        initNotifications();
+        initNotificationsOnForeground();
       }
       setAppState(nextAppState);
     });
 
     return () => {
       subscription.remove();
-      screenshotDetector.destroy();
-      const { authEventEmitter } = require('@/config/api');
-      authEventEmitter.off('auth-changed', handleAuthChange);
     };
   }, [appState]);
 

@@ -92,6 +92,44 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
+export interface LandTitleDocument {
+  id: string;
+  landTitleId: string;
+  workspaceId: string | null;
+  title: string;
+  filename: string;
+  url: string;
+  objectName: string | null;
+  fileType: string | null;
+  fileSize: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LandTitle {
+  id: string;
+  userId: string;
+  workspaceId: string | null;
+  name: string;
+  titleNumber: string | null;
+  description: string | null;
+  area: number | null;
+  areaUnit: string;
+  purchasePrice: number | null;
+  currency: string;
+  purchaseDate: string | null;
+  address: string | null;
+  city: string | null;
+  region: string | null;
+  boundaries: Array<{ lat: number; lng: number }> | null;
+  centerLat: number | null;
+  centerLng: number | null;
+  status: 'ACTIVE' | 'ARCHIVED';
+  documents: LandTitleDocument[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 
 
 

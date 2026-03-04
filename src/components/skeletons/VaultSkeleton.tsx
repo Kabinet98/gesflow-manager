@@ -2,19 +2,18 @@ import React from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TAB_BAR_PADDING_BOTTOM } from "@/constants/layout";
 
-const HEADER_CONTENT_HEIGHT = 56;
-const CONTENT_PADDING_TOP_EXTRA = 24;
+// Même valeur que pt-20 utilisée dans les autres screens (pas de insets.top — SafeAreaView s'en occupe)
+const CONTENT_PADDING_TOP = 80;
 
 const columnWidths = {
-  name: 140,
-  category: 90,
-  qty: 44,
-  purchasePrice: 120,
-  currentValue: 120,
-  date: 80,
+  name: 170,
+  category: 120,
+  qty: 50,
+  purchasePrice: 140,
+  currentValue: 140,
+  date: 100,
   actions: 88,
 };
 const totalTableWidth =
@@ -27,9 +26,7 @@ const totalTableWidth =
 
 export function VaultSkeleton() {
   const { isDark } = useTheme();
-  const insets = useSafeAreaInsets();
-  const contentTopPadding =
-    insets.top + HEADER_CONTENT_HEIGHT + CONTENT_PADDING_TOP_EXTRA;
+  const contentTopPadding = CONTENT_PADDING_TOP;
 
   const borderColor = isDark ? "#334155" : "#e5e7eb";
   const headerBg = isDark ? "#1e293b" : "#f9fafb";
