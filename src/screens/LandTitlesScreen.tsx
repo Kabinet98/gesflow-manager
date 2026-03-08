@@ -448,8 +448,12 @@ export function LandTitlesScreen() {
       setDrawerOpen(false);
       resetForm();
     } catch (error: any) {
-      const msg =
-        error.response?.data?.error || "Erreur lors de l'enregistrement";
+      const status = error.response?.status;
+      const serverError = error.response?.data?.error;
+      const details = error.response?.data?.details;
+      let msg = serverError || error.message || "Erreur lors de l'enregistrement";
+      if (status) msg += ` (${status})`;
+      if (details) msg += `\n${JSON.stringify(details)}`;
       Alert.alert("Erreur", msg);
     } finally {
       setSubmitting(false);

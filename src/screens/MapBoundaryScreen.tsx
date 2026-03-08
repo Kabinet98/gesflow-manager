@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Alert,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Polygon, Polyline, Marker, PROVIDER_GOOGLE, PROVIDER_DEFAULT, Region } from "react-native-maps";
@@ -45,16 +46,32 @@ export function MapBoundaryScreen() {
   const [points, setPoints] = useState<LatLng[]>(existingBoundaries ?? []);
   const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState(false);
+  const [locationGranted, setLocationGranted] = useState(false);
 
-  // Center map on user's current location on mount
+  // Request location permission first, then center map
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (!cancelled && status === "granted") {
+          setLocationGranted(true);
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Center map on user's current location once map is ready and permission granted
+  useEffect(() => {
+    if (!mapReady || !locationGranted) return;
     if (existingBoundaries && existingBoundaries.length > 0) return;
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") return;
       try {
         const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
+          accuracy: Location.Accuracy.Balanced,
         });
         mapRef.current?.animateToRegion(
           {
@@ -67,7 +84,7 @@ export function MapBoundaryScreen() {
         );
       } catch {}
     })();
-  }, []);
+  }, [mapReady, locationGranted]);
 
   const handleMapPress = useCallback(
     (e: any) => {
@@ -90,11 +107,12 @@ export function MapBoundaryScreen() {
   );
 
   const centerOnMe = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") return;
     try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") return;
+      if (!locationGranted) setLocationGranted(true);
       const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+        accuracy: Location.Accuracy.Balanced,
       });
       mapRef.current?.animateToRegion(
         {
@@ -180,8 +198,42 @@ export function MapBoundaryScreen() {
         longitudeDelta: 0.01,
       };
 
+  if (mapError) {
+    return (
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+        <SafeAreaView edges={["top"]} style={styles.topBar}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.topBtn}
+          >
+            <HugeiconsIcon icon={ArrowLeft01Icon} size={22} color="#ffffff" />
+          </TouchableOpacity>
+          <View style={styles.titleContainer}>
+            <Text style={styles.titleText}>Définir les limites</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </SafeAreaView>
+        <Text style={{ color: "#fff", fontSize: 16, textAlign: "center", paddingHorizontal: 32 }}>
+          Impossible de charger la carte. Vérifiez votre connexion et réessayez.
+        </Text>
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: "#0ea5e9", marginTop: 16 }]}
+          onPress={() => { setMapError(false); }}
+        >
+          <Text style={styles.actionBtnText}>Réessayer</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
+      {!mapReady && (
+        <View style={[StyleSheet.absoluteFillObject, { justifyContent: "center", alignItems: "center", backgroundColor: "#000" }]}>
+          <ActivityIndicator size="large" color="#0ea5e9" />
+          <Text style={{ color: "#fff", marginTop: 12, fontSize: 14 }}>Chargement de la carte...</Text>
+        </View>
+      )}
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
@@ -189,10 +241,11 @@ export function MapBoundaryScreen() {
         mapType={mapType}
         initialRegion={initialRegion}
         onPress={handleMapPress}
+        onMapReady={() => setMapReady(true)}
         onRegionChangeComplete={(region) => {
           currentRegionRef.current = region;
         }}
-        showsUserLocation
+        showsUserLocation={locationGranted}
         showsMyLocationButton={false}
         showsCompass={false}
         showsScale={false}
